@@ -66,6 +66,15 @@ export enum JVMTIThreadState {
 }
 
 /**
+ * Three-state boolean.
+ */
+export enum TriState {
+  TRUE,
+  FALSE,
+  INDETERMINATE
+}
+
+/**
  * The current status of the JVM.
  */
 export enum JVMStatus {

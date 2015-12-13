@@ -224,7 +224,7 @@ class java_lang_Class {
   }
 
   public static 'getProtectionDomain0()Ljava/security/ProtectionDomain;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.java_security_ProtectionDomain {
-    return null;
+    return javaThis.$cls.getProtectionDomain();
   }
 
   public static 'getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, jvmStr: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
@@ -369,7 +369,10 @@ class java_lang_Class {
   }
 
   public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_Class): boolean {
-    return thread.getJVM().areAssertionsEnabled();
+    if (arg0.$cls.getLoader().getLoaderObject() === null) {
+      return thread.getJVM().areSystemAssertionsEnabled();
+    }
+    return false;
   }
 
 }
@@ -386,7 +389,7 @@ class java_lang_ClassLoader$NativeLibrary {
     return null;
   }
 
-  public static 'unload(Ljava/lang/String;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String): void {
+  public static 'unload(Ljava/lang/String;Z)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader$NativeLibrary, name: JVMTypes.java_lang_String): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
@@ -401,10 +404,10 @@ class java_lang_ClassLoader {
     return null;
   }
 
-  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, pd: Long, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number, pd: JVMTypes.java_security_ProtectionDomain, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     var loader = util.getLoader(thread, javaThis),
       type = util.int_classname(name.toString()),
-      cls = loader.defineClass(thread, type, util.byteArray2Buffer(bytes.array, offset, len));
+      cls = loader.defineClass(thread, type, util.byteArray2Buffer(bytes.array, offset, len), pd);
     if (cls == null) {
       return null;
     }
@@ -418,7 +421,7 @@ class java_lang_ClassLoader {
     }, true);
   }
 
-  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, arg0: JVMTypes.java_lang_String, arg1: JVMTypes.java_nio_ByteBuffer, arg2: number, arg3: number, arg4: JVMTypes.java_security_ProtectionDomain, arg5: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
+  public static 'defineClass2(Ljava/lang/String;Ljava/nio/ByteBuffer;IILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;'(thread: JVMThread, javaThis: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, b: JVMTypes.java_nio_ByteBuffer, off: number, len: number, pd: JVMTypes.java_security_ProtectionDomain, source: JVMTypes.java_lang_String): JVMTypes.java_lang_Class {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
     // Satisfy TypeScript return type.
     return null;
@@ -464,10 +467,59 @@ class java_lang_ClassLoader {
     }
   }
 
-  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(thread: JVMThread): JVMTypes.java_lang_AssertionStatusDirectives {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
+  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(thread: JVMThread): void {
+    let jvm = thread.getJVM(), bsCl = thread.getBsCl();
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    bsCl.initializeClass(thread, 'Ljava/lang/AssertionStatusDirectives;', (cdata: ReferenceClassData<JVMTypes.java_lang_AssertionStatusDirectives>) => {
+      if (cdata) {
+        let asd: typeof JVMTypes.java_lang_AssertionStatusDirectives = <any> cdata.getConstructor(thread);
+        let directives = new asd();
+        let enabledAssertions = jvm.getEnabledAssertions();
+        // The classes for which assertions are to be enabled or disabled.
+        let classes: string[] = [],
+          // A parallel array to classes, indicating whether each class
+          // is to have assertions enabled or disabled.
+          classEnabled: number[] = [],
+          // The package-trees for which assertions are to be enabled or disabled.
+          packages: string[] = [],
+          // A parallel array to packages, indicating whether each
+          // package-tree is to have assertions enabled or disabled.
+          packageEnabled: number[] = [],
+          deflt: boolean = false,
+          processAssertions = (enabled: number) => {
+            return (name: string): void => {
+              let dotIndex = name.indexOf('...');
+              if (dotIndex === -1) {
+                classes.push(name);
+                classEnabled.push(enabled);
+              } else {
+                packages.push(name.slice(0, dotIndex));
+                packageEnabled.push(enabled);
+              }
+            };
+          };
+
+        jvm.getDisabledAssertions().forEach(processAssertions(0));
+
+        if (typeof(enabledAssertions) === 'boolean') {
+          deflt = <boolean> enabledAssertions;
+        } else if (Array.isArray(enabledAssertions)) {
+          enabledAssertions.forEach(processAssertions(1));
+        } else {
+          return thread.throwNewException('Ljava/lang/InternalError;', `Expected enableAssertions option to be a boolean or an array of strings.`);
+        }
+
+        // console.log(`Classes: ${classes.join(",")}, ClassEnabled: ${classEnabled.join(",")} Packages: ${packages.join(",")}, PackageEnabled: ${packageEnabled.join(",")}, Deflt: ${deflt}`);
+
+        directives['java/lang/AssertionStatusDirectives/classes'] = util.newArrayFromData<JVMTypes.java_lang_String>(thread, bsCl, '[Ljava/lang/String;', classes.map((cls) => util.initString(bsCl, cls)));
+        directives['java/lang/AssertionStatusDirectives/classEnabled'] = util.newArrayFromData<number>(thread, bsCl, '[Z', classEnabled);
+        directives['java/lang/AssertionStatusDirectives/packages'] = util.newArrayFromData<JVMTypes.java_lang_String>(thread, bsCl, '[Ljava/lang/String;', packages.map((pkg) => util.initString(bsCl, pkg)));
+        directives['java/lang/AssertionStatusDirectives/packageEnabled'] = util.newArrayFromData<number>(thread, bsCl, '[Z', packageEnabled);
+        directives['java/lang/AssertionStatusDirectives/deflt'] = (<boolean> enabledAssertions) ? 1 : 0;
+
+        thread.asyncReturn(directives);
+      }
+    });
   }
 
 }
@@ -475,28 +527,25 @@ class java_lang_ClassLoader {
 class java_lang_Compiler {
 
   public static 'initialize()V'(thread: JVMThread): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // NOP.
   }
 
   public static 'registerNatives()V'(thread: JVMThread): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    // NOP.
   }
 
   public static 'compileClass(Ljava/lang/Class;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_Class): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
+    // Return false: No compiler available.
     return 0;
   }
 
   public static 'compileClasses(Ljava/lang/String;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_String): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
+    // Return false: No compiler available.
     return 0;
   }
 
   public static 'command(Ljava/lang/Object;)Ljava/lang/Object;'(thread: JVMThread, arg0: JVMTypes.java_lang_Object): JVMTypes.java_lang_Object {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
+    // Return null; no compiler available.
     return null;
   }
 
@@ -585,16 +634,23 @@ class java_lang_Package {
 
   public static 'getSystemPackage0(Ljava/lang/String;)Ljava/lang/String;'(thread: JVMThread, pkgNameObj: JVMTypes.java_lang_String): JVMTypes.java_lang_String {
     var pkgName = pkgNameObj.toString();
-    if (thread.getBsCl().getPackageNames().indexOf(pkgName) >= 0) {
-      return pkgNameObj;
-    } else {
-      return null;
+    // Slice off ending /
+    pkgName = pkgName.slice(0, pkgName.length - 1);
+    let pkgs = thread.getBsCl().getPackages();
+    for (let i = 0; i < pkgs.length; i++) {
+      if (pkgs[i][0] === pkgName) {
+        // XXX: Ignore secondary load locations.
+        return util.initString(thread.getBsCl(), pkgs[i][1][0]);
+      }
     }
+    // Could not find package.
+    return null;
   }
 
   public static 'getSystemPackages0()[Ljava/lang/String;'(thread: JVMThread): JVMTypes.JVMArray<JVMTypes.java_lang_String> {
-    var pkgNames = thread.getBsCl().getPackageNames();
-    return util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', pkgNames.map((pkgName) => util.initString(thread.getBsCl(), pkgName)));
+    var pkgNames = thread.getBsCl().getPackages();
+    // Note: We add / to end of package name, since it appears that is what OpenJDK expects.
+    return util.newArrayFromData<JVMTypes.java_lang_String>(thread, thread.getBsCl(), '[Ljava/lang/String;', pkgNames.map((pkgName) => util.initString(thread.getBsCl(), pkgName[0] + "/")));
   }
 }
 
@@ -732,7 +788,7 @@ class java_lang_reflect_Proxy {
 
   public static 'defineClass0(Ljava/lang/ClassLoader;Ljava/lang/String;[BII)Ljava/lang/Class;'(thread: JVMThread, cl: JVMTypes.java_lang_ClassLoader, name: JVMTypes.java_lang_String, bytes: JVMTypes.JVMArray<number>, offset: number, len: number): JVMTypes.java_lang_Class {
     var loader = util.getLoader(thread, cl),
-      cls = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len));
+      cls = loader.defineClass(thread, util.int_classname(name.toString()), util.byteArray2Buffer(bytes.array, offset, len), null);
     if (cls != null) {
       return cls.getClassObject(thread);
     }
@@ -1104,6 +1160,10 @@ class java_lang_Thread {
 
   public static 'start0()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
     javaThis['run()V'](javaThis.$thread);
+  }
+
+  public static 'setNativeName(Ljava/lang/String;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, name: JVMTypes.java_lang_String): void {
+    // NOP. No need to do anything.
   }
 
   public static 'isInterrupted(Z)Z'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, clearFlag: number): boolean {
@@ -1587,6 +1647,28 @@ class java_lang_invoke_MethodHandleNatives {
     } else {
       return Long.fromNumber(memberName.vmindex);
     }
+  }
+
+  /**
+   * Follows the same logic as sun.misc.Unsafe's staticFieldOffset.
+   */
+  public static 'staticFieldOffset(Ljava/lang/invoke/MemberName;)J'(thread: JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName): Long {
+    if (memberName['vmindex'] === -1) {
+      thread.throwNewException("Ljava/lang/IllegalStateException;", "Attempted to retrieve the object offset for an unresolved or non-object MemberName.");
+    } else {
+      return Long.fromNumber(memberName.vmindex);
+    }
+  }
+
+  /**
+   * Follows the same logic as sun.misc.Unsafe's staticFieldBase.
+   */
+  public static 'staticFieldBase(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;'(thread: JVMThread, memberName: JVMTypes.java_lang_invoke_MemberName): JVMTypes.java_lang_Object {
+    // Return a special JVM object.
+    // TODO: Actually create a special DoppioJVM class for this.
+    var rv = new ((<ReferenceClassData<JVMTypes.java_lang_Object>> thread.getBsCl().getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread))(thread);
+    (<any> rv).$staticFieldBase = memberName['java/lang/invoke/MemberName/clazz'].$cls;
+    return rv;
   }
 
   /**

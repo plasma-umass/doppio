@@ -3,9 +3,10 @@ package classes.test;
 import java.lang.annotation.Annotation;
 import java.util.HashSet;
 import java.util.Arrays;
+import java.io.File;
 
 class PackageTest {
-  static public void main(String[] args) {
+  static public void main(String[] args) throws Throwable {
     Package pkg = Package.getPackage("java.lang");
     System.out.println(pkg.getName());
 
@@ -20,7 +21,10 @@ class PackageTest {
     for (Package p : pkgs) {
       String name = p.getName();
       if (names.contains(name))
-        System.out.println("Found system package with name: " + name);
+        System.out.println("Found system package: " + p.toString());
     }
+    // Ensure the code location is set. We can't test the exact value, as it differs
+    // depending on the environment.
+    System.out.println(PackageTest.class.getProtectionDomain().getCodeSource().getLocation() != null);
   }
 }

@@ -1,7 +1,8 @@
-import ClassData = require('./ClassData');
+import {ClassData, ReferenceClassData, ArrayClassData, PrimitiveClassData} from './ClassData';
 import threading = require('./threading');
 import ClassLock = require('./ClassLock');
-import enums = require('./enums');
+import {IClasspathItem, ClasspathFactory} from './classpath';
+import {TriState} from './enums';
 import util = require('./util');
 import methods = require('./methods');
 import logging = require('./logging');
@@ -11,7 +12,6 @@ import path = require('path');
 import fs = require('fs');
 import JVMTypes = require('../includes/JVMTypes');
 var debug = logging.debug;
-declare var BrowserFS: any;
 
 /**
  * Used to lock classes for loading.
@@ -29,7 +29,7 @@ class ClassLocks {
    * the lock. If it is taken, we enqueue the callback.
    * NOTE: For convenience, will handle triggering the owner's callback as well.
    */
-  public tryLock(typeStr: string, thread: threading.JVMThread, cb: (cdata: ClassData.ClassData) => void): boolean {
+  public tryLock(typeStr: string, thread: threading.JVMThread, cb: (cdata: ClassData) => void): boolean {
     if (typeof this.locks[typeStr] === 'undefined') {
       this.locks[typeStr] = new ClassLock();
     }
@@ -39,7 +39,7 @@ class ClassLocks {
   /**
    * Releases the lock on the given string.
    */
-  public unlock(typeStr: string, cdata: ClassData.ClassData): void {
+  public unlock(typeStr: string, cdata: ClassData): void {
     this.locks[typeStr].unlock(cdata);
     // No need for this lock to remain.
     delete this.locks[typeStr];
@@ -61,11 +61,11 @@ class ClassLocks {
  * Base classloader class. Contains common class resolution and instantiation
  * logic.
  */
-export class ClassLoader {
+export abstract class ClassLoader {
   /**
    * Stores loaded *reference* and *array* classes.
    */
-  private loadedClasses: { [typeStr: string]: ClassData.ClassData } = {};
+  private loadedClasses: { [typeStr: string]: ClassData } = {};
   /**
    * Stores callbacks that are waiting for another thread to finish loading
    * the specified class.
@@ -98,7 +98,7 @@ export class ClassLoader {
    * @param typeStr The type string of the class.
    * @param classData The class data object representing the class.
    */
-  public addClass(typeStr: string, classData: ClassData.ClassData): void {
+  public addClass(typeStr: string, classData: ClassData): void {
     // If the class is already added, ensure it is the same class we are adding again.
     assert(this.loadedClasses[typeStr] != null ? this.loadedClasses[typeStr] === classData : true);
     this.loadedClasses[typeStr] = classData;
@@ -110,7 +110,7 @@ export class ClassLoader {
    *
    * Should only be used internally by ClassLoader subclasses.
    */
-  protected getClass(typeStr: string): ClassData.ClassData {
+  protected getClass(typeStr: string): ClassData {
     return this.loadedClasses[typeStr];
   }
 
@@ -121,11 +121,12 @@ export class ClassLoader {
    *   the class file.
    * @param typeStr The type string of the class (e.g. "Ljava/lang/Object;")
    * @param data The data associated with the class as a binary blob.
+   * @param protectionDomain The protection domain for the class (can be NULL).
    * @return The defined class, or null if there was an issue.
    */
-  public defineClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, typeStr: string, data: NodeBuffer): ClassData.ReferenceClassData<T> {
+  public defineClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, typeStr: string, data: Buffer, protectionDomain: JVMTypes.java_security_ProtectionDomain): ReferenceClassData<T> {
     try {
-      var classData = new ClassData.ReferenceClassData<T>(data, this);
+      var classData = new ReferenceClassData<T>(data, protectionDomain, this);
       this.addClass(typeStr, classData);
       if (this instanceof BootstrapClassLoader) {
         debug(`[BOOTSTRAP] Defining class ${typeStr}`);
@@ -149,9 +150,9 @@ export class ClassLoader {
   /**
    * Defines a new array class with this loader.
    */
-  protected defineArrayClass<T>(typeStr: string): ClassData.ArrayClassData<T> {
+  protected defineArrayClass<T>(typeStr: string): ArrayClassData<T> {
     assert(this.getLoadedClass(util.get_component_type(typeStr)) != null);
-    var arrayClass = new ClassData.ArrayClassData<T>(util.get_component_type(typeStr), this);
+    var arrayClass = new ArrayClassData<T>(util.get_component_type(typeStr), this);
     this.addClass(typeStr, arrayClass);
     return arrayClass;
   }
@@ -162,7 +163,7 @@ export class ClassLoader {
    * @return Returns the loaded class, or null if no such class is currently
    *   loaded.
    */
-  public getLoadedClass(typeStr: string): ClassData.ClassData {
+  public getLoadedClass(typeStr: string): ClassData {
     var cls = this.loadedClasses[typeStr];
     if (cls != null) {
       return cls;
@@ -199,7 +200,7 @@ export class ClassLoader {
    * @return Returns the class if it is both loaded and resolved. Returns null
    *   if this is not the case.
    */
-  public getResolvedClass(typeStr: string): ClassData.ClassData {
+  public getResolvedClass(typeStr: string): ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
       if (cls.isResolved() || cls.tryToResolve()) {
@@ -218,7 +219,7 @@ export class ClassLoader {
    * @return Returns the class if it is initialized. Returns null if this is
    *   not the case.
    */
-  public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData.ClassData {
+  public getInitializedClass(thread: threading.JVMThread, typeStr: string): ClassData {
     var cls = this.getLoadedClass(typeStr);
     if (cls !== null) {
       if (cls.isInitialized(thread) || cls.tryToInitialize()) {
@@ -234,7 +235,7 @@ export class ClassLoader {
   /**
    * Asynchronously loads the given class.
    */
-  public loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  public loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     // See if we can grab this synchronously first.
     var cdata = this.getLoadedClass(typeStr);
     if (cdata) {
@@ -268,16 +269,14 @@ export class ClassLoader {
    *
    * Should never be invoked directly! Use loadClass.
    */
-  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit?: boolean): void {
-    throw new Error("Abstract method!");
-  }
+  protected abstract _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit?: boolean): void;
 
   /**
    * Convenience function: Resolve many classes. Calls cb with null should
    * an error occur.
    */
-  public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData.ClassData }) => void) {
-    var classes: { [typeStr: string]: ClassData.ClassData } = {};
+  public resolveClasses(thread: threading.JVMThread, typeStrs: string[], cb: (classes: { [typeStr: string]: ClassData }) => void) {
+    var classes: { [typeStr: string]: ClassData } = {};
     util.asyncForEach<string>(typeStrs, (typeStr: string, next_item: (err?: any) => void) => {
       this.resolveClass(thread, typeStr, (cdata) => {
         if (cdata === null) {
@@ -300,8 +299,8 @@ export class ClassLoader {
    * Asynchronously *resolves* the given class by loading the class and
    * resolving its super class, interfaces, and/or component classes.
    */
-  public resolveClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
-    this.loadClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+  public resolveClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
+    this.loadClass(thread, typeStr, (cdata: ClassData) => {
       if (cdata === null || cdata.isResolved()) {
         // Nothing to do! Either cdata is null, an exception triggered, and we
         // failed, or cdata is already resolved.
@@ -315,9 +314,9 @@ export class ClassLoader {
   /**
    * Asynchronously *initializes* the given class and its super classes.
    */
-  public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  public initializeClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     // Get the resolved class.
-    this.resolveClass(thread, typeStr, (cdata: ClassData.ClassData) => {
+    this.resolveClass(thread, typeStr, (cdata: ClassData) => {
       if (cdata === null || cdata.isInitialized(thread)) {
         // Nothing to do! Either resolution failed and an exception has already
         // been thrown, cdata is already initialized, or the current thread is
@@ -327,7 +326,7 @@ export class ClassLoader {
         });
       } else {
         assert(util.is_reference_type(typeStr));
-        (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cdata).initialize(thread, cb, explicit);
+        (<ReferenceClassData<JVMTypes.java_lang_Object>> cdata).initialize(thread, cb, explicit);
       }
     }, explicit);
   }
@@ -344,9 +343,7 @@ export class ClassLoader {
   /**
    * Returns the JVM object corresponding to this ClassLoader.
    */
-  public getLoaderObject(): JVMTypes.java_lang_ClassLoader {
-    throw new Error('Abstract method');
-  }
+  public abstract getLoaderObject(): JVMTypes.java_lang_ClassLoader;
 }
 
 /**
@@ -359,20 +356,14 @@ export class BootstrapClassLoader extends ClassLoader {
    * Meaning: The *end* of this array is the bootstrap class loader, and the
    *   *beginning* of the array is the classpath item added last.
    */
-  private classPath: string[];
+  private classpath: IClasspathItem[];
   /**
-   * The path where jar files should be extracted.
+   * Keeps track of all loaded packages, and the classpath item(s) from
+   * whence their packages came.
+   *
+   * Note: Package separators are specified with slashes ('/'), not periods ('.').
    */
-  private extractionPath: string;
-  /**
-   * All of the currently loaded JAR files.
-   */
-  private jarFiles: { [jarPath: string]: JAR };
-  /**
-   * Maps the file system path to .jar files to the file system path where it
-   * is extracted.
-   */
-  private jarFilePaths: { [jarPath: string]: string };
+  private loadedPackages: {[pkgString: string]: IClasspathItem[]};
 
   /**
    * Constructs the bootstrap classloader with the given classpath.
@@ -383,139 +374,50 @@ export class BootstrapClassLoader extends ClassLoader {
    * @param cb Called once all of the classpath items have been checked.
    *   Passes an error if one occurs.
    */
-  constructor(classPath: string[], extractionPath: string, cb: (e?: any) => void) {
+  constructor(javaHome: string, classpath: string[], cb: (e?: any) => void) {
     super(this);
-    this.classPath = [];
-    this.extractionPath = path.resolve(extractionPath);
-    // XXX: Must be initialized here rather than at the property definition
-    // because we reference 'this' in the call to 'super'.
-    this.unzipJar = util.are_in_browser() ? this.unzipJarBrowser : this.unzipJarNode;
-    this.jarFiles = {};
-    this.jarFilePaths = {};
+    this.classpath = null;
+    this.loadedPackages = {};
 
-    // Checks all of the classpaths. Add only those that exist.
-    var checkClasspaths = (cb: (e?: any) => void) => {
-      util.asyncForEach<string>(classPath, (p: string, next_item: (err?: any) => void) => {
-        this.addClassPathItem(p, (success: boolean) => {
-          // Ignore the success condition. It's not an error to pass an invalid
-          // classpath to the JVM.
-          next_item();
-        });
-      }, cb);
-    };
-
-    // Prepare the extraction path.
-    fs.exists(this.extractionPath, (exists: boolean) => {
-      if (!exists) {
-        fs.mkdir(this.extractionPath, (err?) => {
-          if (err) {
-            cb(new Error(`Unable to create JAR file directory ${this.extractionPath}: ${err}`));
-          } else {
-            checkClasspaths(cb);
-          }
-        });
-      } else {
-        checkClasspaths(cb);
-      }
+    ClasspathFactory(javaHome, classpath, (items) => {
+      this.classpath = items.reverse();
+      cb();
     });
   }
 
   /**
-   * Returns a listing of loaded packages.
+   * Registers that a given class has successfully been loaded from the specified
+   * classpath item.
    */
-  public getPackageNames(): string[] {
-    var classNames = this.getLoadedClassNames(), i: number, className: string,
-      finalPackages: {[pkgNames: string]: boolean } = { };
-    for (i = 0; i < classNames.length; i++) {
-      className = classNames[i];
-      if (util.is_reference_type(className)) {
-        finalPackages[className.substring(1, (className.lastIndexOf('/')) + 1)] = true;
-      }
+  private _registerLoadedClass(clsType: string, cpItem: IClasspathItem): void {
+    let pkgName = clsType.slice(0, clsType.lastIndexOf('/')),
+      itemLoader = this.loadedPackages[pkgName];
+    if (!itemLoader) {
+      this.loadedPackages[pkgName] = [cpItem];
+    } else if (itemLoader[0] !== cpItem && itemLoader.indexOf(cpItem) === -1) {
+      // Common case optimization: Simply check the first array element.
+      itemLoader.push(cpItem);
     }
-    return Object.keys(finalPackages);
   }
 
   /**
-   * Adds the given classpath to the class path. If added already, we move it
-   * to the front of the classpath.
-   *
-   * Verifies that the path exists prior to adding.
-   *
-   * @param p The path to add.
+   * Returns a listing of tuples containing:
+   * * The package name (e.g. java/lang)
+   * * Classpath locations where classes in the package were loaded.
    */
-  public addClassPathItem(p: string, cb: (success: boolean) => void) {
-    var classPath = this.classPath;
-    // Standardize.
-    p = path.resolve(p);
-
-    // Check if the item exists.
-    fs.stat(p, (err: any, stats: fs.Stats) => {
-      if (err) {
-        cb(false);
-      } else {
-        if (stats.isFile()) {
-          // JAR file. Extract first.
-          this.unzipJar(p, (err: any, unzipPath?: string) => {
-            if (err) {
-              cb(false);
-            } else {
-              this.jarFilePaths[p] = unzipPath;
-              addPath(unzipPath, cb);
-            }
-          });
-        } else {
-          // Directory.
-          addPath(p, cb);
-        }
-      }
+  public getPackages(): [string, string[]][] {
+    return Object.keys(this.loadedPackages).map((pkgName: string): [string, string[]] => {
+      return [pkgName, this.loadedPackages[pkgName].map((item) => item.getPath())];
     });
-
-    var addPath = (p: string, cb: (success: boolean) => void) => {
-      var existingIdx = classPath.indexOf(p);
-      if (existingIdx !== -1) {
-        // Remove it before adding it in again.
-        classPath.splice(existingIdx, 1);
-      }
-      // Add to the front of the classpath.
-      classPath.unshift(p);
-      // Check for a manifest. If it exists, add it, and then add its classpath
-      // items.
-      var manifestPath = path.resolve(p, 'META-INF', 'MANIFEST.MF');
-      fs.exists(manifestPath, (exists) => {
-        if (exists) {
-          var jar = new JAR(p, (err) => {
-            // Only add the jar file if we successfully parsed it.
-            if (!err) {
-              this.jarFiles[p] = jar;
-            }
-            cb(true);
-          });
-        } else {
-          cb(true);
-        }
-      });
-    };
-  }
-
-  /**
-   * Retrieve the JAR object for the given jar file loaded in the class loader.
-   */
-  public getJar(jarPath: string): JAR {
-    // Standardize path.
-    jarPath = path.resolve(jarPath);
-    if (this.jarFilePaths.hasOwnProperty(jarPath)) {
-      return this.jarFiles[this.jarFilePaths[jarPath]];
-    }
-    return null;
   }
 
   /**
    * Retrieves or defines the specified primitive class.
    */
-  public getPrimitiveClass(typeStr: string): ClassData.PrimitiveClassData {
-    var cdata = <ClassData.PrimitiveClassData> this.getClass(typeStr);
+  public getPrimitiveClass(typeStr: string): PrimitiveClassData {
+    var cdata = <PrimitiveClassData> this.getClass(typeStr);
     if (cdata == null) {
-      cdata = new ClassData.PrimitiveClassData(typeStr, this);
+      cdata = new PrimitiveClassData(typeStr, this);
       this.addClass(typeStr, cdata);
     }
     return cdata;
@@ -526,28 +428,46 @@ export class BootstrapClassLoader extends ClassLoader {
    *
    * SHOULD ONLY BE INVOKED INTERNALLY BY THE CLASSLOADER.
    */
-  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     debug(`[BOOTSTRAP] Loading class ${typeStr}`);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));
     // Search the class path for the class.
-    var clsFilePath = util.descriptor2typestr(typeStr);
-    util.asyncFind<string>(this.classPath, (p: string, callback: (success: boolean) => void): void => {
-      fs.exists(path.join(p, clsFilePath + ".class"), callback);
-    }, (foundPath?: string): void => {
-      if (foundPath) {
-        // Read the class file, define the class!
-        var clsPath = path.join(foundPath, clsFilePath + ".class");
-        fs.readFile(clsPath, (err: any, data: NodeBuffer) => {
-          if (err) {
-            debug(`Failed to load class ${typeStr}: ${err}`);
-            this.throwClassNotFoundException(thread, typeStr, explicit);
-            cb(null);
-          } else {
-            // We can read the class, all is well!
-            cb(this.defineClass(thread, typeStr, data));
-          }
-        });
+    let clsFilePath = util.descriptor2typestr(typeStr),
+      cPathLen = this.classpath.length,
+      toSearch: IClasspathItem[] = [],
+      clsData: Buffer;
+
+    searchLoop:
+    for (let i = 0; i < cPathLen; i++) {
+      let item = this.classpath[i];
+      switch (item.hasClass(clsFilePath)) {
+        case TriState.INDETERMINATE:
+          toSearch.push(item);
+          break;
+        case TriState.TRUE:
+          // Break out of the loop; TRUE paths are guaranteed to have the class.
+          toSearch.push(item);
+          break searchLoop;
+      }
+    }
+
+    util.asyncFind<IClasspathItem>(toSearch, (pItem: IClasspathItem, callback: (success: boolean) => void): void => {
+      pItem.loadClass(clsFilePath, (err: Error, data?: Buffer) => {
+        if (err) {
+          callback(false);
+        } else {
+          clsData = data;
+          callback(true);
+        }
+      });
+    }, (pItem?: IClasspathItem) => {
+      if (pItem) {
+        let cls = this.defineClass(thread, typeStr, clsData, null);
+        if (cls !== null) {
+          this._registerLoadedClass(clsFilePath, pItem);
+        }
+        cb(cls);
       } else {
         // No such class.
         debug(`Could not find class ${typeStr}`);
@@ -558,120 +478,11 @@ export class BootstrapClassLoader extends ClassLoader {
   }
 
   /**
-   * Uses BrowserFS to mount the jar file in the file system, allowing us to
-   * lazily extract only the files we care about.
+   * Returns a listing of reference classes loaded in the bootstrap loader.
    */
-  private unzipJarBrowser(jarPath: string, cb: (err: any, unzipPath?: string) => void): void {
-    var destFolder: string = path.resolve(this.extractionPath, path.basename(jarPath, '.jar')),
-      mfs = (<any>fs).getRootFS();
-    // In case we have mounted this before, unmount.
-    try {
-      mfs.umount(destFolder);
-    } catch (e) {
-      // We didn't mount it before. Ignore.
-    }
-
-    // Grab the file.
-    fs.readFile(jarPath, function (err: any, data: Buffer) {
-      var jarFS: any;
-      if (err) {
-        // File might not have existed, or there was an error reading it.
-        return cb(err);
-      }
-      // Try to mount.
-      try {
-        jarFS = new BrowserFS.FileSystem.ZipFS(data, path.basename(jarPath));
-        mfs.mount(destFolder, jarFS);
-        // Success!
-        cb(null, destFolder);
-      } catch (e) {
-        cb(e);
-      }
-    });
-  }
-
-  /**
-   * Helper function for unzip_jar_node.
-   */
-  private _extractAllTo(files: { [filePath: string]: any }, dest_dir: string): void {
-    for (var filepath in files) {
-      if (files.hasOwnProperty(filepath)) {
-        var file = files[filepath];
-        filepath = path.join(dest_dir, filepath);
-        if (file.options.dir || filepath.slice(-1) === '/') {
-          if (!fs.existsSync(filepath)) {
-            fs.mkdirSync(filepath);
-          }
-        } else {
-          fs.writeFileSync(filepath, file._data, 'binary');
-        }
-      }
-    }
-  }
-
-  /**
-   * Uses JSZip to eagerly extract the entire JAR file into a temporary folder.
-   */
-  private unzipJarNode(jar_path: string, cb: (err: any, unzipPath?: string) => void): void {
-    var JSZip = require('node-zip'),
-      unzipper = new JSZip(fs.readFileSync(jar_path, 'binary'), {
-        base64: false,
-        checkCRC32: true
-      }),
-      dest_folder = path.resolve(this.extractionPath, path.basename(jar_path, '.jar'));
-
-    try {
-      if (!fs.existsSync(dest_folder)) {
-        fs.mkdirSync(dest_folder);
-      }
-      this._extractAllTo(unzipper.files, dest_folder);
-      // Reset stack depth.
-      setImmediate(function () { return cb(null, dest_folder); });
-    } catch (e) {
-      setImmediate(function () { return cb(e); });
-    }
-  }
-
-  /**
-   * Given a path to a JAR file, returns a path in the file system where the
-   * extracted contents can be read.
-   */
-  private unzipJar: (jar_path: string, cb: (err: any, unzipPath?: string) => void) => void;
-
-  /**
-   * Returns a listing of absolute paths to the class files loaded in the
-   * bootstrap class loader.
-   */
-  public getLoadedClassFiles(cb: (files: string[]) => void): void {
-    var loadedClasses = this.getLoadedClassNames(),
-      loadedClassFiles: string[] = [];
-    util.asyncForEach<string>(loadedClasses, (className: string, next_item: (err?: any) => void) => {
-      if (util.is_reference_type(className)) {
-        var classFileName = `${util.descriptor2typestr(className)}.class`;
-        // Figure out from whence it came.
-        util.asyncForEach<string>(this.classPath, (cPath: string, next_cpath: (err?: any) => void) => {
-          var pathToClass = path.resolve(cPath, classFileName);
-          fs.exists(pathToClass, (exists: boolean) => {
-            if (exists) {
-              // Get the real path to this file (resolves symbolic links).
-              fs.realpath(pathToClass, (err: any, realPath: string) => {
-                if (!err) {
-                  loadedClassFiles.push(realPath);
-                  // Short circuit.
-                  next_item();
-                }
-              });
-            } else {
-              next_cpath();
-            }
-          });
-        }, next_item);
-      } else {
-        next_item();
-      }
-    }, (err?: any) => {
-      cb(loadedClassFiles);
-    });
+  public getLoadedClassFiles(): string[] {
+    var loadedClasses = this.getLoadedClassNames();
+    return loadedClasses.filter((clsName: string) => util.is_reference_type(clsName));
   }
 
   /**
@@ -687,8 +498,20 @@ export class BootstrapClassLoader extends ClassLoader {
    * Returns the current classpath.
    */
   public getClassPath(): string[] {
-    // Reverse it so it is the expected order (last item is first search target)
-    return this.classPath.slice(0).reverse();
+    let cpLen = this.classpath.length,
+      cpStrings: string[] = new Array<string>(cpLen);
+    for (let i = 0; i < cpLen; i++) {
+      // Reverse it so it is the expected order (last item is first search target)
+      cpStrings[i] = this.classpath[cpLen - i - 1].getPath();
+    }
+    return cpStrings;
+  }
+
+  /**
+   * Returns the classpath item objects in the classpath.
+   */
+  public getClassPathItems(): IClasspathItem[] {
+    return this.classpath.slice(0);
   }
 }
 
@@ -716,7 +539,7 @@ export class CustomClassLoader extends ClassLoader {
    * @param explicit 'True' if loadClass was explicitly invoked by the program,
    *   false otherwise. This changes the exception/error that we throw.
    */
-  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData.ClassData) => void, explicit: boolean = true): void {
+  protected _loadClass(thread: threading.JVMThread, typeStr: string, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
     debug(`[CUSTOM] Loading class ${typeStr}`);
     // This method is only valid for reference types!
     assert(util.is_reference_type(typeStr));

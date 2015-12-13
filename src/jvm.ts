@@ -15,6 +15,23 @@ import interfaces = require('./interfaces');
 import JVMTypes = require('../includes/JVMTypes');
 import Parker = require('./parker');
 import ThreadPool from './threadpool';
+import logging = require('./logging');
+// Do not import, otherwise TypeScript will prune it.
+// Referenced only in eval'd code.
+let BrowserFS = require('browserfs');
+let deflate = require('pako/lib/zlib/deflate');
+let inflate = require('pako/lib/zlib/inflate');
+let zstream = require('pako/lib/zlib/zstream');
+let crc32 = require('pako/lib/zlib/crc32');
+let adler32 = require('pako/lib/zlib/adler32');
+// For version information.
+let pkg: any;
+if (util.are_in_browser()) {
+  pkg = require('../package.json');
+} else {
+  pkg = require('../../../package.json');
+}
+
 
 // XXX: We currently initialize these classes at JVM bootup. This is expensive.
 // We should attempt to prune this list as much as possible.
@@ -34,7 +51,11 @@ var coreClasses = [
   'Ljava/lang/Integer;', 'Ljava/lang/Long;', 'Ljava/lang/Short;',
   'Ljava/lang/Void;', 'Ljava/io/FileDescriptor;',
   'Ljava/lang/Boolean;', '[Lsun/management/MemoryManagerImpl;',
-  '[Lsun/management/MemoryPoolImpl;'
+  '[Lsun/management/MemoryPoolImpl;',
+  // Contains important FS constants used by natives. These constants are
+  // inlined into JCL class files, so it typically never gets initialized
+  // implicitly by the JVM.
+  'Lsun/nio/fs/UnixConstants;'
 ];
 
 /**
@@ -54,7 +75,9 @@ class JVM {
   private terminationCb: (code: number) => void = null;
   // The initial JVM thread used to kick off execution.
   private firstThread: JVMThread = null;
-  private assertionsEnabled: boolean = false;
+  private enableSystemAssertions: boolean = false;
+  private enabledAssertions: boolean | string[] = false;
+  private disabledAssertions: string[] = [];
   private systemClassLoader: ClassLoader.ClassLoader = null;
   private nextRef: number = 0;
   // Set of all of the methods we want vtrace to be enabled on.
@@ -79,7 +102,8 @@ class JVM {
       firstThread: JVMThread,
       firstThreadObj: JVMTypes.java_lang_Thread,
       opts = <interfaces.JVMOptions> util.merge({
-        assertionsEnabled: false,
+        enableSystemAssertions: false,
+        enableAssertions: false,
         properties: {},
         classpath: ['.'],
         tmpDir: '/tmp'
@@ -100,7 +124,15 @@ class JVM {
     }
 
     this.nativeClasspath = opts.nativeClasspath;
-    this.assertionsEnabled = opts.assertionsEnabled;
+    if (opts.enableSystemAssertions) {
+      this.enableSystemAssertions = opts.enableSystemAssertions;
+    }
+    if (opts.enableAssertions) {
+      this.enabledAssertions = opts.enableAssertions;
+    }
+    if (opts.disableAssertions) {
+      this.disabledAssertions = opts.disableAssertions;
+    }
     this._initSystemProperties(bootstrapClasspath,
       opts.classpath.map((p: string): string => path.resolve(p)),
       path.resolve(opts.javaHomePath),
@@ -119,8 +151,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       this.bsCl =
-        new ClassLoader.BootstrapClassLoader(bootstrapClasspath,
-          opts.extractionPath, next);
+        new ClassLoader.BootstrapClassLoader(this.systemProperties['java.home'], bootstrapClasspath, next);
     });
 
     /**
@@ -198,7 +229,11 @@ class JVM {
         } else {
           this.systemClassLoader = rv.$loader;
           firstThreadObj['java/lang/Thread/contextClassLoader'] = rv;
-          next();
+
+          // Initialize assertion data.
+          // TODO: Is there a better way to force this? :|
+          let defaultAssertionStatus = this.enabledAssertions === true ? 1 : 0;
+          rv['java/lang/ClassLoader/setDefaultAssertionStatus(Z)V'](firstThread, [defaultAssertionStatus], next);
         }
       });
     });
@@ -444,6 +479,18 @@ function require(name) {
       return path;
     case 'buffer':
       return buffer;
+    case 'browserfs':
+      return BrowserFS;
+    case 'pako/lib/zlib/zstream':
+      return zstream;
+    case 'pako/lib/zlib/inflate':
+      return inflate;
+    case 'pako/lib/zlib/deflate':
+      return deflate;
+    case 'pako/lib/zlib/crc32':
+      return crc32;
+    case 'pako/lib/zlib/adler32':
+      return adler32;
     default:
       return savedRequire(name);
   }
@@ -578,6 +625,7 @@ eval(mod);
     this.systemProperties = util.merge({
       'java.class.path': javaClassPath.join(':'),
       'java.home': javaHomePath,
+      'java.ext.dirs': path.join(javaHomePath, 'lib', 'ext'),
       'java.io.tmpdir': tmpDir,
       'sun.boot.class.path': bootstrapClasspath.join(':'),
       'file.encoding': 'UTF-8',
@@ -595,11 +643,11 @@ eval(mod);
       'os.name': 'doppio',
       'os.arch': 'js',
       'os.version': '0',
-      'java.vm.name': 'Doppio 32-bit VM',
-      'java.vm.vendor': 'Doppio Inc.',
+      'java.vm.name': 'DoppioJVM 32-bit VM',
+      'java.vm.version': pkg.version,
+      'java.vm.vendor': 'PLASMA@UMass',
       'java.awt.headless': (util.are_in_browser()).toString(), // true if we're using the console frontend
       'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
-      'useJavaUtilZip': 'true', // hack for sun6javac, avoid ZipFileIndex shenanigans
       'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
       'sun.arch.data.model': '32', // Identify as 32-bit, because that's how we act.
       'sun.jnu.encoding': "UTF-8" // Determines how Java parses command line options.
@@ -618,10 +666,24 @@ eval(mod);
   }
 
   /**
-   * Returns `true` if assertions are enabled, false otherwise.
+   * Returns `true` if system assertions are enabled, false otherwise.
    */
-  public areAssertionsEnabled(): boolean {
-    return this.assertionsEnabled;
+  public areSystemAssertionsEnabled(): boolean {
+    return this.enableSystemAssertions;
+  }
+
+  /**
+   * Get a listing of classes with assertions enabled. Can also return 'true' or 'false.
+   */
+  public getEnabledAssertions(): string[] | boolean {
+    return this.enabledAssertions;
+  }
+
+  /**
+   * Get a listing of classes with assertions disabled.
+   */
+  public getDisabledAssertions(): string[] {
+    return this.disabledAssertions;
   }
 
   /**

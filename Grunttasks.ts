@@ -5,21 +5,29 @@ import path = require('path');
 import fs = require('fs');
 import os = require('os');
 import _ = require('underscore');
+
+// Create shims.
+if (!fs.existsSync('shims')) {
+  fs.mkdirSync('shims');
+}
+['fs', 'path', 'buffer'].forEach((mod) => {
+  fs.writeFileSync(`shims/${mod}.js`, `module.exports=BrowserFS.BFSRequire('${mod}');\n`, { encoding: 'utf8'});
+});
+
 var browserifyConfigFcn = function(bundle: BrowserifyObject) {
-  // Exclusions must be specified here for karma-browserify.
-  (<any> bundle).exclude('node-zip');
+  (<any> bundle).exclude('../../../package.json');
   bundle.transform('browserify-shim', { global: true });
   // De-require after shim.
   bundle.plugin('browserify-derequire');
 }, browserifyOptions = {
-  builtins: {
-    "buffer": require.resolve('bfs-buffer'),
-    "path": require.resolve('bfs-path'),
-    "fs": require.resolve('bfs-fs')
-  },
+  builtins: _.extend({}, require('browserify/lib/builtins'), {
+    'buffer': require.resolve('./shims/buffer.js'),
+    'path': require.resolve('./shims/path.js'),
+    'fs': require.resolve('./shims/fs.js')
+  }),
   insertGlobalVars: {
-    "Buffer": () => "require('bfs-buffer').Buffer",
-    "process": () => "require('bfs-process')"
+    "Buffer": () => "BrowserFS.BFSRequire('buffer').Buffer",
+    "process": () => "BrowserFS.BFSRequire('process')"
   },
   detectGlobals: true,
   noParse: [
@@ -61,7 +69,7 @@ transformConfig = function(toRemove: string[]) {
     '/': 'http://localhost:8000/'
   },
   files: [
-    'node_modules/browserfs/dist/browserfs.js',
+    'node_modules/browserfs/dist/browserfs.js'
   ],
   singleRun: false,
   urlRoot: '/karma/',
@@ -106,7 +114,8 @@ export function setup(grunt: IGrunt) {
       build_type: "",        // Build type for doppio (dev/dev-cli/etc.) Will be set by 'setup' task.
       vendor_dir: '<%= resolve(build.doppio_dir, "vendor") %>',
       java_home_dir: '<%= resolve(build.doppio_dir, "vendor", "java_home") %>',
-      jcl_dir: '<%= resolve(build.java_home_dir, "classes") %>',
+      // Will be set by JDK download task.
+      bootclasspath: null,
       build_dir: '<%= resolve(build.doppio_dir, "build", build.build_type) %>',
       // TODO: Maybe fix this to prevent us from using too much scratch space?
       scratch_dir: path.resolve(os.tmpdir(), "doppio-temp" + Math.floor(Math.random() * 100000))
@@ -449,6 +458,12 @@ export function setup(grunt: IGrunt) {
       cmd: 'node',
       args: ['build/dev-cli/console/download_jdk.js']
     }, (err, result, code) => {
+      if (code === 0) {
+        let JDKInfo = require('./vendor/java_home/jdk.json');
+        grunt.config.set("build.bootclasspath",
+          JDKInfo.classpath.map((item: string) =>
+            path.resolve(grunt.config.get<string>("build.java_home_dir"), item)).join(":"));
+      }
       done(code === 0);
     });
     (<NodeJS.ReadableStream> (<any> child).stdout).on('data', function(d: Buffer) {
@@ -467,7 +482,11 @@ export function setup(grunt: IGrunt) {
     if (!grunt.file.exists("includes/JVMTypes.d.ts")) {
       // Ignore dev-cli compilation errors if the JVMTypes aren't defined yet.
       grunt.config.set('ts.options.failOnTypeErrors', false);
-      grunt.task.run(['ts:dev-cli', 'check_jdk', 'find_native_java', 'javac:default', 'includes:default', 'enable_type_errors']);
+      grunt.task.run(['ts:dev-cli', 'check_jdk', 'java', 'includes:default', 'enable_type_errors']);
+    } else if (!grunt.file.exists("vendor/java_home/jdk.json")) {
+      // Ignore dev-cli compilation errors if jdk.json isn't defined yet.
+      grunt.config.set('ts.options.failOnTypeErrors', false);
+      grunt.task.run(['ts:dev-cli', 'check_jdk', 'java', 'enable_type_errors']);
     }
   });
   grunt.registerTask("enable_type_errors", "Enables TypeScript type errors after include file generation.", function() {

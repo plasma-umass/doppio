@@ -19,7 +19,10 @@ import ClassState = enums.ClassState;
 import trace = logging.trace;
 import debug = logging.debug;
 
+import global = require('./global');
+
 declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 /**
  * Auto-incrementing reference number. Uniquely identifies each object allocated
@@ -311,6 +314,14 @@ export abstract class ClassData {
       this.jco['java/lang/Class/classLoader'] = this.getLoader().getLoaderObject();
     }
     return this.jco;
+  }
+
+  /**
+   * Get the protection domain of this class.
+   * This value is NULL for all but reference classes loaded by app classloaders.
+   */
+  public getProtectionDomain(): JVMTypes.java_security_ProtectionDomain {
+    return null;
   }
 
   /**
@@ -796,9 +807,15 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * invokespecial bytecode).
    */
   protected _uninheritedDefaultMethods: methods.Method[] = [];
+  /**
+   * The ProtectionDomain for this class, specified by the application class
+   * loader. NULL for bootstrap classloaded items.
+   */
+  protected _protectionDomain: JVMTypes.java_security_ProtectionDomain;
 
-  constructor(buffer: Buffer, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
+  constructor(buffer: Buffer, protectionDomain?: JVMTypes.java_security_ProtectionDomain, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
     super(loader);
+    this._protectionDomain = protectionDomain ? protectionDomain : null;
     var byteStream = new ByteStream(buffer),
       i: number = 0;
     if ((byteStream.getUint32()) !== 0xCAFEBABE) {
@@ -986,6 +1003,10 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    */
   public getUninheritedDefaultMethods(): methods.Method[] {
     return this._uninheritedDefaultMethods;
+  }
+
+  public getProtectionDomain(): JVMTypes.java_security_ProtectionDomain {
+    return this._protectionDomain;
   }
 
   /**

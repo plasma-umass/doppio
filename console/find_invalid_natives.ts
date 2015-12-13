@@ -12,11 +12,12 @@ import class_data = require('../src/ClassData');
 import methods = require('../src/methods');
 import JVM = require('../src/jvm');
 import JVMTypes = require('../includes/JVMTypes');
+import {IClasspathItem, ClasspathFactory} from '../src/classpath';
+import JDKInfo = require('../vendor/java_home/jdk.json');
 import os = require('os');
 var ReferenceClassData = class_data.ReferenceClassData,
-    classpath: string[] = [path.resolve(__dirname, '..', 'vendor', 'java_home', 'classes'),
-                           path.resolve(__dirname, '..')],
-    jvmObject: JVM;
+    jvmObject: JVM,
+    classpath: IClasspathItem[];
 
 /**
  * Implementation of Levenshtein distance.
@@ -61,13 +62,10 @@ function getEditDistance(a: string, b: string): number {
 function getNativeSigs(className: string): string[] {
   var rv: string[] = [], i: number;
   for (i = 0; i < classpath.length; i++) {
-    var klass: class_data.ReferenceClassData<JVMTypes.java_lang_Object>,
-        klass_path: string = path.resolve(classpath[i], className + ".class"),
-        methods: methods.Method[],
-        method_name: string;
-    if (fs.existsSync(klass_path)) {
-      klass = new ReferenceClassData(fs.readFileSync(klass_path));
-      methods = klass.getMethods();
+    let klassData = classpath[i].tryLoadClassSync(className);
+    if (klassData !== null) {
+      let klass = new ReferenceClassData(klassData);
+      let methods = klass.getMethods();
       methods.forEach((m: methods.Method) => {
         if (m.accessFlags.isNative()) {
           rv.push(m.signature);
@@ -82,7 +80,7 @@ function getNativeSigs(className: string): string[] {
  * What it says on the tin. Returns an array of class names (in foo/bar/Baz
  * format) that have native methods implemented in Doppio.
  */
-function getClassesWithImplementedNatives(): {[pkgName: string]: string[]} {
+function getClassesWithImplementedNatives(): {[clsName: string]: string[]} {
   var nativeImpls: { [clsName: string]: { [methSig: string]: Function } } = jvmObject.getNatives(),
       methods: {[pkgName: string]: string[]} = {};
 
@@ -187,14 +185,20 @@ function main() {
   printResult(similarMap);
 }
 
+const JAVA_HOME = path.resolve(__dirname, '../vendor/java_home');
+let bscp = JDKInfo.classpath.map((item: string) => path.resolve(JAVA_HOME, item));
 new JVM({
-  bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
+  bootstrapClasspath: bscp,
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
   classpath: [],
-  nativeClasspath: [path.resolve(__dirname, '../src/natives')],
-  assertionsEnabled: false
+  nativeClasspath: [path.resolve(__dirname, '../src/natives')]
 }, function(err: any, _jvmObject: JVM) {
+  if (err) {
+    throw err;
+  }
   jvmObject = _jvmObject;
-  main();
+  ClasspathFactory(JAVA_HOME, bscp, (items) => {
+    classpath = items;
+    main();
+  })
 });

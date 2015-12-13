@@ -4,7 +4,10 @@ import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
 import enums = require('./enums');
 import assert = require('./assert');
+import global = require('./global');
+
 declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 export interface IAttributeClass {
   parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number, name: string): IAttribute;

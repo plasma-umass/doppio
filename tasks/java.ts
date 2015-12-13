@@ -30,7 +30,7 @@ function java(grunt: IGrunt) {
     if (inputFiles.length === 0) {
       return done();
     }
-    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -bootclasspath ' + grunt.config('build.jcl_dir') + ' -source 1.8 -target 1.8 ' + inputFiles.join(' '), function(err?: any) {
+    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -bootclasspath ' + grunt.config('build.bootclasspath') + ' -source 1.8 -target 1.8 ' + inputFiles.join(' '), function(err?: any) {
       if (err) {
         grunt.fail.fatal('Error running javac: ' + err);
       }
@@ -52,7 +52,7 @@ function java(grunt: IGrunt) {
         // Trim '.java' from filename to get the class name.
         var className = file.src[0].slice(0, -5);
         // NOTE: -ea is to enable assert() statements, which are used in some test cases.
-        child_process.exec(shellEscape(grunt.config('build.java')) + ' -ea -Xbootclasspath/a:' + grunt.config('build.jcl_dir') + ' ' + className, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
+        child_process.exec(shellEscape(grunt.config('build.java')) + ' -ea -Xbootclasspath/a:' + grunt.config('build.bootclasspath') + ' ' + className, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
           fs.writeFileSync(file.dest, stdout.toString() + stderr.toString());
           cb();
         });

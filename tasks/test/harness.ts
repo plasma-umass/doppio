@@ -5,9 +5,13 @@
  */
 declare var __karma__: any;
 declare var __numWaiting: number;
-import DoppioJVM = require('../../src/doppiojvm');
 import BrowserFS = require('browserfs');
 import fs = require('fs');
+import path = require('path');
+import JDKInfo = require('../../vendor/java_home/jdk.json');
+// Force initialization of standard output.
+(<any> process).initializeTTYs();
+import DoppioJVM = require('../../src/doppiojvm');
 
 // HACK: Delay test execution until backends load.
 // https://zerokspot.com/weblog/2013/07/12/delay-test-execution-in-karma/
@@ -48,14 +52,14 @@ export default function runTests(isRelease: boolean) {
   process.chdir('/sys');
 
   DoppioJVM.Testing.getTests({
-    bootstrapClasspath: ['/sys/vendor/java_home/classes'],
+    bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve('/sys/vendor/java_home', item)),
     doppioDir: '/sys',
     testClasses: null,
     classpath: [],
     javaHomePath: '/sys/vendor/java_home',
-    extractionPath: '/tmp',
     nativeClasspath: ['/sys/natives'],
-    assertionsEnabled: true
+    enableSystemAssertions: true,
+    enableAssertions: true
   }, (tests: DoppioJVM.Testing.DoppioTest[]): void => {
     // Set up Jasmine unit tests.
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;

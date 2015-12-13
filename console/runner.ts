@@ -1,19 +1,20 @@
 "use strict";
-import java_cli = require('../src/java_cli');
+import javaCLI = require('../src/java_cli');
 import JVM = require('../src/jvm');
 import path = require('path');
 import os = require('os');
 import fs = require('fs');
+import JDKInfo = require('../vendor/java_home/jdk.json')
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
 });
 
-function done_cb(status: number): void {
+function doneCb(status: number): void {
   process.exit(status);
 }
 
-var jvm_state: JVM;
+var jvmState: JVM;
 
 process.on('SIGINT', function () {
   console.error('Doppio caught SIGINT');
@@ -23,9 +24,9 @@ process.on('SIGINT', function () {
 process.on('uncaughtException', (er: any) => {
   console.log(`Encountered error: ${er}\n${er.stack}`);
   fs.appendFileSync('doppio.err', `\n--------------------------------------\n${er}\n${er.stack}\n`);
-  if (jvm_state) {
+  if (jvmState) {
     // Dump JVM stack state.
-    jvm_state.dumpState('doppio.err', (er) => {
+    jvmState.dumpState('doppio.err', (er) => {
       if (!er) {
         console.log("Thread state dumped to doppio.err.")
       } else {
@@ -39,15 +40,13 @@ process.on('uncaughtException', (er: any) => {
 });
 
 // Run the JVM. Remove node runner.js from the args.
-java_cli(process.argv.slice(2), {
-  bootstrapClasspath: [path.resolve(__dirname, '../vendor/java_home/classes')],
+javaCLI(process.argv.slice(2), {
+  bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve(__dirname, '../vendor/java_home', item)),
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-  extractionPath: path.resolve(os.tmpdir(), 'doppio_jars'),
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, '../src/natives')],
   launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
-  assertionsEnabled: false,
   tmpDir: os.tmpdir()
-}, done_cb, function(jvm: JVM): void {
-  jvm_state = jvm;
+}, doneCb, function(jvm: JVM): void {
+  jvmState = jvm;
 });

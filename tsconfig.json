@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
         "module": "commonjs",
-        "sourceMap": true,
         "declaration": true,
         "target": "ES3",
         "noImplicitAny": true,
@@ -13,6 +12,7 @@
         "src/assert.ts",
         "src/attributes.ts",
         "src/ByteStream.ts",
+        "src/classpath.ts",
         "src/ClassData.ts",
         "src/ClassFile.ts",
         "src/ClassLoader.ts",
@@ -23,6 +23,7 @@
         "src/doppiojvm.ts",
         "src/enums.ts",
         "src/gLong.ts",
+        "src/global.ts",
         "src/heap.ts",
         "src/interfaces.ts",
         "src/jar.ts",
@@ -70,6 +71,7 @@
         "console/generate_thread_transition_graph.ts",
         "console/runner.ts",
         "console/test_runner.ts",
-        "console/download_jdk.ts"
+        "console/download_jdk.ts",
+        "vendor/pako.d.ts"
     ]
 }

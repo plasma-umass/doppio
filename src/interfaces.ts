@@ -14,12 +14,18 @@ export interface JVMOptions {
   classpath: string[];
   // Path to JAVA_HOME.
   javaHomePath: string;
-  // Path where we can extract JAR files.
-  extractionPath: string;
   // XXX: Path where native methods are located.
   nativeClasspath: string[];
-  // True if assertions are enabled, false otherwise.
-  assertionsEnabled: boolean;
+  // True if assertions are enabled in system classes, false otherwise.
+  // (equivalent to -esa command line option)
+  enableSystemAssertions?: boolean;
+  // Enable assertions across all classes (if `true`) or
+  // selected packages/classes
+  // (see http://docs.oracle.com/javase/7/docs/technotes/guides/language/assert.html for syntax)
+  enableAssertions?: boolean | string[];
+  // Disable assertions on specific classes / packages
+  // (see http://docs.oracle.com/javase/7/docs/technotes/guides/language/assert.html for syntax)
+  disableAssertions?: string[];
   // System properties for the JVM.
   properties?: {[name: string]: string};
   // Path where DoppioJVM can store temporary files. Defaults to /tmp.
@@ -47,6 +53,6 @@ export interface IWebsock {
 export interface JVMCLIOptions extends JVMOptions {
   // Name of the command used to launch `java`. Used in the 'usage' portion of
   // the help message.
-  launcherName?: string;
+  launcherName: string;
 }
 

@@ -13,8 +13,10 @@ import enums = require('./enums');
 import Monitor = require('./Monitor');
 import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
+import global = require('./global');
 
 declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } = {
   'java/lang/ref/Reference': {
@@ -23,9 +25,21 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
   },
   'java/lang/System': {
     'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, libName: JVMTypes.java_lang_String): void {
+      // Some libraries test if native libraries are available,
+      // and expect an exception if they are not.
+      // List all of the native libraries we support.
       var lib = libName.toString();
-      if (lib !== 'zip' && lib !== 'net' && lib !== 'nio' && lib !== 'awt' && lib !== 'fontmanager') {
-        thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `no ${lib} in java.library.path`);
+      switch (lib) {
+        case 'zip':
+        case 'net':
+        case 'nio':
+        case 'awt':
+        case 'fontmanager':
+        case 'management':
+          return;
+        default:
+          thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `no ${lib} in java.library.path`);
+          break;
       }
     }
   },

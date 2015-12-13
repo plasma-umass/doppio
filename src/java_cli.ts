@@ -1,176 +1,181 @@
-import optparse = require('./option_parser');
+import {OptionParser, ParseType, PrefixParseResult} from './option_parser';
 import JVM = require('./jvm');
 import util = require('./util');
 import logging = require('./logging');
 import {JVMCLIOptions} from './interfaces';
 
-/**
- * Initializes the option parser with the options for the `java` command.
- * Our option parser maintains global state, so we must re-initialize it each
- * time `java` is called.
- */
-function setupOptparse() {
-  optparse.describe({
-    standard: {
-      classpath: {
-        alias: 'cp',
-        description: 'JVM classpath, "path1:...:pathN"',
-        has_value: true
-      },
-      D: { description: 'set a system property, "name[=value]"' },
-      jar: {
-        description: 'add JAR to classpath and run its Main-Class (if found)',
-        has_value: true
-      },
-      help: { alias: 'h', description: 'print this help message' },
-      X: { description: 'print help on non-standard options' },
-      enableassertions: { alias: 'ea', description: 'enable debug assertions' }
+let parser = new OptionParser({
+  default: {
+    classpath: {
+      type: ParseType.NORMAL_VALUE_SYNTAX,
+      alias: 'cp',
+      optDesc: ' <class search path of directories and zip/jar files>',
+      desc: 'A : separated list of directories, JAR archives, and ZIP archives to search for class files.',
     },
-    non_standard: {
-      log: {
-        description: 'log level, [0-10]|vtrace|trace|debug|error',
-        has_value: true,
-        default: "" + logging.ERROR
-      },
-      'vtrace-methods': {
-        description: 'specify particular methods to vtrace separated by colons, e.g. java/lang/Object/getHashCode()I:java/lang/String/charAt(I)C',
-        has_value: true
-      },
-      'list-class-cache': { description: 'list all of the loaded classes after execution' },
-      'show-nyi-natives': { description: 'list any NYI native functions in loaded classes' },
-      'dump-state': { description: 'write a "core dump" on unusual termination' },
-      benchmark: { description: 'time execution, both hot and cold' },
-      'dump-compiled-code': { description: 'directory to dump compiled object definitions', has_value: true },
-      // TODO: Use -Djava.library.path
-      'native-classpath': {
-        description: 'directories where package-based native methods can be found',
-        has_value: true
-      },
-      'bootclasspath/a': {
-        description: 'append to end of bootstrap class path; separate with :',
-        has_value: true
-      },
-      'bootclasspath/p': {
-        description: 'prepend to end of bootstrap class path; separate with :',
-        has_value: true
-      },
-      'bootclasspath': {
-        description: 'set the bootstrap classpath',
-        has_value: true
-      }
+    D: {
+      type: ParseType.MAP_SYNTAX,
+      optDesc: '<name>=<value>',
+      desc: 'set a system property'
+    },
+    jar: {
+      type: ParseType.NORMAL_VALUE_SYNTAX,
+      stopParsing: true
+    },
+    help: { alias: '?', desc: 'print this help message' },
+    X: { desc: 'print help on non-standard options' },
+    enableassertions: {
+      type: ParseType.COLON_VALUE_OR_FLAG_SYNTAX,
+      optDesc: '[:<packagename>...|:<classname>]',
+      alias: 'ea',
+      desc: 'enable assertions with specified granularity'
+    },
+    disableassertions: {
+      type: ParseType.COLON_VALUE_OR_FLAG_SYNTAX,
+      optDesc: '[:<packagename>...|:<classname>]',
+      alias: 'da',
+      desc: 'disable assertions with specified granularity'
+    },
+    enablesystemassertions: { alias: 'esa', desc: 'enable system assertions' },
+    disablesystemassertions: { alias: 'dsa', desc: 'disable system assertions '}
+  },
+  X: {
+    log: {
+      desc: 'log level, [0-10]|vtrace|trace|debug|error',
+      type: ParseType.NORMAL_VALUE_SYNTAX
+    },
+    'vtrace-methods': {
+      type: ParseType.NORMAL_VALUE_SYNTAX,
+      optDesc: ' <java/lang/Object/getHashCode()I:...>',
+      desc: 'specify particular methods to vtrace separated by colons'
+    },
+    'list-class-cache': {
+      desc: 'list all of the bootstrap loaded classes after execution'
+    },
+    'dump-compiled-code': {
+      type: ParseType.NORMAL_VALUE_SYNTAX,
+      optDesc: ' <directory>',
+      desc: 'location to dump compiled object definitions'
+    },
+    // TODO: Use -Djava.library.path
+    'native-classpath': {
+      type: ParseType.NORMAL_VALUE_SYNTAX,
+      optDesc: ' <class search path of directories>',
+      desc: 'A : separated list of directories to search for native mathods in JS files.'
+    },
+    'bootclasspath/a': {
+      type: ParseType.COLON_VALUE_SYNTAX,
+      optDesc: ':<directories and zip/jar files separated by :>',
+      desc: 'append to end of bootstrap class path'
+    },
+    'bootclasspath/p': {
+      type: ParseType.COLON_VALUE_SYNTAX,
+      optDesc: ':<directories and zip/jar files separated by :>',
+      desc: 'prepend in front of bootstrap class path'
+    },
+    'bootclasspath': {
+      type: ParseType.COLON_VALUE_SYNTAX,
+      optDesc: ':<directories and zip/jar files separated by :>',
+      desc: 'set search path for bootstrap classes and resources'
     }
-  });
-}
+  }
+});
 
 /**
  * Consumes a `java` command line string. Constructs a JVM, launches the command, and
- * returns the JVM object.
+ * returns the JVM object. Throws an exception if parsing fails.
  *
  * Returns `null` if no JVM needed to be constructed (e.g. -h flag).
  *
- * @param {string[]} args - Arguments to the 'java' command.
- * @param {function} done_cb - Called when JVM execution finishes. Passes a
+ * @param args Arguments to the 'java' command.
+ * @param opts Default options.
+ * @param doneCb Called when JVM execution finishes. Passes a
  *   number to the callback indicating the exit value.
- * @param {function} [jvm_started] - Called with the JVM object once we have invoked it.
- * @example <caption>Equivalent to `java classes/demo/Fib 3`</caption>
- *   doppio.java(['classes/demo/Fib', '3'],
- *     {bootstrapClasspath: '/sys/vendor/classes',
- *      javaHomePath: '/sys/vendor/java_home'}, function() {
- *     // Resume whatever your frontend is doing.
- *   });
+ * @param [jvmStarted] Called with the JVM object once we have invoked it.
  */
 function java(args: string[], opts: JVMCLIOptions,
-                     done_cb: (status: number) => void,
-                     jvm_started: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
-  setupOptparse();
-  var argv = optparse.parse(args), jvm_state: JVM;
+                     doneCb: (status: number) => void,
+                     jvmStarted: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
+  let parsedArgs = parser.parse(args),
+    standard = parsedArgs['default'],
+    nonStandard = parsedArgs['X'],
+    jvmState: JVM;
 
-  // Default options
-  // TODO: Collect these into a 'default option' object, merge w/ user supplied
-  // options.
-  if (!opts.launcherName) {
-    opts.launcherName = 'java';
+  // System properties.
+  opts.properties = standard.mapOption('D');
+
+  if (standard.flag('help', false)) {
+    return printHelp(opts.launcherName, parser.help('default'), doneCb, 0);
+  } else if (standard.flag('X', false)) {
+    return printNonStandardHelp(opts.launcherName, parser.help('X'), doneCb, 0);
   }
 
+  // GLOBAL CONFIGURATION
+  let logOption = nonStandard.stringOption('log', 'ERROR');
+
+  if (/^[0-9]+$/.test(logOption)) {
+    logging.log_level = parseInt(logOption, 10);
+  } else {
+    let level = (<any> logging)[logOption.toUpperCase()];
+    if (level == null) {
+      process.stderr.write(`Unrecognized log level: ${logOption}.`);
+      return printHelp(opts.launcherName, parser.help('default'), doneCb, 1);
+    }
+    logging.log_level = level;
+  }
+
+  if (nonStandard.flag('list-class-cache', false)) {
+    // Redefine done_cb so we print the loaded class files on JVM exit.
+    doneCb = ((old_done_cb: (arg: number) => void): (arg: number) => void => {
+      return (result: number): void => {
+        let fpaths = jvmState.getBootstrapClassLoader().getLoadedClassFiles();
+        process.stdout.write(fpaths.join('\n') + '\n');
+        old_done_cb(result);
+      };
+    })(doneCb);
+  }
+
+  if (standard.flag('enablesystemassertions', false)) {
+    opts.enableSystemAssertions = true;
+  }
+
+  if (standard.flag('disablesystemassertions', false)) {
+    opts.enableSystemAssertions = false;
+  }
+
+  if (standard.flag('enableassertions', false)) {
+    opts.enableAssertions = true;
+  } else if (standard.stringOption('enableassertions', null)) {
+    opts.enableAssertions = standard.stringOption('enableassertions', null).split(':');
+  }
+
+  if (standard.stringOption('disableassertions', null)) {
+    opts.disableAssertions = standard.stringOption('disableassertions', null).split(':');
+  }
+  // NOTE: Boolean form of -disableassertions is a NOP.
+
+  // Bootstrap classpath items.
+  let bscl = nonStandard.stringOption('bootclasspath', null);
+  if (bscl !== null) {
+    opts.bootstrapClasspath = bscl.split(':');
+  }
+  let bsClAppend = nonStandard.stringOption('bootclasspath/a', null);
+  if (bsClAppend) {
+    opts.bootstrapClasspath = opts.bootstrapClasspath.concat(bsClAppend.split(':'));
+  }
+  let bsClPrepend = nonStandard.stringOption('bootclasspath/p', null);
+  if (bsClPrepend) {
+    opts.bootstrapClasspath = bsClPrepend.split(':').concat(opts.bootstrapClasspath);
+  }
+
+  // User-supplied classpath items.
   if (!opts.classpath) {
     opts.classpath = [];
   }
 
-  // System properties.
-  opts.properties = argv.properties;
-
-  if (argv.standard.help) {
-    return print_help(opts.launcherName, optparse.show_help(), done_cb, 0);
-  } else if (argv.standard.X) {
-    return print_help(opts.launcherName, optparse.show_non_standard_help(), done_cb, 0);
-  }
-
-  // GLOBAL CONFIGURATION
-
-  if (typeof(argv.non_standard.log) !== 'undefined') {
-    if (/^[0-9]+$/.test(argv.non_standard.log)) {
-      logging.log_level = parseInt(argv.non_standard.log, 10);
-    } else {
-      var level = (<any> logging)[argv.non_standard.log.toUpperCase()];
-      if (level == null) {
-        process.stderr.write('Unrecognized log level.');
-        return print_help(opts.launcherName, optparse.show_help(), done_cb, 1);
-      }
-      logging.log_level = level;
-    }
-  } else {
-    // Reset back to default.
-    logging.log_level = logging.ERROR;
-  }
-
-  if (argv.non_standard['list-class-cache']) {
-    // Redefine done_cb so we print the loaded class files on JVM exit.
-    done_cb = ((old_done_cb: (arg: number) => void): (arg: number) => void => {
-      return (result: number): void => {
-        jvm_state.getBootstrapClassLoader().getLoadedClassFiles((fpaths: string[]) => {
-          process.stdout.write(fpaths.join('\n') + '\n');
-          old_done_cb(result);
-        });
-      };
-    })(done_cb);
-  } else if (argv.non_standard['benchmark']) {
-    // Wrap the done_cb so that we trigger a second run once the first finishes.
-    done_cb = ((old_done_cb: (status: number) => void): (status: number) => void => {
-      var cold_start = (new Date).getTime();
-      process.stdout.write('Starting cold-cache run...\n');
-      return (status: number): void => {
-        var mid_point = (new Date).getTime();
-        process.stdout.write('Starting hot-cache run...\n');
-        launch_jvm(argv, opts, jvm_state, (status: number) => {
-          var finished = (new Date).getTime();
-          process.stdout.write("Timing:\n\t" + (mid_point - cold_start) + " ms cold\n\t"
-                      + (finished - mid_point) + " ms hot\n");
-          old_done_cb(status);
-        }, (jvm_state: JVM) => {});
-      };
-    })(done_cb);
-  }
-
-  if (argv.standard.enableassertions) {
-    opts.assertionsEnabled = true;
-  }
-
-  // Bootstrap classpath items.
-  if (argv.non_standard['bootclasspath']) {
-    opts.bootstrapClasspath = argv.non_standard['bootclasspath'].split(':');
-  }
-  if (argv.non_standard['bootclasspath/a']) {
-    opts.bootstrapClasspath = opts.bootstrapClasspath.concat(argv.non_standard['bootclasspath/a'].split(':'));
-  }
-  if (argv.non_standard['bootclasspath/p']) {
-    opts.bootstrapClasspath = argv.non_standard['bootclasspath/p'].split(':').concat(opts.bootstrapClasspath);
-  }
-
-  // User-supplied classpath items.
-  if (argv.standard.jar != null) {
-    opts.classpath = opts.classpath.concat([argv.standard.jar]);
-  } else if (argv.standard.classpath != null) {
-    opts.classpath = opts.classpath.concat(argv.standard.classpath.split(':'));
+  if (standard.stringOption('jar', null)) {
+    opts.classpath.push(standard.stringOption('jar', null));
+  } else if (standard.stringOption('classpath', null)) {
+    opts.classpath = opts.classpath.concat(standard.stringOption('classpath', null).split(':'));
   } else {
     // DEFAULT: If no user-supplied classpath, add the current directory to
     // the class path.
@@ -178,27 +183,30 @@ function java(args: string[], opts: JVMCLIOptions,
   }
 
   // User-supplied native classpath.
-  if (argv.non_standard['native-classpath']) {
-    opts.nativeClasspath = opts.nativeClasspath.concat(argv.non_standard['native-classpath'].split(':'));
+  let nativeClasspath = standard.stringOption('native-classpath', null);
+  if (nativeClasspath) {
+    opts.nativeClasspath = opts.nativeClasspath.concat(nativeClasspath.split(':'));
   }
 
   // Construct the JVM.
-  jvm_state = new JVM(opts, (err?: any): void => {
+  jvmState = new JVM(opts, (err?: any): void => {
     if (err) {
       process.stderr.write("Error constructing JVM:\n");
       process.stderr.write(err.toString() + "\n");
-      done_cb(1);
+      doneCb(1);
     } else {
-      launch_jvm(argv, opts, jvm_state, done_cb, jvm_started);
+      launchJvm(standard, opts, jvmState, doneCb, jvmStarted);
     }
   });
 
-  if (typeof argv.non_standard['vtrace-methods'] === 'string') {
-    argv.non_standard['vtrace-methods'].split(':').forEach((m: string) => jvm_state.vtraceMethod(m));
+  let vtraceMethods = nonStandard.stringOption('vtrace-methods', null);
+  if (vtraceMethods) {
+    vtraceMethods.split(':').forEach((m: string) => jvmState.vtraceMethod(m));
   }
 
-  if (typeof argv.non_standard['dump-compiled-code'] === 'string') {
-    jvm_state.dumpCompiledCode(argv.non_standard['dump-compiled-code']);
+  let dumpCompiledCode = nonStandard.stringOption('dumpCompiledCode', null);
+  if (dumpCompiledCode) {
+    jvmState.dumpCompiledCode(dumpCompiledCode);
   }
 }
 
@@ -207,14 +215,14 @@ function java(args: string[], opts: JVMCLIOptions,
  * Figures out from this how to launch the JVM (e.g. using a JAR file or a
  * particular class).
  */
-function launch_jvm(argv: any, opts: JVMCLIOptions, jvm_state: JVM, done_cb: (status: number) => void,
-                    jvm_started: (jvm_state: JVM) => void): void {
-  var main_args = argv._,
-      cname = argv.className,
-      isJar = argv.standard.jar != null;
-
-  if (cname != null) {
-    // Class specified.
+function launchJvm(standardOptions: PrefixParseResult, opts: JVMCLIOptions, jvmState: JVM, doneCb: (status: number) => void,
+                    jvmStarted: (jvmState: JVM) => void): void {
+  let mainArgs = standardOptions.unparsedArgs();
+  if (standardOptions.stringOption('jar', null)) {
+    jvmState.runJar(mainArgs, doneCb);
+    jvmStarted(jvmState);
+  } else if (mainArgs.length > 0) {
+    let cname = mainArgs[0];
     if (cname.slice(-6) === '.class') {
       cname = cname.slice(0, -6);
     }
@@ -222,20 +230,27 @@ function launch_jvm(argv: any, opts: JVMCLIOptions, jvm_state: JVM, done_cb: (st
       // hack: convert java.foo.Bar to java/foo/Bar
       cname = util.descriptor2typestr(util.int_classname(cname));
     }
-    jvm_state.runClass(cname, main_args, done_cb);
-  } else if (isJar) {
-    jvm_state.runJar(main_args, done_cb);
+    jvmState.runClass(cname, mainArgs.slice(1), doneCb);
+    jvmStarted(jvmState);
   } else {
     // No class specified, no jar specified!
-    return print_help(opts.launcherName, optparse.show_help(), done_cb, 0);
+    printHelp(opts.launcherName, parser.help('default'), doneCb, 0);
   }
-  jvm_started(jvm_state);
 }
 
-function print_help(launcherName: string, str: string, done_cb: (arg: number) => void, rv: number): void {
-  process.stdout.write("Usage: " + launcherName +
-    " [flags]  /path/to/classfile [args for main()]\n" + str + "\n");
-  return done_cb(rv);
+function printHelp(launcherName: string, str: string, doneCb: (arg: number) => void, rv: number): void {
+  process.stdout.write(
+`Usage: ${launcherName} [-options] class [args...]
+        (to execute a class)
+or  ${launcherName} [-options] -jar jarfile [args...]
+        (to execute a jar file)
+where options include:\n${str}`);
+  doneCb(rv);
+}
+
+function printNonStandardHelp(launcherName: string, str: string, doneCb: (arg: number) => void, rv: number): void {
+  process.stdout.write(`${str}\n\nThe -X options are non-standard and subject to change without notice.\n`);
+  doneCb(rv);
 }
 
 export = java;
