@@ -58,7 +58,8 @@ export default function runTests(isRelease: boolean) {
     classpath: [],
     javaHomePath: '/sys/vendor/java_home',
     nativeClasspath: ['/sys/natives'],
-    assertionsEnabled: true
+    enableSystemAssertions: true,
+    enableAssertions: true
   }, (tests: DoppioJVM.Testing.DoppioTest[]): void => {
     // Set up Jasmine unit tests.
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;

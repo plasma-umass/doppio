@@ -191,8 +191,7 @@ new JVM({
   bootstrapClasspath: bscp,
   javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
   classpath: [],
-  nativeClasspath: [path.resolve(__dirname, '../src/natives')],
-  assertionsEnabled: false
+  nativeClasspath: [path.resolve(__dirname, '../src/natives')]
 }, function(err: any, _jvmObject: JVM) {
   if (err) {
     throw err;

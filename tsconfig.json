@@ -23,6 +23,7 @@
         "src/doppiojvm.ts",
         "src/enums.ts",
         "src/gLong.ts",
+        "src/global.ts",
         "src/heap.ts",
         "src/interfaces.ts",
         "src/jar.ts",

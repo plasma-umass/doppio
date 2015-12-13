@@ -369,7 +369,10 @@ class java_lang_Class {
   }
 
   public static 'desiredAssertionStatus0(Ljava/lang/Class;)Z'(thread: JVMThread, arg0: JVMTypes.java_lang_Class): boolean {
-    return thread.getJVM().areAssertionsEnabled();
+    if (arg0.$cls.getLoader().getLoaderObject() === null) {
+      return thread.getJVM().areSystemAssertionsEnabled();
+    }
+    return false;
   }
 
 }
@@ -464,10 +467,59 @@ class java_lang_ClassLoader {
     }
   }
 
-  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(thread: JVMThread): JVMTypes.java_lang_AssertionStatusDirectives {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
+  public static 'retrieveDirectives()Ljava/lang/AssertionStatusDirectives;'(thread: JVMThread): void {
+    let jvm = thread.getJVM(), bsCl = thread.getBsCl();
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    bsCl.initializeClass(thread, 'Ljava/lang/AssertionStatusDirectives;', (cdata: ReferenceClassData<JVMTypes.java_lang_AssertionStatusDirectives>) => {
+      if (cdata) {
+        let asd: typeof JVMTypes.java_lang_AssertionStatusDirectives = <any> cdata.getConstructor(thread);
+        let directives = new asd();
+        let enabledAssertions = jvm.getEnabledAssertions();
+        // The classes for which assertions are to be enabled or disabled.
+        let classes: string[] = [],
+          // A parallel array to classes, indicating whether each class
+          // is to have assertions enabled or disabled.
+          classEnabled: number[] = [],
+          // The package-trees for which assertions are to be enabled or disabled.
+          packages: string[] = [],
+          // A parallel array to packages, indicating whether each
+          // package-tree is to have assertions enabled or disabled.
+          packageEnabled: number[] = [],
+          deflt: boolean = false,
+          processAssertions = (enabled: number) => {
+            return (name: string): void => {
+              let dotIndex = name.indexOf('...');
+              if (dotIndex === -1) {
+                classes.push(name);
+                classEnabled.push(enabled);
+              } else {
+                packages.push(name.slice(0, dotIndex));
+                packageEnabled.push(enabled);
+              }
+            };
+          };
+
+        jvm.getDisabledAssertions().forEach(processAssertions(0));
+
+        if (typeof(enabledAssertions) === 'boolean') {
+          deflt = <boolean> enabledAssertions;
+        } else if (Array.isArray(enabledAssertions)) {
+          enabledAssertions.forEach(processAssertions(1));
+        } else {
+          return thread.throwNewException('Ljava/lang/InternalError;', `Expected enableAssertions option to be a boolean or an array of strings.`);
+        }
+
+        // console.log(`Classes: ${classes.join(",")}, ClassEnabled: ${classEnabled.join(",")} Packages: ${packages.join(",")}, PackageEnabled: ${packageEnabled.join(",")}, Deflt: ${deflt}`);
+
+        directives['java/lang/AssertionStatusDirectives/classes'] = util.newArrayFromData<JVMTypes.java_lang_String>(thread, bsCl, '[Ljava/lang/String;', classes.map((cls) => util.initString(bsCl, cls)));
+        directives['java/lang/AssertionStatusDirectives/classEnabled'] = util.newArrayFromData<number>(thread, bsCl, '[Z', classEnabled);
+        directives['java/lang/AssertionStatusDirectives/packages'] = util.newArrayFromData<JVMTypes.java_lang_String>(thread, bsCl, '[Ljava/lang/String;', packages.map((pkg) => util.initString(bsCl, pkg)));
+        directives['java/lang/AssertionStatusDirectives/packageEnabled'] = util.newArrayFromData<number>(thread, bsCl, '[Z', packageEnabled);
+        directives['java/lang/AssertionStatusDirectives/deflt'] = (<boolean> enabledAssertions) ? 1 : 0;
+
+        thread.asyncReturn(directives);
+      }
+    });
   }
 
 }

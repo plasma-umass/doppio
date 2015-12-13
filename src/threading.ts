@@ -14,8 +14,10 @@ import JVMTypes = require('../includes/JVMTypes');
 import Monitor = require('./Monitor');
 import ThreadStatus = enums.ThreadStatus;
 import {default as ThreadPool, Thread} from './threadpool';
+import global = require('./global');
 
 declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 var debug = logging.debug, vtrace = logging.vtrace, trace = logging.trace,
   // The number of method resumes we should allow before yielding for
@@ -92,7 +94,7 @@ export class BytecodeStackFrame implements IStackFrame {
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCodeAttribute().getCode(),
       opcodeTable = opcodes.LookupTable;
-    if (logging.log_level >= logging.TRACE) {
+    if (!RELEASE && logging.log_level >= logging.TRACE) {
       if (this.pc === 0) {
         trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Bytecode]:`);
       } else {
@@ -123,11 +125,11 @@ export class BytecodeStackFrame implements IStackFrame {
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
       var op = code.readUInt8(this.pc);
-      if (logging.log_level === logging.VTRACE) {
+      if (!RELEASE && logging.log_level === logging.VTRACE) {
         vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)}`);
       }
       opcodeTable[op](thread, this, code, this.pc);
-      if (!this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
+      if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
         vtrace(`    S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
       }
     }
@@ -526,6 +528,13 @@ export class JVMThread implements Thread {
   }
 
   /**
+   * Get the classloader for the current frame.
+   */
+  public getLoader(): ClassLoader.ClassLoader {
+    return this.stack[this.stack.length - 1].getLoader();
+  }
+
+  /**
    * Retrieve the JVM instantiation that this thread belongs to.
    */
   public getJVM(): JVM {
@@ -600,7 +609,7 @@ export class JVMThread implements Thread {
     // Reset counter. Threads always start from a fresh stack / yield.
     methodResumesLeft = maxMethodResumes;
     while (this.status === ThreadStatus.RUNNABLE && stack.length > 0) {
-      if (typeof RELEASE === 'undefined') {
+      if (!RELEASE) {
         var sf = stack[stack.length - 1];
         if (sf.type === enums.StackFrameType.BYTECODE && this.jvm.shouldVtrace((<BytecodeStackFrame> sf).method.fullSignature)) {
           var oldLevel = logging.log_level;

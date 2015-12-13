@@ -17,7 +17,8 @@ var opts: testing.TestOptions = {
   classpath: null,
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
   doppioDir: path.dirname(__dirname),
-  assertionsEnabled: true,
+  enableSystemAssertions: true,
+  enableAssertions: true,
   tmpDir: os.tmpdir()
 }, passChar: string, failChar: string;
 

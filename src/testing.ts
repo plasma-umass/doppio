@@ -137,7 +137,8 @@ export class DoppioTest {
       classpath: [this.opts.doppioDir],
       javaHomePath: this.opts.javaHomePath,
       nativeClasspath: this.opts.nativeClasspath,
-      assertionsEnabled: true
+      enableAssertions: true,
+      enableSystemAssertions: true
     }, cb);
   }
 

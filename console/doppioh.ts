@@ -12,7 +12,7 @@
  * -ts [dir]  TypeScript template, where 'dir' is a path to DoppioJVM's
  *            TypeScript definition files.
  */
-import optparse = require('../src/option_parser');
+import {OptionParser, ParseType} from '../src/option_parser';
 import path = require('path');
 import fs = require('fs');
 import util = require('../src/util');
@@ -24,51 +24,52 @@ import JVMTypes = require('../includes/JVMTypes');
 import JDKInfo = require('../vendor/java_home/jdk.json');
 import {TriState} from '../src/enums';
 import async = require('async');
+
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
 });
 
-let classpath: IClasspathItem[] = null;
-
-/**
- * Initializes the option parser with the options for the `doppioh` command.
- */
-function setupOptparse() {
-  optparse.describe({
-    standard: {
-      classpath: {
-        alias: 'cp',
-        description: 'JVM classpath, "path1:...:pathN"',
-        has_value: true
-      },
-      help: { alias: 'h', description: 'print this help message' },
-      directory: {
-        alias: 'd',
-        description: 'Output directory',
-        has_value: true
-      },
-      javascript: {
-        alias: 'js',
-        description: 'Generate JavaScript templates [default=true]'
-      },
-      typescript: {
-        alias: 'ts',
-        description: 'Generate TypeScript templates'
-      },
-      "doppiojvm-path": {
-        alias: 'dpath',
-        description: "Path to the doppiojvm module. Defaults to 'doppiojvm', referring to the NPM module.",
-        has_value: true
-      },
-      force_headers: {
-        alias: 'f',
-        description: '[TypeScript only] Forces doppioh to generate TypeScript headers for specified JVM classes, e.g. -f java.lang.String:java.lang.Object',
-        has_value: true
+let classpath: IClasspathItem[] = null,
+  parser = new OptionParser(
+    {
+      default: {
+        classpath: {
+          type: ParseType.NORMAL_VALUE_SYNTAX,
+          alias: 'cp',
+          optDesc: ' <class search path of directories and zip/jar files>',
+          desc: 'A : separated list of directories, JAR archives, and ZIP archives to search for class files.',
+        },
+        help: { alias: '?', desc: 'print this help message' },
+        directory: {
+          type: ParseType.NORMAL_VALUE_SYNTAX,
+          alias: 'd',
+          optDesc: ' <directory>',
+          desc: 'Output directory'
+        },
+        javascript: {
+          alias: 'js',
+          desc: 'Generate JavaScript templates (Default is true)'
+        },
+        typescript: {
+          alias: 'ts',
+          desc: 'Generate TypeScript templates'
+        },
+        "doppiojvm-path": {
+          type: ParseType.NORMAL_VALUE_SYNTAX,
+          optDesc: ' <path to doppiojvm module>',
+          alias: 'dpath',
+          desc: "Path to the doppiojvm module. Defaults to 'doppiojvm', referring to the NPM module."
+        },
+        force_headers: {
+          type: ParseType.NORMAL_VALUE_SYNTAX,
+          optDesc: ':[<classname>:]',
+          alias: 'f',
+          desc: '[TypeScript only] Forces doppioh to generate TypeScript headers for specified JVM classes',
+        }
       }
     }
-  });
-}
+  );
 
 function printEraseableLine(line: string): void {
   // Undocumented functions.
@@ -80,33 +81,19 @@ function printEraseableLine(line: string): void {
 }
 
 function printHelp(): void {
-  process.stdout.write("Usage: doppioh [flags] class_or_package_name\n" + optparse.show_help() + "\n");
+  process.stdout.write("Usage: doppioh [flags] class_or_package_name\n" + parser.help('default') + "\n");
 }
 
-
-setupOptparse();
-
 // Remove "node" and "path/to/doppioh.js".
-let argv = optparse.parse(process.argv.slice(2));
+let parseResults = parser.parse(process.argv.slice(2)),
+  args = parseResults['default'];
 
-if (argv.standard.help || process.argv.length === 2) {
+if (args.flag('help', false) || process.argv.length === 2) {
   printHelp();
   process.exit(1);
 }
-if (!argv.standard.classpath) argv.standard.classpath = '.';
-if (!argv.standard.directory) argv.standard.directory = '.';
 
-const JAVA_HOME = path.resolve(__dirname, "../vendor/java_home");
-// Append bootstrap classpath.
-argv.standard.classpath = `${JDKInfo.classpath.map((item) => path.resolve(JAVA_HOME, item)).join(":")}:${argv.standard.classpath}`;
-
-if (!argv.standard['doppiojvm-path']) {
-  argv.standard['doppiojvm-path'] = "doppiojvm";
-}
-
-if (!fs.existsSync(argv.standard.directory)) {
-  fs.mkdirSync(argv.standard.directory);
-}
+let outputDirectory = args.stringOption('directory', '.');
 
 /**
  * java/lang/String.class => Ljava/lang/String;
@@ -261,7 +248,7 @@ class TSTemplate implements ITemplate {
   private headerCount: number = 0;
   private headerSet: { [clsName: string]: boolean} = {};
   private classesSeen: string[] = [];
-  private headerPath: string = path.resolve(argv.standard.directory, "JVMTypes.d.ts");
+  private headerPath: string = path.resolve(outputDirectory, "JVMTypes.d.ts");
   private headerStream: NodeJS.WritableStream;
   private generateQueue: ReferenceClassData<JVMTypes.java_lang_Object>[] = [];
   private doppiojvmPath: string;
@@ -295,8 +282,8 @@ class TSTemplate implements ITemplate {
     // Generate required types.
     this.generateArrayDefinition();
     this.generateClassDefinition('Ljava/lang/Throwable;');
-    if (argv.standard.force_headers) {
-      var clses = argv.standard.force_headers.split(':');
+    if (args.stringOption('force_headers', null)) {
+      var clses = args.stringOption('force_headers', null).split(':');
       clses.forEach((clsName: string) => {
         this.generateClassDefinition(util.int_classname(clsName));
       });
@@ -628,11 +615,23 @@ class JSTemplate implements ITemplate {
   }
 }
 
-let targetName: string = argv.className.replace(/\//g, '_').replace(/\./g, '_'),
-  targetPath: string = argv.className.replace(/\./g, '/');
+
+const JAVA_HOME = path.resolve(__dirname, "../vendor/java_home");
+let classpathPaths = JDKInfo.classpath.map((item) => path.resolve(JAVA_HOME, item)).concat(args.stringOption('classpath', '.').split(':'));
+let className = args.unparsedArgs()[0];
+if (!className) {
+  throw new Error(`Must specify a class name.`);
+}
+
+if (!fs.existsSync(outputDirectory)) {
+  fs.mkdirSync(outputDirectory);
+}
+
+let targetName: string = className.replace(/\//g, '_').replace(/\./g, '_'),
+  targetPath: string = className.replace(/\./g, '/');
 
 // Initialize classpath.
-ClasspathFactory(JAVA_HOME, argv.standard.classpath.split(':'), (items: IClasspathItem[]) => {
+ClasspathFactory(JAVA_HOME, classpathPaths, (items: IClasspathItem[]) => {
   // Normally, JARs are loaded asynchronously. Force them to be loaded, which allows us
   // to load classes synchronously.
   async.each(items, (item: IClasspathItem, cb: (e?: Error) => void) => {
@@ -646,8 +645,8 @@ ClasspathFactory(JAVA_HOME, argv.standard.classpath.split(':'), (items: IClasspa
       throw e;
     }
     classpath = items;
-    let template = argv.standard.typescript ? new TSTemplate(argv.standard['doppiojvm-path'], argv.standard.directory) : new JSTemplate();
-    let stream = fs.createWriteStream(path.join(argv.standard.directory, targetName + '.' + template.getExtension()));
+    let template = args.flag('typescript', false) ? new TSTemplate(args.stringOption('doppiojvm-path', 'doppiojvm'), outputDirectory) : new JSTemplate();
+    let stream = fs.createWriteStream(path.join(outputDirectory, targetName + '.' + template.getExtension()));
     template.fileStart(stream);
     let classes = getClasses(targetPath);
     for (let i = 0; i < classes.length; i++) {
@@ -655,7 +654,7 @@ ClasspathFactory(JAVA_HOME, argv.standard.classpath.split(':'), (items: IClasspa
       processClassData(stream, template, <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
     }
     template.fileEnd(stream);
-    if (argv.standard.typescript) {
+    if (args.flag('typescript', false)) {
       (<TSTemplate> template).headersEnd();
     }
     stream.end(new Buffer(''), () => {});

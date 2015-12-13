@@ -5,6 +5,7 @@ import threading = require('../src/threading');
 import enums = require('../src/enums');
 var statuses = Object.keys(threading.validTransitions);
 
+
 process.stdout.write('digraph thread_transition_graph {\n');
 // Emit nodes first.
 statuses.forEach((status: string) => {

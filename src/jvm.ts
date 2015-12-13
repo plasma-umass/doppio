@@ -15,6 +15,7 @@ import interfaces = require('./interfaces');
 import JVMTypes = require('../includes/JVMTypes');
 import Parker = require('./parker');
 import ThreadPool from './threadpool';
+import logging = require('./logging');
 // Do not import, otherwise TypeScript will prune it.
 // Referenced only in eval'd code.
 let BrowserFS = require('browserfs');
@@ -74,7 +75,9 @@ class JVM {
   private terminationCb: (code: number) => void = null;
   // The initial JVM thread used to kick off execution.
   private firstThread: JVMThread = null;
-  private assertionsEnabled: boolean = false;
+  private enableSystemAssertions: boolean = false;
+  private enabledAssertions: boolean | string[] = false;
+  private disabledAssertions: string[] = [];
   private systemClassLoader: ClassLoader.ClassLoader = null;
   private nextRef: number = 0;
   // Set of all of the methods we want vtrace to be enabled on.
@@ -99,7 +102,8 @@ class JVM {
       firstThread: JVMThread,
       firstThreadObj: JVMTypes.java_lang_Thread,
       opts = <interfaces.JVMOptions> util.merge({
-        assertionsEnabled: false,
+        enableSystemAssertions: false,
+        enableAssertions: false,
         properties: {},
         classpath: ['.'],
         tmpDir: '/tmp'
@@ -120,7 +124,15 @@ class JVM {
     }
 
     this.nativeClasspath = opts.nativeClasspath;
-    this.assertionsEnabled = opts.assertionsEnabled;
+    if (opts.enableSystemAssertions) {
+      this.enableSystemAssertions = opts.enableSystemAssertions;
+    }
+    if (opts.enableAssertions) {
+      this.enabledAssertions = opts.enableAssertions;
+    }
+    if (opts.disableAssertions) {
+      this.disabledAssertions = opts.disableAssertions;
+    }
     this._initSystemProperties(bootstrapClasspath,
       opts.classpath.map((p: string): string => path.resolve(p)),
       path.resolve(opts.javaHomePath),
@@ -217,7 +229,11 @@ class JVM {
         } else {
           this.systemClassLoader = rv.$loader;
           firstThreadObj['java/lang/Thread/contextClassLoader'] = rv;
-          next();
+
+          // Initialize assertion data.
+          // TODO: Is there a better way to force this? :|
+          let defaultAssertionStatus = this.enabledAssertions === true ? 1 : 0;
+          rv['java/lang/ClassLoader/setDefaultAssertionStatus(Z)V'](firstThread, [defaultAssertionStatus], next);
         }
       });
     });
@@ -650,10 +666,24 @@ eval(mod);
   }
 
   /**
-   * Returns `true` if assertions are enabled, false otherwise.
+   * Returns `true` if system assertions are enabled, false otherwise.
    */
-  public areAssertionsEnabled(): boolean {
-    return this.assertionsEnabled;
+  public areSystemAssertionsEnabled(): boolean {
+    return this.enableSystemAssertions;
+  }
+
+  /**
+   * Get a listing of classes with assertions enabled. Can also return 'true' or 'false.
+   */
+  public getEnabledAssertions(): string[] | boolean {
+    return this.enabledAssertions;
+  }
+
+  /**
+   * Get a listing of classes with assertions disabled.
+   */
+  public getDisabledAssertions(): string[] {
+    return this.disabledAssertions;
   }
 
   /**

@@ -19,7 +19,10 @@ import ClassState = enums.ClassState;
 import trace = logging.trace;
 import debug = logging.debug;
 
+import global = require('./global');
+
 declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 /**
  * Auto-incrementing reference number. Uniquely identifies each object allocated

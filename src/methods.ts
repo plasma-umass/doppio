@@ -13,8 +13,10 @@ import enums = require('./enums');
 import Monitor = require('./Monitor');
 import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
+import global = require('./global');
 
 declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } = {
   'java/lang/ref/Reference': {
