@@ -21,9 +21,9 @@ Getting & Building the Code
 ---------------------------
 
 Before attempting to build doppio, you must have the following installed:
-* Node v0.12 or higher
-* NPM package `grunt-cli` and `tsd` installed globally
-  * `npm install -g grunt-cli tsd`
+* Node v4.0 or higher
+* NPM package `grunt-cli` installed globally
+  * `npm install -g grunt-cli`
 * Java 8 JDK
 
 If you are on Windows, you will need the following installed:
@@ -36,7 +36,6 @@ Run the following commands to build doppio. Note that your first time building m
     git clone https://github.com/plasma-umass/doppio.git
     cd doppio
     npm install
-    tsd install
     grunt release      # For browser integration.
     grunt release-cli  # For command-line use.
 
