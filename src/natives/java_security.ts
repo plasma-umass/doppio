@@ -2,6 +2,7 @@ import JVMTypes = require('../../includes/JVMTypes');
 import * as Doppio from '../doppiojvm';
 import JVMThread = Doppio.VM.Threading.JVMThread;
 import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import IJVMConstructor = Doppio.VM.ClassFile.IJVMConstructor;
 import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
@@ -21,20 +22,17 @@ function doPrivileged(thread: JVMThread, action: JVMTypes.java_security_Privileg
         thread.throwException(e);
       } else {
         // It is a checked exception. Wrap exception in a PrivilegedActionException, and throw it.
-        thread.setStatus(ThreadStatus.ASYNC_WAITING);
-        bsCl.initializeClass(thread, 'Ljava/security/PrivilegedActionException;', (cdata: ReferenceClassData<JVMTypes.java_security_PrivilegedActionException>) => {
-          if (cdata != null) {
-            var eobj = new (cdata.getConstructor(thread))(thread);
-            thread.setStatus(ThreadStatus.ASYNC_WAITING);
-            eobj['<init>(Ljava/lang/Exception;)V'](thread, [<JVMTypes.java_lang_Exception> e], (e?: JVMTypes.java_lang_Throwable) => {
-              if (e) {
-                // Failed to construct a PrivilegedActionException? Dang.
-                thread.throwException(e);
-              } else {
-                thread.throwException(eobj);
-              }
-            });
-          }
+        thread.import('Ljava/security/PrivilegedActionException;', (paeCons: IJVMConstructor<JVMTypes.java_security_PrivilegedActionException>) => {
+          var eobj = new paeCons(thread);
+          thread.setStatus(ThreadStatus.ASYNC_WAITING);
+          eobj['<init>(Ljava/lang/Exception;)V'](thread, [<JVMTypes.java_lang_Exception> e], (e?: JVMTypes.java_lang_Throwable) => {
+            if (e) {
+              // Failed to construct a PrivilegedActionException? Dang.
+              thread.throwException(e);
+            } else {
+              thread.throwException(eobj);
+            }
+          });
         }, false);
       }
     } else {

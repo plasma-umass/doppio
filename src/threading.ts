@@ -531,7 +531,63 @@ export class JVMThread implements Thread {
    * Get the classloader for the current frame.
    */
   public getLoader(): ClassLoader.ClassLoader {
-    return this.stack[this.stack.length - 1].getLoader();
+    let loader = this.stack[this.stack.length - 1].getLoader();
+    if (loader) {
+      return loader;
+    } else {
+      // Crawl stack until we find one.
+      let len = this.stack.length;
+      for (let i = 2; i <= len; i++) {
+        loader = this.stack[len - i].getLoader();
+        if (loader) {
+          return loader;
+        }
+      }
+      throw new Error(`Unable to find loader.`);
+    }
+  }
+
+  /**
+   * Imports & initializes the given Java class or classes. Returns the JavaScript
+   * object that represents the class -- e.g. contains static methods
+   * and fields.
+   *
+   * If multiple names are specified, it returns an array of class objects.
+   *
+   * If there is an error resolving or initializing any class, it will
+   * throw an exception without invoking your callback.
+   */
+  public import<T>(name: string, cb: (rv?: T) => void, explicit?: boolean): void;
+  public import<T>(names: string[], cb: (rv?: T) => void, explicit?: boolean): void;
+  public import<T>(names: string | string[], cb: (rv?: T) => void, explicit: boolean = true): void {
+    let loader = this.getLoader();
+    this.setStatus(ThreadStatus.ASYNC_WAITING);
+    if (Array.isArray(names)) {
+      let rv: ClassData.IJVMConstructor<any>[] = [];
+      util.asyncForEach(names, (name, nextItem) => {
+        this._import(name, loader, (cons) => {
+          rv.push(cons);
+          nextItem();
+        }, explicit);
+      }, (e?: any) => {
+        cb(<T> <any> rv);
+      });
+    } else {
+      this._import(names, loader, <any> cb, explicit);
+    }
+  }
+
+  private _import(name: string, loader: ClassLoader.ClassLoader, cb: (rv?: ClassData.IJVMConstructor<any>) => void, explicit: boolean): void {
+    let cls = <ClassData.ReferenceClassData<any>> loader.getInitializedClass(this, name);
+    if (cls) {
+      setImmediate(() => cb(cls.getConstructor(this)));
+    } else {
+      loader.initializeClass(this, name, (cdata: ClassData.ReferenceClassData<any>) => {
+        if (cdata) {
+          cb(cdata.getConstructor(this));
+        }
+      }, explicit);
+    }
   }
 
   /**

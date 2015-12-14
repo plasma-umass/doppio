@@ -322,6 +322,7 @@ class JVM {
           thread.throwNewException("Ljava/lang/NoSuchMethodError;", `Could not find main method in class ${cdata.getExternalName()}.`);
         }
       } else {
+        process.stdout.write(`Error: Could not find or load main class ${util.ext_classname(className)}\n`);
         // Erroneous exit.
         this.terminationCb(1);
       }

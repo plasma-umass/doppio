@@ -4,6 +4,7 @@ import JVMThread = Doppio.VM.Threading.JVMThread;
 import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
 import ArrayClassData = Doppio.VM.ClassFile.ArrayClassData;
 import ClassData = Doppio.VM.ClassFile.ClassData;
+import IJVMConstructor = Doppio.VM.ClassFile.IJVMConstructor;
 import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
 import Long = Doppio.VM.Long;
@@ -110,10 +111,8 @@ class sun_misc_Perf {
   }
 
   public static 'createLong(Ljava/lang/String;IIJ)Ljava/nio/ByteBuffer;'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Perf, name: JVMTypes.java_lang_String, variability: number, units: number, value: Long): void {
-    thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    thread.getBsCl().initializeClass(thread, 'Ljava/nio/DirectByteBuffer;', (cdata: ReferenceClassData<JVMTypes.java_nio_DirectByteBuffer>) => {
-      if (cdata !== null) {
-        var buff = new (cdata.getConstructor(thread))(thread),
+    thread.import('Ljava/nio/DirectByteBuffer;', (buffCons: IJVMConstructor<JVMTypes.java_nio_DirectByteBuffer>) => {
+      var buff = new buffCons(thread),
           heap = thread.getJVM().getHeap(),
           addr = heap.malloc(8);
         buff['<init>(JI)V'](thread, [Long.fromNumber(addr), null, 8], (e?: JVMTypes.java_lang_Throwable) => {
@@ -125,7 +124,6 @@ class sun_misc_Perf {
             thread.asyncReturn(buff);
           }
         });
-      }
     });
   }
 

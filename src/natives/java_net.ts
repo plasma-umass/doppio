@@ -1,6 +1,7 @@
 import * as Doppio from '../doppiojvm';
 import JVMThread = Doppio.VM.Threading.JVMThread;
 import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
+import IJVMConstructor = Doppio.VM.ClassFile.IJVMConstructor;
 import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
@@ -17,11 +18,11 @@ declare var Websock: {
  * If an application wants to open a TCP/UDP connection to "foobar.com", the application must first perform
  * a DNS lookup to determine the IP of that domain, and then open a socket to that IP. Doppio needs to emulate
  * this same functionality in JavaScript.
- * 
+ *
  * However, the browser does not expose any DNS interfaces, as DNS lookup is provided opaquely by the browser
  * platform. For example, an application can make a WebSocket connection directly to "https://foobar.com/", and
  * will never know that domain's IP.
- * 
+ *
  * To get around this missing functionality, Doppio returns an unused private IP in the range of 240.0.0.0 to
  * 250.0.0.0 for each unique DNS lookup. Doppio uses this IP as a token for that particular DNS lookup. When
  * the application attempts to connect to an IP in this range, Doppio uses the IP as a key into a hash table,
@@ -337,33 +338,26 @@ class java_net_NetworkInterface {
   }
 
   public static 'getAll()[Ljava/net/NetworkInterface;'(thread: JVMThread): void {
+    let bsCl = thread.getBsCl();
     // Create a fake network interface bound to 127.1.1.1.
-    var bsCl = thread.getBsCl();
-    thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    bsCl.initializeClass(thread, 'Ljava/net/NetworkInterface;', (niCls: ReferenceClassData<JVMTypes.java_net_NetworkInterface>) => {
-      if (niCls !== null) {
-        bsCl.initializeClass(thread, 'Ljava/net/InetAddress;', (inetCls: ReferenceClassData<JVMTypes.java_net_InetAddress>) => {
-          if (inetCls !== null) {
-            var iName = thread.getJVM().internString('doppio1'),
-              inetStatics = <typeof JVMTypes.java_net_InetAddress> (inetCls.getConstructor(thread));
-            inetStatics['getByAddress(Ljava/lang/String;[B)Ljava/net/InetAddress;'](thread,
-              [iName, util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', [127,1,1,1])], (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_net_InetAddress) => {
-              if (e) {
-                thread.throwException(e);
-              } else {
-                var niObj = new (niCls.getConstructor(thread))(thread);
-                niObj['<init>(Ljava/lang/String;I[Ljava/net/InetAddress;)V'](thread, [iName, 0, util.newArrayFromData<JVMTypes.java_net_InetAddress>(thread, bsCl, '[Ljava/net/InetAddress;', [rv])], (e?: JVMTypes.java_lang_Throwable) => {
-                  if (e) {
-                    thread.throwException(e);
-                  } else {
-                    thread.asyncReturn(util.newArrayFromData<JVMTypes.java_net_NetworkInterface>(thread, bsCl, '[Ljava/net/NetworkInterface;', [niObj]));
-                  }
-                });
-              }
-            });
-          }
-        });
-      }
+    thread.import(['Ljava/net/NetworkInterface;', 'Ljava/net/InetAddress;'], (rv: [IJVMConstructor<JVMTypes.java_net_NetworkInterface>, typeof JVMTypes.java_net_InetAddress]) => {
+      let niCons = rv[0], inetStatics = rv[1],
+        iName = thread.getJVM().internString('doppio1');
+      inetStatics['getByAddress(Ljava/lang/String;[B)Ljava/net/InetAddress;'](thread,
+        [iName, util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', [127,1,1,1])], (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_net_InetAddress) => {
+        if (e) {
+          thread.throwException(e);
+        } else {
+          var niObj = new niCons(thread);
+          niObj['<init>(Ljava/lang/String;I[Ljava/net/InetAddress;)V'](thread, [iName, 0, util.newArrayFromData<JVMTypes.java_net_InetAddress>(thread, bsCl, '[Ljava/net/InetAddress;', [rv])], (e?: JVMTypes.java_lang_Throwable) => {
+            if (e) {
+              thread.throwException(e);
+            } else {
+              thread.asyncReturn(util.newArrayFromData<JVMTypes.java_net_NetworkInterface>(thread, bsCl, '[Ljava/net/NetworkInterface;', [niObj]));
+            }
+          });
+        }
+      });
     });
   }
 
