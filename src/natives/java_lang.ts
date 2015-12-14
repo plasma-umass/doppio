@@ -714,7 +714,7 @@ class java_lang_reflect_Array {
         if (ccls instanceof PrimitiveClassData) {
           if (val.getClass().isSubclass(thread.getBsCl().getInitializedClass(thread, (<PrimitiveClassData> ccls).boxClassName()))) {
             var ccname = ccls.getInternalName();
-            (<any> val)[`${util.internal2external[ccname]}Value()${ccname}`](thread, (e?: JVMTypes.java_lang_Throwable, rv?: any) => {
+            (<JVMTypes.JVMFunction> (<any> val)[`${util.internal2external[ccname]}Value()${ccname}`])(thread, null, (e?: JVMTypes.java_lang_Throwable, rv?: any) => {
               if (e) {
                 thread.throwException(e);
               } else {
@@ -1159,7 +1159,7 @@ class java_lang_Thread {
   }
 
   public static 'start0()V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread): void {
-    javaThis['run()V'](javaThis.$thread);
+    javaThis['run()V'](javaThis.$thread, null);
   }
 
   public static 'setNativeName(Ljava/lang/String;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Thread, name: JVMTypes.java_lang_String): void {
@@ -1249,7 +1249,7 @@ class java_lang_Thread {
 
     var nativeThreadObj = javaThis.$thread;
     // See if we have access to modify this thread.
-    javaThis['checkAccess()V'](thread, (e?: JVMTypes.java_lang_Throwable) => {
+    javaThis['checkAccess()V'](thread, null, (e?: JVMTypes.java_lang_Throwable) => {
       if (e) {
         // SecurityException. Rethrow it.
         thread.throwException(e);

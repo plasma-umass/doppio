@@ -9,7 +9,7 @@ declare var registerNatives: (defs: any) => void;
 
 function doPrivileged(thread: JVMThread, action: JVMTypes.java_security_PrivilegedAction, ctx?: JVMTypes.java_security_AccessControlContext): void {
   thread.setStatus(ThreadStatus.ASYNC_WAITING);
-  action['run()Ljava/lang/Object;'](thread, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_Object): void => {
+  action['run()Ljava/lang/Object;'](thread, null, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_Object): void => {
     if (e) {
       // If e is an UNCHECKED exception, re-throw it.
       // https://docs.oracle.com/javase/tutorial/essential/exceptions/runtime.html

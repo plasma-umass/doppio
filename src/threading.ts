@@ -771,7 +771,7 @@ export class JVMThread implements Thread {
         var phase2 = () => {
             trace(`T${this.getRef()} Entered exit monitor.`);
             // Exit.
-            this.jvmThreadObj["exit()V"](this, (e?) => {
+            this.jvmThreadObj["exit()V"](this, null, (e?) => {
               // Notify everyone.
               monitor.notifyAll(this);
               // Exit monitor.

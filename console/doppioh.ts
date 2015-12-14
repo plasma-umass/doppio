@@ -281,6 +281,7 @@ class TSTemplate implements ITemplate {
     this.headersStart();
     // Generate required types.
     this.generateArrayDefinition();
+    this.generateMiscDefinitions();
     this.generateClassDefinition('Ljava/lang/Throwable;');
     if (args.stringOption('force_headers', null)) {
       var clses = args.stringOption('force_headers', null).split(':');
@@ -480,10 +481,12 @@ export = JVMTypes;\n`, () => {});
     if (argTypes.length > 0) {
       // Arguments are a giant tuple type.
       // NOTE: Long / doubles take up two argument slots. The second argument is always NULL.
-      args = "args: [" + argTypes.map((type: string, i: number) => `${this.jvmtype2tstype(type, false)}${(type === "J" || type === "D") ? ', any' : ''}`).join(", ") + "], ";
+      args = `args: [${argTypes.map((type: string, i: number) => `${this.jvmtype2tstype(type, false)}${(type === "J" || type === "D") ? ', any' : ''}`).join(", ")}]`;
+    } else {
+      args = `args: {}[]`;
     }
 
-    methodSig = `(thread: JVMThread, ${args}cb?: (${cbSig}) => void): void`;
+    methodSig = `(thread: JVMThread, ${args}, cb?: (${cbSig}) => void): void`;
 
     // A quick note about methods: It's illegal to have two methods with the
     // same signature in the same class, even if one is static and the other
@@ -566,6 +569,12 @@ export = JVMTypes;\n`, () => {});
      */
     public slice(start: number, end?: number): JVMArray<T>;
   }\n`);
+  }
+
+  private generateMiscDefinitions(): void {
+    this.headerStream.write(`  // Basic, valid JVM types.
+  export type BasicType = number | java_lang_Object | Long;
+  export type JVMFunction = (thread: JVMThread, args: BasicType[], cb: (e?: JVMTypes.java_lang_Object, rv?: BasicType) => void) => void;\n`);
   }
 }
 

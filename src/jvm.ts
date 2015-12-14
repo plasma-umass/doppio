@@ -196,7 +196,7 @@ class JVM {
               // Construct a ThreadGroup object for the first thread.
               var threadGroupCons = (<ReferenceClassData<JVMTypes.java_lang_ThreadGroup>> cdata).getConstructor(firstThread),
                 groupObj = new threadGroupCons(firstThread);
-              groupObj['<init>()V'](firstThread, (e?: JVMTypes.java_lang_Throwable) => {
+              groupObj['<init>()V'](firstThread, null, (e?: JVMTypes.java_lang_Throwable) => {
                 // Tell the initial thread to use this group.
                 firstThreadObj['java/lang/Thread/group'] = groupObj;
                 nextItem(e);
@@ -215,7 +215,7 @@ class JVM {
     bootupTasks.push((next: (err?: any) => void): void => {
       // Initialize the system class (initializes things like println/etc).
       var sysInit = <typeof JVMTypes.java_lang_System> (<ReferenceClassData<JVMTypes.java_lang_System>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/System;')).getConstructor(firstThread);
-      sysInit['java/lang/System/initializeSystemClass()V'](firstThread, next);;
+      sysInit['java/lang/System/initializeSystemClass()V'](firstThread, null, next);;
     });
 
     /**
@@ -223,7 +223,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void) => {
       var clCons = <typeof JVMTypes.java_lang_ClassLoader> (<ReferenceClassData<JVMTypes.java_lang_ClassLoader>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;')).getConstructor(firstThread);
-      clCons['java/lang/ClassLoader/getSystemClassLoader()Ljava/lang/ClassLoader;'](firstThread, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_ClassLoader) => {
+      clCons['java/lang/ClassLoader/getSystemClassLoader()Ljava/lang/ClassLoader;'](firstThread, null, (e?: JVMTypes.java_lang_Throwable, rv?: JVMTypes.java_lang_ClassLoader) => {
         if (e) {
           next(e);
         } else {

@@ -124,12 +124,7 @@ class sun_reflect_NativeConstructorAccessorImpl {
           };
 
         assert(slot >= 0, "Found a constructor without a slot?!");
-
-        if (method.parameterTypes.length > 0) {
-          (<any> obj)[method.signature](thread, params.array, cb);
-        } else {
-          (<any> obj)[method.signature](thread, cb);
-        }
+        (<JVMTypes.JVMFunction> (<any> obj)[method.signature])(thread, params ? params.array : null, cb);
       }
     }, true);
   }
@@ -175,15 +170,15 @@ class sun_reflect_NativeMethodAccessorImpl {
         }
       };
 
-    if (params !== null && params.array.length > 0) {
+    if (params !== null) {
       args = util.unboxArguments(thread, m.parameterTypes, params.array)
     }
 
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     if (m.accessFlags.isStatic()) {
-      (<any> cls.getConstructor(thread))[m.fullSignature](thread, (args.length > 0 ? args : cb), cb);
+      (<JVMTypes.JVMFunction> (<any> cls.getConstructor(thread))[m.fullSignature])(thread, args, cb);
     } else {
-      (<any> obj)[m.signature](thread, args.length > 0 ? args : cb, cb);
+      (<JVMTypes.JVMFunction> (<any> obj)[m.signature])(thread, args, cb);
     }
   }
 }

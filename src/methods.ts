@@ -564,14 +564,9 @@ _create`);
       }
       outStream.write(`${jsConsName}.prototype["${util.reescapeJVMName(this.fullSignature)}"] = `);
     }
+    // cb check is boilerplate, required for natives calling into JVM land.
     outStream.write(`(function(method) {
-  return function(thread, `);
-    // No args argument for 0-parameter functions.
-    if (this.parameterWords > 0) {
-      outStream.write(`args, `);
-    }
-    // Boilerplate: Required for JS to call into JVM code.
-    outStream.write(`cb) {
+  return function(thread, args, cb) {
     if (typeof cb === 'function') {
       thread.stack.push(new InternalStackFrame(cb));
     }
