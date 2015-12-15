@@ -1,7 +1,6 @@
 import os = require('os');
 import fs = require('fs');
 import path = require('path');
-import async = require('async');
 import esprima = require('esprima');
 var estraverse = require('estraverse');
 var escodegen = require('escodegen');

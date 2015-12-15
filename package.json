@@ -23,6 +23,7 @@
     "browserify": "^12.0.1",
     "browserify-derequire": "^0.9.4",
     "browserify-shim": "^3.8.11",
+    "cpr": "^1.0.0",
     "escodegen": "^1.7.0",
     "esprima": "^2.6.0",
     "estraverse": "^4.1.0",

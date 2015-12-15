@@ -1,5 +1,6 @@
 import path = require('path');
 import fs = require('fs');
+import async = require('async');
 /**
  * Handles setting up a new build folder for arbitrary builds.
  * - Creates directory.
@@ -13,13 +14,35 @@ function makeBuildDir(grunt: IGrunt) {
         grunt.file.mkdir(targetPath);
         grunt.log.ok("Created build folder: " + targetPath);
       }
-      // Ensure task fails if one of the symlinks fails.
-      return symlink(grunt, 'classes', path.resolve(targetPath, 'classes')) && symlink(grunt, 'vendor', path.resolve(targetPath, 'vendor'));
+      let asyncPairs: string[][] = [];
+      [['classes', path.resolve(targetPath, 'classes')], ['vendor', path.resolve(targetPath, 'vendor')]].forEach((pair) => {
+        if (!symlink(grunt, pair[0], pair[1])) {
+          asyncPairs.push(pair);
+        }
+      });
+
+      if (asyncPairs.length > 0) {
+        let done = this.async();
+        async.eachSeries(asyncPairs, (pair, done) => {
+          copy(grunt, pair[0], pair[1], done);
+        }, done);
+      }
     } catch (e) {
       grunt.log.error('Could not create build folder build/' + this.target + ".");
       return false;
     }
   });
+}
+
+/**
+ * Recursively copies source to dest.
+ */
+function copy(grunt: IGrunt, source: string, dest: string, cb: (err?: Error) => void): void {
+  let cpr = require('cpr');
+  if (grunt.file.exists(dest)) {
+    grunt.file.delete(dest);
+  }
+  cpr(source, dest, cb);
 }
 
 /**
@@ -41,7 +64,7 @@ function symlink(grunt: IGrunt, source: string, dest: string): boolean {
     }
   } catch (e) {
     if (e.code !== 'ENOENT') {
-      grunt.fail.fatal('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + destRel + ' exists and is not a symlink.');
+      return false;
     }
   }
 
@@ -52,7 +75,7 @@ function symlink(grunt: IGrunt, source: string, dest: string): boolean {
     fs.symlinkSync(path.resolve(source), path.resolve(dest), 'junction');
     grunt.log.ok('Symlinked ' + sourceRel + ' to ' + destRel + '.');
   } catch (e) {
-    grunt.fail.fatal('Cannot symlink ' + sourceRel + ' to ' + destRel + ': ' + e);
+    return false;
   }
   return true;
 }
