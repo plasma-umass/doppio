@@ -5,71 +5,78 @@
  */
 declare var __karma__: any;
 declare var __numWaiting: number;
-import BrowserFS = require('browserfs');
 import fs = require('fs');
 import path = require('path');
-import JDKInfo = require('../../vendor/java_home/jdk.json');
 // Force initialization of standard output.
 (<any> process).initializeTTYs();
 import DoppioJVM = require('../../src/doppiojvm');
+import DoppioTest = DoppioJVM.Testing.DoppioTest;
+import {getTests as localGetTests, runTest as commonRunTest} from './harness_common';
+import {MessageType, RunTestMessage, SetupMessage, TestListingMessage, TestResultMessage} from './messages';
 
 // HACK: Delay test execution until backends load.
 // https://zerokspot.com/weblog/2013/07/12/delay-test-execution-in-karma/
 __karma__.loaded = function() {};
 
-function getBuildPath(isRelease: boolean): string {
-  return '../build/' + (isRelease ? 'release' : 'dev') + '/';
+function runTestWebWorker(index: number, cb: (err: string, stack?: string, actual?: string, expected?: string) => void): void {
+  let msg: RunTestMessage = {
+    type: MessageType.RUN_TEST,
+    index: index
+  }, listener = function(msg: MessageEvent) {
+    let data = <TestResultMessage> msg.data;
+    cb(data.err, data.stack, data.actual, data.expected);
+  };
+  worker.addEventListener('message', listener);
+  worker.postMessage(msg);
 }
 
-/**
- * Set up BrowserFS.
- */
-function configureFS(isRelease: boolean): void {
-  var xhr = new BrowserFS.FileSystem.XmlHttpRequest('listings.json', getBuildPath(isRelease)),
-    mfs = new BrowserFS.FileSystem.MountableFileSystem();
-  mfs.mount('/sys', xhr);
-  mfs.mkdirSync('/tmp', 0x1ff);
-  BrowserFS.initialize(mfs);
+function runTestLocally(index: number, cb: (err?: string, stack?: string, actual?: string, expected?: string) => void): void {
+  commonRunTest(tests[index], (err, actual, expected) => cb(err ? "" + err : null, err ? err.stack : null, actual, expected));
 }
 
-var globalErrorTrap: (err: Error) => void = null
-window.onerror = function(err) {
-  if (globalErrorTrap) {
-    globalErrorTrap(new Error(err));
-  }
-};
-
-function registerGlobalErrorTrap(cb: (err: Error) => void): void {
-  globalErrorTrap = cb;
+function getTestsWebWorker(isRelease: boolean, cb: (tests: string[]) => void): void {
+  let msg: SetupMessage = {
+    type: MessageType.SETUP,
+    isRelease: isRelease
+  }, listener = function(msg: MessageEvent) {
+    worker.removeEventListener('message', listener);
+    let data = <TestListingMessage> msg.data;
+    cb(data.listing);
+  };
+  worker.addEventListener('message', listener);
+  worker.postMessage(msg);
 }
+
+function getTestsLocally(isRelease: boolean, cb: (tests: string[]) => void): void {
+  localGetTests(isRelease, (_tests) => {
+    tests = _tests;
+    cb(tests.map((test) => test.cls));
+  });
+}
+
+var supportsWorkers = typeof Worker !== 'undefined',
+  runTest = supportsWorkers ? runTestWebWorker : runTestLocally,
+  getTests = supportsWorkers ? getTestsWebWorker : getTestsLocally,
+  tests: DoppioTest[], worker: Worker;
 
 /**
  * Once DoppioJVM is properly set up, this function runs tests.
  */
 export default function runTests(isRelease: boolean) {
-  configureFS(isRelease);
-  // Tests expect to be run from the system path.
-  process.chdir('/sys');
+  if (supportsWorkers) {
+    worker = new Worker(`../build/test${isRelease ? '-release' : '-dev'}/harness_webworker.js`);
+  }
 
-  DoppioJVM.Testing.getTests({
-    bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve('/sys/vendor/java_home', item)),
-    doppioDir: '/sys',
-    testClasses: null,
-    classpath: [],
-    javaHomePath: '/sys/vendor/java_home',
-    nativeClasspath: ['/sys/natives'],
-    enableSystemAssertions: true,
-    enableAssertions: true
-  }, (tests: DoppioJVM.Testing.DoppioTest[]): void => {
+  getTests(isRelease, (tests: string[]): void => {
     // Set up Jasmine unit tests.
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
 
     describe("Unit Tests", function() {
-      tests.forEach((test) => {
-        it(test.cls, function(done: () => void) {
-          test.run(registerGlobalErrorTrap, (err: Error, actual?: string, expected?: string, diff?: string) => {
+      tests.forEach((test, index) => {
+        it(test, function(done: () => void) {
+          runTest(index, (err?: string, stack?: string, actual?: string, expected?: string) => {
             if (err) {
-              fail(`DoppioJVM Error:\n\t${err}${err.stack ? `\n${err.stack}` : ''}`);
+              fail(`DoppioJVM Error:\n\t${err}${stack ? `\n${stack}` : ''}`);
             }
             expect(actual).toBe(expected);
             done();

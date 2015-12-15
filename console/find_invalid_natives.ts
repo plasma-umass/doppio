@@ -14,6 +14,8 @@ import JVM = require('../src/jvm');
 import JVMTypes = require('../includes/JVMTypes');
 import {IClasspathItem, ClasspathFactory} from '../src/classpath';
 import JDKInfo = require('../vendor/java_home/jdk.json');
+import interfaces = require('../src/interfaces');
+import util = require('../src/util');
 import os = require('os');
 var ReferenceClassData = class_data.ReferenceClassData,
     jvmObject: JVM,
@@ -186,18 +188,17 @@ function main() {
 }
 
 const JAVA_HOME = path.resolve(__dirname, '../vendor/java_home');
-let bscp = JDKInfo.classpath.map((item: string) => path.resolve(JAVA_HOME, item));
-new JVM({
-  bootstrapClasspath: bscp,
-  javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-  classpath: [],
+const DOPPIO_HOME = path.resolve(__dirname, '..');
+let opts: interfaces.JVMOptions = <any> util.merge(JVM.getDefaultOptions(DOPPIO_HOME), {
   nativeClasspath: [path.resolve(__dirname, '../src/natives')]
-}, function(err: any, _jvmObject: JVM) {
+});
+
+new JVM(opts, function(err: any, _jvmObject: JVM) {
   if (err) {
     throw err;
   }
   jvmObject = _jvmObject;
-  ClasspathFactory(JAVA_HOME, bscp, (items) => {
+  ClasspathFactory(JAVA_HOME, opts.bootstrapClasspath, (items) => {
     classpath = items;
     main();
   })

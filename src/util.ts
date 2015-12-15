@@ -225,12 +225,15 @@ export function float2int(a: number): number {
   }
 }
 
+var supportsArrayBuffers = typeof(ArrayBuffer) !== 'undefined';
+
 /**
- * Converts a byte array to a buffer.
+ * Converts a byte array to a buffer. **Copies.**
  */
 export function byteArray2Buffer(bytes: number[] | Int8Array, offset: number = 0, len: number = bytes.length): NodeBuffer {
-  if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(bytes)) {
-    return new Buffer(<any> (<Int8Array> bytes).slice().buffer);
+  if (supportsArrayBuffers && ArrayBuffer.isView(bytes)) {
+    let offset = (<Int8Array> bytes).byteOffset;
+    return new Buffer(<any> (<Int8Array> bytes).buffer.slice(offset, offset + bytes.length));
   } else {
     var buff = new Buffer(len), i: number;
     for (i = 0; i < len; i++) {

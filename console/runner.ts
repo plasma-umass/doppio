@@ -41,9 +41,8 @@ process.on('uncaughtException', (er: any) => {
 
 // Run the JVM. Remove node runner.js from the args.
 javaCLI(process.argv.slice(2), {
-  bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve(__dirname, '../vendor/java_home', item)),
-  javaHomePath: path.resolve(__dirname, '../vendor/java_home'),
-  classpath: null,
+  doppioHomePath: path.resolve(__dirname, '..'),
+  // Override default here; Node builds have different natives directory right now.
   nativeClasspath: [path.resolve(__dirname, '../src/natives')],
   launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
   tmpDir: os.tmpdir()

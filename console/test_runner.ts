@@ -12,11 +12,9 @@ require('source-map-support').install({
 
 // Default options.
 var opts: testing.TestOptions = {
-  bootstrapClasspath: JDKInfo.classpath.map((item: string) => path.resolve(__dirname, '../vendor/java_home', item)),
-  javaHomePath: path.resolve(__dirname, path.join('..', 'vendor', 'java_home')),
-  classpath: null,
+  doppioHomePath: path.resolve(__dirname, '..'),
+  // Override default since we are in node.
   nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
-  doppioDir: path.dirname(__dirname),
   enableSystemAssertions: true,
   enableAssertions: true,
   tmpDir: os.tmpdir()

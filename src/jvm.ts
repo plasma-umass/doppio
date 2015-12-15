@@ -16,6 +16,7 @@ import JVMTypes = require('../includes/JVMTypes');
 import Parker = require('./parker');
 import ThreadPool from './threadpool';
 import logging = require('./logging');
+import JDKInfo = require('../vendor/java_home/jdk.json');
 // Do not import, otherwise TypeScript will prune it.
 // Referenced only in eval'd code.
 let BrowserFS = require('browserfs');
@@ -96,18 +97,16 @@ class JVM {
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
   constructor(opts: interfaces.JVMOptions, cb: (e: any, jvm?: JVM) => void) {
+    if (typeof(opts.doppioHomePath) !== 'string') {
+      throw new TypeError("opts.doppioHomePath *must* be specified.");
+    }
+    opts = <interfaces.JVMOptions> util.merge(JVM.getDefaultOptions(opts.doppioHomePath), opts);
+
     var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
       // JVM bootup tasks, from first to last task.
       bootupTasks: {(next: (err?: any) => void): void}[] = [],
       firstThread: JVMThread,
-      firstThreadObj: JVMTypes.java_lang_Thread,
-      opts = <interfaces.JVMOptions> util.merge({
-        enableSystemAssertions: false,
-        enableAssertions: false,
-        properties: {},
-        classpath: ['.'],
-        tmpDir: '/tmp'
-      }, opts);
+      firstThreadObj: JVMTypes.java_lang_Thread;
 
     // Sanity checks.
     if (!Array.isArray(opts.bootstrapClasspath) || opts.bootstrapClasspath.length === 0) {
@@ -253,6 +252,36 @@ class JVM {
         }
       });
     });
+  }
+
+  public static getDefaultOptions(doppioHome: string): interfaces.JVMOptions {
+    let javaHome = path.join(doppioHome, 'vendor', 'java_home');
+    return {
+      doppioHomePath: doppioHome,
+      classpath: ['.'],
+      bootstrapClasspath: JDKInfo.classpath.map((item) => path.join(javaHome, item)),
+      javaHomePath: javaHome,
+      nativeClasspath: [path.join(doppioHome, 'natives')],
+      enableSystemAssertions: false,
+      enableAssertions: false,
+      disableAssertions: null,
+      properties: {},
+      tmpDir: '/tmp'
+    };
+  }
+
+  /**
+   * Get the URL to the version of the JDK that DoppioJVM was compiled with.
+   */
+  public static getCompiledJDKURL(): string {
+    return JDKInfo.url;
+  }
+
+  /**
+   * Get the JDK information that DoppioJVM was compiled against.
+   */
+  public static getJDKInfo(): any {
+    return JDKInfo;
   }
 
   public getSystemClassLoader(): ClassLoader.ClassLoader {

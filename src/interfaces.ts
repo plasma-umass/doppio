@@ -8,14 +8,20 @@
  * Standard JVM options.
  */
 export interface JVMOptions {
+  // [Required] Path where DoppioJVM's things are.
+  // DoppioJVM expects that:
+  // - natives are in the 'natives' subdirectory.
+  // - JCL is in the 'vendor/java_home' subdirectory.
+  // If this is not true, change the relevant options below.
+  doppioHomePath: string;
+  // Non-JCL paths on the class path. Defaults to the current working directory.
+  classpath?: string[];
   // The bootstrap classpath, including paths related to the Java Class Library (JCL).
-  bootstrapClasspath: string[];
-  // Non-JCL paths on the class path.
-  classpath: string[];
+  bootstrapClasspath?: string[];
   // Path to JAVA_HOME.
-  javaHomePath: string;
+  javaHomePath?: string;
   // XXX: Path where native methods are located.
-  nativeClasspath: string[];
+  nativeClasspath?: string[];
   // True if assertions are enabled in system classes, false otherwise.
   // (equivalent to -esa command line option)
   enableSystemAssertions?: boolean;

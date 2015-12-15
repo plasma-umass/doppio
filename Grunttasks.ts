@@ -62,14 +62,16 @@ transformConfig = function(toRemove: string[]) {
   colors: true,
   logLevel: 'INFO',
   autoWatch: true,
-  browsers: ['Chrome'],
+  browsers: ['Safari'],
   captureTimeout: 60000,
   // Avoid hardcoding and cross-origin issues.
   proxies: {
     '/': 'http://localhost:8000/'
   },
   files: [
-    'node_modules/browserfs/dist/browserfs.js'
+    'node_modules/browserfs/dist/browserfs.js',
+    {pattern: 'build/test-dev/**/*.js*', included: false},
+    {pattern: 'build/test-release/**/*.js*', included: false}
   ],
   singleRun: false,
   urlRoot: '/karma/',
@@ -347,6 +349,24 @@ export function setup(grunt: IGrunt) {
         files: {
           './build/release/doppio.js': './src/index.ts'
         }
+      },
+      'test-dev': {
+        options: {
+          browserifyOptions: browserifyOptions,
+          configure: browserifyConfigFcn
+        },
+        files: {
+          './build/test-dev/harness_webworker.js': './tasks/test/harness_webworker.ts'
+        }
+      },
+      'test-release': {
+        options: {
+          browserifyOptions: browserifyOptions,
+          configure: transformConfig(['debug', 'trace', 'vtrace', 'assert'])
+        },
+        files: {
+          './build/test-release/harness_webworker.js': './tasks/test/harness_webworker.ts'
+        }
       }
     },
     unit_test: {
@@ -591,12 +611,14 @@ export function setup(grunt: IGrunt) {
      'java',
      'listings',
      'connect:server',
+     'browserify:test-release',
      'karma:test']);
  grunt.registerTask('test-dev-browser',
      ['dev',
       'java',
       'listings',
       'connect:server',
+      'browserify:test-dev',
       'karma:test-dev']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
     ['build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {

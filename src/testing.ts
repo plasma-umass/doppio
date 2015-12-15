@@ -85,10 +85,6 @@ class OutputCapturer {
  */
 export interface TestOptions extends interfaces.JVMOptions {
   /**
-   * Directory where Doppio is located.
-   */
-  doppioDir: string;
-  /**
    * Classes to test. Each can be in one of the following forms:
    * - foo.bar.Baz
    * - foo/bar/Baz
@@ -125,21 +121,18 @@ export class DoppioTest {
       cls = util.descriptor2typestr(util.int_classname(cls));
     }
     this.cls = cls;
-    this.outFile = path.resolve(opts.doppioDir, cls) + ".runout";
+    this.outFile = path.resolve(opts.doppioHomePath, cls) + ".runout";
   }
 
   /**
    * Constructs a new JVM for the test.
    */
   private constructJVM(cb: (err: any, jvm?: JVM) => void): void {
-    new JVM({
-      bootstrapClasspath: this.opts.bootstrapClasspath,
-      classpath: [this.opts.doppioDir],
-      javaHomePath: this.opts.javaHomePath,
-      nativeClasspath: this.opts.nativeClasspath,
+    new JVM(<any> util.merge(JVM.getDefaultOptions(this.opts.doppioHomePath), this.opts, {
+      classpath: [this.opts.doppioHomePath],
       enableAssertions: true,
       enableSystemAssertions: true
-    }, cb);
+    }), cb);
   }
 
   /**
@@ -227,7 +220,7 @@ export function getTests(opts: TestOptions, cb: (tests: DoppioTest[]) => void): 
     tests: DoppioTest[];
   if (testClasses == null || testClasses.length === 0) {
     // If no test classes are specified, get ALL the tests!
-    findTestClasses(opts.doppioDir, (testClasses) => {
+    findTestClasses(opts.doppioHomePath, (testClasses) => {
       opts.testClasses = testClasses;
       getTests(opts, cb);
     });
