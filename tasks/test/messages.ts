@@ -12,7 +12,6 @@ export interface Message {
 }
 
 export interface SetupMessage extends Message {
-  isRelease: boolean;
 }
 
 export interface RunTestMessage extends Message {

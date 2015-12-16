@@ -62,8 +62,6 @@
         "tasks/listings.ts",
         "tasks/make_build_dir.ts",
         "tasks/test/harness.ts",
-        "tasks/test/harness_dev.ts",
-        "tasks/test/harness_release.ts",
         "tasks/test/harness_webworker.ts",
         "tasks/test/harness_common.ts",
         "tasks/test/messages.ts",

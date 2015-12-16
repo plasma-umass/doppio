@@ -13,6 +13,7 @@ import DoppioJVM = require('../../src/doppiojvm');
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
 import {getTests as localGetTests, runTest as commonRunTest} from './harness_common';
 import {MessageType, RunTestMessage, SetupMessage, TestListingMessage, TestResultMessage} from './messages';
+let isRelease = DoppioJVM.VM.JVM.isReleaseBuild();
 
 // HACK: Delay test execution until backends load.
 // https://zerokspot.com/weblog/2013/07/12/delay-test-execution-in-karma/
@@ -34,10 +35,9 @@ function runTestLocally(index: number, cb: (err?: string, stack?: string, actual
   commonRunTest(tests[index], (err, actual, expected) => cb(err ? "" + err : null, err ? err.stack : null, actual, expected));
 }
 
-function getTestsWebWorker(isRelease: boolean, cb: (tests: string[]) => void): void {
+function getTestsWebWorker(cb: (tests: string[]) => void): void {
   let msg: SetupMessage = {
-    type: MessageType.SETUP,
-    isRelease: isRelease
+    type: MessageType.SETUP
   }, listener = function(msg: MessageEvent) {
     worker.removeEventListener('message', listener);
     let data = <TestListingMessage> msg.data;
@@ -47,8 +47,8 @@ function getTestsWebWorker(isRelease: boolean, cb: (tests: string[]) => void): v
   worker.postMessage(msg);
 }
 
-function getTestsLocally(isRelease: boolean, cb: (tests: string[]) => void): void {
-  localGetTests(isRelease, (_tests) => {
+function getTestsLocally(cb: (tests: string[]) => void): void {
+  localGetTests((_tests) => {
     tests = _tests;
     cb(tests.map((test) => test.cls));
   });
@@ -62,12 +62,12 @@ var supportsWorkers = typeof Worker !== 'undefined',
 /**
  * Once DoppioJVM is properly set up, this function runs tests.
  */
-export default function runTests(isRelease: boolean) {
+export default function runTests() {
   if (supportsWorkers) {
     worker = new Worker(`../build/test${isRelease ? '-release' : '-dev'}/harness_webworker.js`);
   }
 
-  getTests(isRelease, (tests: string[]): void => {
+  getTests((tests: string[]): void => {
     // Set up Jasmine unit tests.
     jasmine.DEFAULT_TIMEOUT_INTERVAL = 300000;
 
@@ -89,3 +89,5 @@ export default function runTests(isRelease: boolean) {
     __karma__.start();
   });
 }
+
+runTests();

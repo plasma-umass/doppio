@@ -47,8 +47,7 @@ onmessage = function(e) {
         throw new Error(`Already set up.`);
       }
       state = State.SETTING_UP;
-      let setupData = <SetupMessage> data;
-      getTests(setupData.isRelease, (allTests) => {
+      getTests((allTests) => {
         tests = allTests;
         state = State.WAITING_FOR_TEST;
 

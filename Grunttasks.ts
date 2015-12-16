@@ -62,7 +62,7 @@ transformConfig = function(toRemove: string[]) {
   colors: true,
   logLevel: 'INFO',
   autoWatch: true,
-  browsers: ['Safari'],
+  browsers: ['Chrome'],
   captureTimeout: 60000,
   // Avoid hardcoding and cross-origin issues.
   proxies: {
@@ -70,8 +70,10 @@ transformConfig = function(toRemove: string[]) {
   },
   files: [
     'node_modules/browserfs/dist/browserfs.js',
+    {pattern: 'node_modules/browserfs/dist/browserfs.js.map', included: false},
     {pattern: 'build/test-dev/**/*.js*', included: false},
-    {pattern: 'build/test-release/**/*.js*', included: false}
+    {pattern: 'build/test-release/**/*.js*', included: false},
+    'tasks/test/harness.ts'
   ],
   singleRun: false,
   urlRoot: '/karma/',
@@ -79,6 +81,9 @@ transformConfig = function(toRemove: string[]) {
   // karma-browserify will use the browserify require() function to
   // start our tests.
   browserify: _.extend({}, browserifyOptions, {
+    insertGlobalVars: _.extend({}, browserifyOptions.insertGlobalVars, {
+      RELEASE: () => "true"
+    }),
     standalone: undefined
   }),
   browserNoActivityTimeout: 180000,
@@ -361,7 +366,11 @@ export function setup(grunt: IGrunt) {
       },
       'test-release': {
         options: {
-          browserifyOptions: browserifyOptions,
+          browserifyOptions: _.extend({}, browserifyOptions, {
+            insertGlobalVars: _.extend({}, browserifyOptions.insertGlobalVars, {
+              RELEASE: () => 'true'
+            })
+          }),
           configure: transformConfig(['debug', 'trace', 'vtrace', 'assert'])
         },
         files: {
@@ -389,9 +398,8 @@ export function setup(grunt: IGrunt) {
       test: {
         options: {
           preprocessors: {
-            'tasks/test/harness_release.ts': ['browserify']
+            'tasks/test/harness.ts': ['browserify']
           },
-          files: karmaOptions.files.concat('tasks/test/harness_release.ts'),
           browserify: _.extend({}, karmaOptions.browserify, {
             configure: wrapConfig(transformConfig(['debug', 'trace', 'vtrace', 'assert']))
           })
@@ -400,9 +408,8 @@ export function setup(grunt: IGrunt) {
       'test-dev': {
         options: {
           preprocessors: {
-            'tasks/test/harness_dev.ts': ['browserify']
+            'tasks/test/harness.ts': ['browserify']
           },
-          files: karmaOptions.files.concat('tasks/test/harness_dev.ts'),
           browserify: _.extend({}, karmaOptions.browserify, {
             configure: wrapConfig(karmaOptions.browserify.configure)
           })

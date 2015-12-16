@@ -10,6 +10,7 @@ import path = require('path');
 import DoppioJVM = require('../../src/doppiojvm');
 import TestOptions = DoppioJVM.Testing.TestOptions;
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
+let isRelease = DoppioJVM.VM.JVM.isReleaseBuild();
 
 var globalErrorTrap: (err: Error) => void = null
 onerror = function(err) {
@@ -22,15 +23,15 @@ function registerGlobalErrorTrap(cb: (err: Error) => void): void {
   globalErrorTrap = cb;
 }
 
-function getBuildPath(isRelease: boolean): string {
+function getBuildPath(): string {
   return '/build/' + (isRelease ? 'release' : 'dev') + '/';
 }
 
 /**
  * Set up BrowserFS.
  */
-function configureFS(isRelease: boolean): void {
-  var xhr = new BrowserFS.FileSystem.XmlHttpRequest('listings.json', getBuildPath(isRelease)),
+function configureFS(): void {
+  var xhr = new BrowserFS.FileSystem.XmlHttpRequest('listings.json', getBuildPath()),
     mfs = new BrowserFS.FileSystem.MountableFileSystem();
   mfs.mount('/sys', xhr);
   mfs.mkdirSync('/tmp', 0x1ff);
@@ -40,8 +41,8 @@ function configureFS(isRelease: boolean): void {
 /**
  * Configure and retrieve the unit tests.
  */
-export function getTests(isRelease: boolean, cb: (tests: DoppioTest[]) => void) {
-  configureFS(isRelease);
+export function getTests(cb: (tests: DoppioTest[]) => void) {
+  configureFS();
   // Tests expect to be run from the system path.
   process.chdir('/sys');
   DoppioJVM.Testing.getTests({

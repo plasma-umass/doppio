@@ -17,6 +17,8 @@ import Parker = require('./parker');
 import ThreadPool from './threadpool';
 import logging = require('./logging');
 import JDKInfo = require('../vendor/java_home/jdk.json');
+declare var RELEASE: boolean;
+
 // Do not import, otherwise TypeScript will prune it.
 // Referenced only in eval'd code.
 let BrowserFS = require('browserfs');
@@ -286,6 +288,10 @@ class JVM {
 
   public getSystemClassLoader(): ClassLoader.ClassLoader {
     return this.systemClassLoader;
+  }
+
+  public static isReleaseBuild(): boolean {
+    return typeof(RELEASE) !== 'undefined' && RELEASE;
   }
 
   /**
