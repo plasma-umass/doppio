@@ -7,7 +7,7 @@
   "typings": "dist/typings/src/doppiojvm",
   "dependencies": {
     "async": "^1.4.2",
-    "browserfs": "^0.5.9",
+    "browserfs": "^0.5.10",
     "glob": "^5.0.14",
     "gunzip-maybe": "^1.2.1",
     "optimist": "~0.6",
