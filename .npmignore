@@ -5,6 +5,7 @@ tools
 tasks
 .tsdrc
 .travis.yml
+scratch
 *.class
 *.runout
 .tscache

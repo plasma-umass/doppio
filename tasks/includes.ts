@@ -1,7 +1,6 @@
 import os = require('os');
 import fs = require('fs');
 import path = require('path');
-import async = require('async');
 
 /**
  * Generates JVMTypes.d.ts in the includes/ directory.
@@ -15,38 +14,26 @@ function includes(grunt: IGrunt) {
         done: (status?: boolean) => void = this.async(),
         i: number, tasks: Array<AsyncFunction<void>> = [],
         force: string[] = options.force,
+        headersOnly: boolean = options.headersOnly,
         standardArgPrefix = [doppiohPath, '-d', dest, '-cp', 'vendor/java_home/classes:.', '-ts', '-dpath', './src/doppiojvm'];
 
     if (force != null && force.length > 0) {
       standardArgPrefix.push('-f', force.join(":"));
     }
 
-    for (i = 0; i < packages.length; i++) {
-      // Closure to capture 'file'.
-      (function(pkg: string) {
-        tasks.push(function(cb: (err?: any) => void): void {
-          grunt.util.spawn({
-            cmd: 'node',
-            args: standardArgPrefix.concat(pkg)
-          }, function(error: Error, result: grunt.util.ISpawnResult, code: number) {
-            if (code !== 0 || error) {
-              grunt.fail.fatal(`Could not run doppioh on package ${pkg} (exit code ${code}): ${error ? `${error}\n` : ''}${result.stdout}\n${result.stderr}`);
-            }
-            cb(error);
-          });
-        });
-      })(packages[i]);
+    if (headersOnly) {
+      standardArgPrefix.push('-headers_only');
     }
 
-    // Parallelize!
-    async.series(tasks, function(err: any, results: any[]) {
-      if (!err) {
-        // Remove unneeded TypeScript files.
-        fs.readdirSync(dest).filter((item: string) => item.indexOf('.d.ts') === -1).forEach((item: string) => {
-          grunt.file.delete(path.resolve(dest, item));
-        });
+    grunt.util.spawn({
+      cmd: 'node',
+      args: standardArgPrefix.concat(packages)
+    }, function(error: Error, result: grunt.util.ISpawnResult, code: number) {
+      if (code !== 0 || error) {
+        grunt.fail.fatal(`Could not run doppioh (exit code ${code}): ${error ? `${error}\n` : ''}${result.stdout}\n${result.stderr}`);
+      } else {
+        done();
       }
-      done(!err);
     });
   });
 }
