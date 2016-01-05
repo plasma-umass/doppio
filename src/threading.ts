@@ -657,32 +657,29 @@ export class JVMThread implements Thread {
    */
   public run(): void {
     var stack = this.stack,
-      startTime: number = (new Date()).getTime(),
-      endTime: number,
-      duration: number,
-      estMaxMethodResumes: number;
+      startTime: number = (new Date()).getTime();
 
     // Reset counter. Threads always start from a fresh stack / yield.
     methodResumesLeft = maxMethodResumes;
     while (this.status === ThreadStatus.RUNNABLE && stack.length > 0) {
+      const sf = stack[stack.length - 1];
       if (!RELEASE) {
-        var sf = stack[stack.length - 1];
         if (sf.type === enums.StackFrameType.BYTECODE && this.jvm.shouldVtrace((<BytecodeStackFrame> sf).method.fullSignature)) {
           var oldLevel = logging.log_level;
           logging.log_level = logging.VTRACE;
-          stack[stack.length - 1].run(this);
+          sf.run(this);
           logging.log_level = oldLevel;
         } else {
-          stack[stack.length - 1].run(this);
+          sf.run(this);
         }
       } else {
-        stack[stack.length - 1].run(this);
+        sf.run(this);
       }
       if (--methodResumesLeft === 0) {
-        endTime = (new Date()).getTime();
-        duration = endTime - startTime;
+        const endTime = (new Date()).getTime();
+        const duration = endTime - startTime;
         // Estimated number of methods we can resume before needing to yield.
-        estMaxMethodResumes = ((maxMethodResumes / duration) * responsiveness) | 0;
+        const estMaxMethodResumes = ((maxMethodResumes / duration) * responsiveness) | 0;
         // Update CMA.
         maxMethodResumes = ((estMaxMethodResumes + numSamples * maxMethodResumes) / (numSamples + 1)) | 0;
         if (maxMethodResumes <= 0) {
