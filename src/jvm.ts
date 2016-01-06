@@ -78,6 +78,7 @@ class JVM {
   private terminationCb: (code: number) => void = null;
   // The initial JVM thread used to kick off execution.
   private firstThread: JVMThread = null;
+  private responsiveness: number | (() => number) = null;
   private enableSystemAssertions: boolean = false;
   private enabledAssertions: boolean | string[] = false;
   private disabledAssertions: string[] = [];
@@ -134,6 +135,9 @@ class JVM {
     if (opts.disableAssertions) {
       this.disabledAssertions = opts.disableAssertions;
     }
+
+    this.responsiveness = opts.responsiveness;
+
     this._initSystemProperties(bootstrapClasspath,
       opts.classpath.map((p: string): string => path.resolve(p)),
       path.resolve(opts.javaHomePath),
@@ -256,6 +260,15 @@ class JVM {
     });
   }
 
+  public getResponsiveness():number {
+    const resp = this.responsiveness;
+    if (typeof resp === 'number') {
+      return resp;
+    } else if (typeof resp === 'function') {
+      return resp();
+    }
+  }
+
   public static getDefaultOptions(doppioHome: string): interfaces.JVMOptions {
     let javaHome = path.join(doppioHome, 'vendor', 'java_home');
     return {
@@ -268,7 +281,8 @@ class JVM {
       enableAssertions: false,
       disableAssertions: null,
       properties: {},
-      tmpDir: '/tmp'
+      tmpDir: '/tmp',
+      responsiveness: 1000
     };
   }
 

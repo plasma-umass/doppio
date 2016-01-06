@@ -36,6 +36,8 @@ export interface JVMOptions {
   properties?: {[name: string]: string};
   // Path where DoppioJVM can store temporary files. Defaults to /tmp.
   tmpDir?: string;
+  // Responsiveness of JVM (expressed in milliseconds before a thread yields co-operatively)
+  responsiveness?: number | (() => number);
 }
 
 /**
