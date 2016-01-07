@@ -1,3 +1,7 @@
+sudo: required
+dist: trusty
+jdk: oraclejdk8
+
 language: node_js
 
 matrix:
@@ -6,8 +10,6 @@ matrix:
       env: TEST_BROWSER=0
     - node_js: "stable"
       env: TEST_BROWSER=1
-
-sudo: false
 
 cache:
   directories:
@@ -22,9 +24,6 @@ install:
 
 addons:
   firefox: "latest"
-  apt:
-    packages:
-      - oracle-java8-installer
 
 before_script:
   - export DISPLAY=:99.0

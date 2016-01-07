@@ -9,6 +9,7 @@ export enum MessageType {
 
 export interface Message {
   type: MessageType;
+  id: number;
 }
 
 export interface SetupMessage extends Message {
