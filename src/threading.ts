@@ -26,8 +26,6 @@ var debug = logging.debug, vtrace = logging.vtrace, trace = logging.trace,
   maxMethodResumes: number = 10000,
   // The number of method resumes until Doppio should yield again.
   methodResumesLeft: number = maxMethodResumes,
-  // How responsive Doppio should aim to be, in milliseconds.
-  responsiveness: number = 1000,
   // Used for the CMA.
   numSamples: number = 1;
 
@@ -679,7 +677,7 @@ export class JVMThread implements Thread {
         const endTime = (new Date()).getTime();
         const duration = endTime - startTime;
         // Estimated number of methods we can resume before needing to yield.
-        const estMaxMethodResumes = ((maxMethodResumes / duration) * responsiveness) | 0;
+        const estMaxMethodResumes = ((maxMethodResumes / duration) * this.jvm.getResponsiveness()) | 0;
         // Update CMA.
         maxMethodResumes = ((estMaxMethodResumes + numSamples * maxMethodResumes) / (numSamples + 1)) | 0;
         if (maxMethodResumes <= 0) {
