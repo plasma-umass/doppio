@@ -37,9 +37,6 @@ tscommand-*.txt
 .tscache
 .baseDir*.ts
 
-#tsd
-typings
-
 # harness
 tasks/test/*.d.ts
 
