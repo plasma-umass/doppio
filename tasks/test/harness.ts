@@ -12,39 +12,59 @@ import path = require('path');
 import DoppioJVM = require('../../src/doppiojvm');
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
 import {getTests as localGetTests, runTest as commonRunTest} from './harness_common';
-import {MessageType, RunTestMessage, SetupMessage, TestListingMessage, TestResultMessage} from './messages';
+import {Message, MessageType, RunTestMessage, SetupMessage, TestListingMessage, TestResultMessage} from './messages';
 let isRelease = DoppioJVM.VM.JVM.isReleaseBuild();
 
 // HACK: Delay test execution until backends load.
 // https://zerokspot.com/weblog/2013/07/12/delay-test-execution-in-karma/
 __karma__.loaded = function() {};
 
+let workerMsgCount = 0;
+const workerMsgInfo:any[] = [];
+
+function registerWorkerListener(worker: Worker) {
+  worker.addEventListener('message', (msg: MessageEvent) => {
+    const data = msg.data;
+    const info = workerMsgInfo[data.id];
+    delete(workerMsgInfo[data.id]);
+    switch (data.type) {
+      case MessageType.TEST_RESULT: {
+        const result = <TestResultMessage> data;
+        info.cb(result.err, result.stack, result.actual, result.expected);
+      }
+      case MessageType.TEST_LISTING: {
+        const result = <TestListingMessage> data;
+        info.cb(result.listing);
+      }
+    }
+  });
+
+}
+
 function runTestWebWorker(index: number, cb: (err: string, stack?: string, actual?: string, expected?: string) => void): void {
-  let msg: RunTestMessage = {
+  const msg: RunTestMessage = {
     type: MessageType.RUN_TEST,
+    id : workerMsgCount++,
     index: index
-  }, listener = function(msg: MessageEvent) {
-    let data = <TestResultMessage> msg.data;
-    cb(data.err, data.stack, data.actual, data.expected);
   };
-  worker.addEventListener('message', listener);
-  worker.postMessage(msg);
+  workerSendMessage(msg, cb);
 }
 
 function runTestLocally(index: number, cb: (err?: string, stack?: string, actual?: string, expected?: string) => void): void {
   commonRunTest(tests[index], (err, actual, expected) => cb(err ? "" + err : null, err ? err.stack : null, actual, expected));
 }
 
-function getTestsWebWorker(cb: (tests: string[]) => void): void {
-  let msg: SetupMessage = {
-    type: MessageType.SETUP
-  }, listener = function(msg: MessageEvent) {
-    worker.removeEventListener('message', listener);
-    let data = <TestListingMessage> msg.data;
-    cb(data.listing);
-  };
-  worker.addEventListener('message', listener);
+function workerSendMessage(msg: Message, cbFunction: any) {
+  workerMsgInfo[msg.id] = {cb: cbFunction};
   worker.postMessage(msg);
+}
+
+function getTestsWebWorker(cb: (tests: string[]) => void): void {
+  const msg: SetupMessage = {
+    type: MessageType.SETUP,
+    id : workerMsgCount++
+  };
+  workerSendMessage(msg, cb);
 }
 
 function getTestsLocally(cb: (tests: string[]) => void): void {
@@ -65,6 +85,7 @@ var supportsWorkers = typeof Worker !== 'undefined',
 export default function runTests() {
   if (supportsWorkers) {
     worker = new Worker(`../build/test${isRelease ? '-release' : '-dev'}/harness_webworker.js`);
+    registerWorkerListener(worker);
   }
 
   getTests((tests: string[]): void => {
