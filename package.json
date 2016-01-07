@@ -38,7 +38,6 @@
     "grunt-lineending": "^0.2.4",
     "grunt-merge-source-maps": "^0.1.0",
     "grunt-ts": "^5.2.0",
-    "grunt-tsd": "^0.1.0",
     "jasmine-core": "^2.3.4",
     "karma": "^0.13.9",
     "karma-browserify": "^4.4.0",

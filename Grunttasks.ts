@@ -434,14 +434,6 @@ export function setup(grunt: IGrunt) {
           }
         ]
       }
-    },
-    tsd: {
-      doppio: {
-        options: {
-          command: "reinstall",
-          config: "tsd.json"
-        }
-      }
     }
   });
 
@@ -452,7 +444,6 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-karma');
   grunt.loadNpmTasks('grunt-lineending');
   grunt.loadNpmTasks('grunt-merge-source-maps');
-  grunt.loadNpmTasks('grunt-tsd');
   grunt.loadNpmTasks('grunt-browserify');
   grunt.loadNpmTasks('grunt-exorcise');
   // Load our custom tasks.
@@ -556,8 +547,7 @@ export function setup(grunt: IGrunt) {
    */
 
   grunt.registerTask('dev-cli',
-    ['tsd:doppio',
-     'setup:dev-cli',
+    ['setup:dev-cli',
      'make_build_dir',
      'includecheck',
      'ts:dev-cli',
