@@ -331,7 +331,7 @@ class sun_misc_Unsafe {
    * @since 1.7
    */
   public static 'copyMemory(Ljava/lang/Object;JLjava/lang/Object;JJ)V'(thread: JVMThread, javaThis: JVMTypes.sun_misc_Unsafe, srcBase: JVMTypes.java_lang_Object, srcOffset: Long, destBase: JVMTypes.java_lang_Object, destOffset: Long, bytes: Long): void {
-    var heap = thread.getJVM().getHeap(),
+    const heap = thread.getJVM().getHeap(),
       srcAddr = srcOffset.toNumber(),
       destAddr = destOffset.toNumber(),
       length = bytes.toNumber();
@@ -342,10 +342,10 @@ class sun_misc_Unsafe {
       // OK, so... destBase is an array, destOffset is a byte offset from the
       // start of the array. Need to copy data from the heap directly into the array.
       if (util.is_array_type(destBase.getClass().getInternalName()) && util.is_primitive_type((<ArrayClassData<any>> destBase.getClass()).getComponentClass().getInternalName())) {
-        var destArray: JVMTypes.JVMArray<any> = <any> destBase, i: number;
+        const destArray: JVMTypes.JVMArray<any> = <any> destBase;
         switch (destArray.getClass().getComponentClass().getInternalName()) {
           case 'B':
-            for (i = 0; i < length; i++) {
+            for (let i = 0; i < length; i++) {
               destArray.array[destAddr + i] = heap.get_signed_byte(srcAddr + i);
             }
             break;
@@ -365,7 +365,7 @@ class sun_misc_Unsafe {
             break;*/
           default:
             // I have no idea what the appropriate semantics are for this.
-            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented. destArray type: ' + destArray.getClass().getComponentClass().getInternalName());
             break;
         }
       } else {
@@ -384,7 +384,7 @@ class sun_misc_Unsafe {
             break;
           default:
             // I have no idea what the appropriate semantics are for this.
-            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+            thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented. srcArray:' + srcArray.getClass().getComponentClass().getInternalName());
             break;
         }
       } else {
@@ -393,7 +393,7 @@ class sun_misc_Unsafe {
       }
     } else {
       // I have no idea what the appropriate semantics are for this.
-      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented. Both src and dest are arrays?');
     }
   }
 
