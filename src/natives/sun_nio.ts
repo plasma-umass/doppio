@@ -197,13 +197,11 @@ function stringToByteArray(thread: JVMThread, str: string): JVMTypes.JVMArray<nu
     return null;
   }
 
-  var buff = new Buffer(str, 'utf8'), len = buff.length,
-    arr = util.newArray<number>(thread, thread.getBsCl(), '[B', len + 1),
-    i: number;
-  for (i = 0; i < len; i++) {
+  const buff = new Buffer(str, 'utf8'), len = buff.length,
+    arr = util.newArray<number>(thread, thread.getBsCl(), '[B', len);
+  for (let i = 0; i < len; i++) {
     arr.array[i] = buff.readUInt8(i);
   }
-  arr.array[len] = 0;
   return arr;
 }
 
