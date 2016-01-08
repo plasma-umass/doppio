@@ -375,10 +375,11 @@ class sun_misc_Unsafe {
     } else if (srcBase !== null && destBase === null) {
       // srcBase is an array, destOffset is an address where the contents of srcBase should be copied.
       if (util.is_array_type(srcBase.getClass().getInternalName()) && util.is_primitive_type((<ArrayClassData<any>> srcBase.getClass()).getComponentClass().getInternalName())) {
-        var srcArray: JVMTypes.JVMArray<any> = <any> srcBase, i: number;
+        const srcArray: JVMTypes.JVMArray<any> = <any> srcBase;
         switch (srcArray.getClass().getComponentClass().getInternalName()) {
           case 'B':
-            for (i = 0; i < length; i++) {
+          case 'C':
+            for (let i = 0; i < length; i++) {
               heap.set_signed_byte(destAddr + i, srcArray.array[srcAddr + i]);
             }
             break;
