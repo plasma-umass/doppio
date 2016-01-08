@@ -145,7 +145,7 @@ export function setup(grunt: IGrunt) {
         dest: "includes",
         // The following classes are referenced by DoppioJVM code, but aren't
         // referenced by any JVM classes directly for some reason.
-        force: ['sun.nio.fs.UnixConstants', 'sun.nio.fs.DefaultFileSystemProvider', 'sun.nio.fs.UnixException', 'java.lang.ExceptionInInitializerError', 'java.nio.charset.Charset$3', 'java.lang.invoke.MethodHandleNatives$Constants', 'java.lang.reflect.InvocationTargetException', 'java.nio.DirectByteBuffer', 'java.security.PrivilegedActionException'],
+        force: ['java.nio.file.NoSuchFileException', 'java.nio.file.FileAlreadyExistsException', 'sun.nio.fs.UnixConstants', 'sun.nio.fs.DefaultFileSystemProvider', 'sun.nio.fs.UnixException', 'java.lang.ExceptionInInitializerError', 'java.nio.charset.Charset$3', 'java.lang.invoke.MethodHandleNatives$Constants', 'java.lang.reflect.InvocationTargetException', 'java.nio.DirectByteBuffer', 'java.security.PrivilegedActionException'],
         headersOnly: true
       },
       default: {}

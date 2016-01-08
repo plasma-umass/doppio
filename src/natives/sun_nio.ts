@@ -205,22 +205,40 @@ function stringToByteArray(thread: JVMThread, str: string): JVMTypes.JVMArray<nu
   return arr;
 }
 
-function convertError(thread: JVMThread, err: NodeJS.ErrnoException, cb: (err: JVMTypes.sun_nio_fs_UnixException) => void): void {
+function convertError(thread: JVMThread, err: NodeJS.ErrnoException, cb: (err: JVMTypes.java_lang_Exception) => void): void {
   thread.setStatus(ThreadStatus.ASYNC_WAITING);
-  thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixException;', (unixException) => {
-    thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixConstants;', (unixConstants) => {
-        var cons = (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixException>> unixException).getConstructor(thread),
-          rv = new cons(thread),
-          unixCons: typeof JVMTypes.sun_nio_fs_UnixConstants = <any> (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixConstants>> unixConstants).getConstructor(thread),
-          errCode: number = (<any> unixCons)[`sun/nio/fs/UnixConstants/${err.code}`];
-        if (typeof(errCode) !== 'number') {
-          errCode = -1;
-        }
-        rv['sun/nio/fs/UnixException/errno'] = errCode;
-        rv['sun/nio/fs/UnixException/msg'] = util.initString(thread.getBsCl(), err.message);
-        cb(rv);
+  if (err.code === 'ENOENT') {
+    thread.getBsCl().initializeClass(thread, 'Ljava/nio/file/NoSuchFileException;', (noSuchFileException) => {
+      const cons = (<ReferenceClassData<JVMTypes.java_nio_file_NoSuchFileException>> noSuchFileException).getConstructor(thread),
+      rv = new cons(thread);
+      rv['<init>(Ljava/lang/String;)V'](thread, [util.initString(thread.getBsCl(), err.path)], (e) => {
+        thread.throwException(rv);
+      });
     });
-  });
+  } else if (err.code === 'EEXIST') {
+    thread.getBsCl().initializeClass(thread, 'Ljava/nio/file/FileAlreadyExistsException;', (fileAlreadyExistsException) => {
+      const cons = (<ReferenceClassData<JVMTypes.java_nio_file_FileAlreadyExistsException>> fileAlreadyExistsException).getConstructor(thread),
+      rv = new cons(thread);
+      rv['<init>(Ljava/lang/String;)V'](thread, [util.initString(thread.getBsCl(), err.path)], (e) => {
+        cb(rv);
+      });
+    });
+  } else {
+    thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixException;', (unixException) => {
+      thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixConstants;', (unixConstants) => {
+          var cons = (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixException>> unixException).getConstructor(thread),
+            rv = new cons(thread),
+            unixCons: typeof JVMTypes.sun_nio_fs_UnixConstants = <any> (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixConstants>> unixConstants).getConstructor(thread),
+            errCode: number = (<any> unixCons)[`sun/nio/fs/UnixConstants/${err.code}`];
+          if (typeof(errCode) !== 'number') {
+            errCode = -1;
+          }
+          rv['sun/nio/fs/UnixException/errno'] = errCode;
+          rv['sun/nio/fs/UnixException/msg'] = util.initString(thread.getBsCl(), err.message);
+          cb(rv);
+      });
+    });
+  }
 }
 
 function convertStats(stats: fs.Stats, jvmStats: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
