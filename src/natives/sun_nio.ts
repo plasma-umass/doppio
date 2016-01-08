@@ -479,9 +479,15 @@ class sun_nio_fs_UnixNativeDispatcher {
     });
   }
 
-  public static 'realpath0(J)[B'(thread: JVMThread, arg0: Long): JVMTypes.JVMArray<number> {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    return null;
+  public static 'realpath0(J)[B'(thread: JVMThread, pathAddress: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.realpath(getStringFromHeap(thread, pathAddress), (err, resolvedPath) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn(util.initCarr(thread.getBsCl(), resolvedPath));
+      }
+    });
   }
 
   public static 'symlink0(JJ)V'(thread: JVMThread, arg0: Long, arg1: Long): void {
@@ -609,8 +615,17 @@ class sun_nio_fs_UnixNativeDispatcher {
     });
   }
 
-  public static 'access0(JI)V'(thread: JVMThread, arg0: Long, arg1: number): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'access0(JI)V'(thread: JVMThread, pathAddress: Long, arg1: number): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    // TODO: Need to check specific flags
+    const pathString = getStringFromHeap(thread, pathAddress);
+    fs.access(pathString, (err) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
   public static 'getpwuid(I)[B'(thread: JVMThread, arg0: number): JVMTypes.JVMArray<number> {
