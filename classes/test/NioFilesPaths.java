@@ -126,6 +126,7 @@ class NioFilesPaths {
       System.out.println("Does tempDir/tempDir exist?: " + Files.exists(p));
       System.out.println("Making tempDir/tempDir : " + Files.createDirectories(p));
       System.out.println("Does tempDir/tempDir exist now?: " + Files.exists(p));
+      System.out.println("Does tempDir exist now?: " + Files.exists(p2));
       try {
         System.out.println("Deleting tempDir (should fail -- nonempty): " + Files.deleteIfExists(p2));
       } catch (final DirectoryNotEmptyException dne) {
