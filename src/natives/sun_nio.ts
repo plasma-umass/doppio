@@ -619,7 +619,9 @@ class sun_nio_fs_UnixNativeDispatcher {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     // TODO: Need to check specific flags
     const pathString = getStringFromHeap(thread, pathAddress);
-    fs.access(pathString, (err) => {
+    // TODO: fs.access() is better but not currently supported in browserfs: https://github.com/jvilk/BrowserFS/issues/128
+    const checker = util.are_in_browser() ? fs.stat : fs.access;
+    checker(pathString, (err, stat) => {
       if (err) {
         throwNodeError(thread, err);
       } else {
