@@ -12,7 +12,6 @@
     "gunzip-maybe": "^1.2.1",
     "optimist": "~0.6",
     "pako": "^0.2.8",
-    "rimraf": "^2.4.3",
     "source-map-support": "^0.4.0",
     "tar-fs": "^1.8.1"
   },
