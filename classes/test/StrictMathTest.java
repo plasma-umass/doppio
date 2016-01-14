@@ -345,6 +345,13 @@ public class StrictMathTest {
 
     // static double sinh(double x)
     // Returns the hyperbolic sine of a double value.
+    for (i=0; i < d_vals.length; i++) {
+        if( d_vals[i] == Double.MIN_VALUE || d_vals[i] == Double.MIN_NORMAL){
+            continue;
+        }
+        d_results[i] = StrictMath.sinh(d_vals[i]);
+    }
+    results("double sinh(double a)", d_results);
 
     // static double sqrt(double a)
     // Returns the correctly rounded positive square root of a double value.
