@@ -171,6 +171,10 @@ public class StrictMathTest {
 
     // static double expm1(double x)
     // Returns ex -1.
+    for (i=0; i < d_vals.length; i++) {
+        d_results[i] = StrictMath.expm1(d_vals[i]);
+    }
+    results("double expm1(double a)", d_results);
 
     // static double floor(double a)
     // Returns the largest (closest to positive infinity) double value that is less than or equal to the argument and is equal to a mathematical integer.

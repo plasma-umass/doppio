@@ -150,6 +150,16 @@ if ((<any> Math)['imul'] == null) {
   };
 }
 
+if ((<any> Math)['expm1'] == null) {
+  (<any> Math)['expm1'] = function(x: number) {
+    if (Math.abs(x) < 1e-5) {
+        return x + 0.5*x*x;
+    } else {
+        return Math.exp(x) - 1.0;
+    }
+  };
+}
+
 if (!Array.prototype.indexOf) {
   Array.prototype.indexOf = function (searchElement, fromIndex?) {
     if (this == null) {
