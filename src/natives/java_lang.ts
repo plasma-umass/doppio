@@ -983,9 +983,8 @@ class java_lang_StrictMath {
   }
 
   public static 'sinh(D)D'(thread: JVMThread, d_val: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+    var exp = Math.exp(d_val);
+    return (exp - 1 / exp) / 2;
   }
 
   public static 'cosh(D)D'(thread: JVMThread, d_val: number): number {

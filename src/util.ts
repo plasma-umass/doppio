@@ -150,6 +150,14 @@ if ((<any> Math)['imul'] == null) {
   };
 }
 
+
+if((<any> Math)['sinh'] == null){
+  (<any> Math)['sinh'] = function(a:number){
+    var exp = Math.exp(a);
+    return (exp - 1 / exp) / 2;
+  }
+}
+
 if (!Array.prototype.indexOf) {
   Array.prototype.indexOf = function (searchElement, fromIndex?) {
     if (this == null) {
