@@ -1004,9 +1004,11 @@ class java_lang_StrictMath {
   }
 
   public static 'expm1(D)D'(thread: JVMThread, d_val: number): number {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return 0;
+    if (Math.abs(d_val) < 1e-5) {
+        return d_val + 0.5*d_val*d_val;
+    } else {
+        return Math.exp(d_val) - 1.0;
+    }
   }
 
   public static 'log1p(D)D'(thread: JVMThread, d_val: number): number {
