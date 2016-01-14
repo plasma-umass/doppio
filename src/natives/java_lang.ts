@@ -983,8 +983,7 @@ class java_lang_StrictMath {
   }
 
   public static 'sinh(D)D'(thread: JVMThread, d_val: number): number {
-    var exp = Math.exp(d_val);
-    return (exp - 1 / exp) / 2;
+    return (<any> Math).sinh(d_val);
   }
 
   public static 'cosh(D)D'(thread: JVMThread, d_val: number): number {
