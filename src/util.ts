@@ -137,7 +137,7 @@ export function asyncFind<T>(
   process(false);
 }
 
-if ((<any> Math)['imul'] == null) {
+if (!(<any> Math)['imul']) {
   (<any> Math)['imul'] = function(a: number, b: number) {
     // polyfill from https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Math/imul
     var ah = (a >>> 16) & 0xffff;
@@ -150,14 +150,21 @@ if ((<any> Math)['imul'] == null) {
   };
 }
 
-if ((<any> Math)['expm1'] == null) {
-  (<any> Math)['expm1'] = function(x: number) {
+if (!(<any> Math)['expm1']) {
+  (<any> Math)['expm1'] = function(x: number): number {
     if (Math.abs(x) < 1e-5) {
-        return x + 0.5*x*x;
+      return x + 0.5*x*x;
     } else {
-        return Math.exp(x) - 1.0;
+      return Math.exp(x) - 1.0;
     }
   };
+}
+
+if (!(<any> Math)['sinh']){
+  (<any> Math)['sinh'] = function(a: number): number {
+    var exp = Math.exp(a);
+    return (exp - 1 / exp) / 2;
+  }
 }
 
 if (!Array.prototype.indexOf) {
