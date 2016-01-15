@@ -30,12 +30,12 @@ class NioFilesPaths {
       System.out.println("Is '' an absolute path?: " + p.isAbsolute());
       {
         Path pAbs = p.toAbsolutePath();
-        Path pReal = p.toRealPath();
-        System.out.println("Real path:" + pReal);
+        Path pNorm = p.normalize();
+        System.out.println("Real path:" + pNorm);
         System.out.println("Does the absolute path of '' exist?: " + Files.exists(pAbs));
-        System.out.println("Does the canonical path of '' exist?: " + Files.exists(pReal));
-        System.out.println("Does abspath == real.abspath?: " + (pAbs == pReal.toAbsolutePath()));
-        System.out.println("Does abspath.real == realpath?: " + (pAbs.toRealPath() == pReal));
+        System.out.println("Does the normalized path of '' exist?: " + Files.exists(pNorm));
+        System.out.println("Does abspath == norm.abspath?: " + (pAbs == pNorm.toAbsolutePath()));
+        System.out.println("Does abspath.real == normalized path?: " + (pAbs.toRealPath() == pNorm));
       }
       System.out.println("Does '' exist?: " + Files.exists(p));
       System.out.println("What is the length of ''?: " + Files.size(p));
