@@ -7,7 +7,7 @@
   "typings": "dist/typings/src/doppiojvm",
   "dependencies": {
     "async": "^1.4.2",
-    "browserfs": "^0.5.10",
+    "browserfs": "^0.5.11",
     "glob": "^5.0.14",
     "gunzip-maybe": "^1.2.1",
     "optimist": "~0.6",
@@ -38,7 +38,7 @@
     "grunt-merge-source-maps": "^0.1.0",
     "grunt-ts": "^5.2.0",
     "jasmine-core": "^2.3.4",
-    "karma": "^0.13.9",
+    "karma": "^0.13.19",
     "karma-browserify": "^4.4.0",
     "karma-chrome-launcher": "^0.2.1",
     "karma-firefox-launcher": "^0.1.6",

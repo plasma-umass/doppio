@@ -197,32 +197,48 @@ function stringToByteArray(thread: JVMThread, str: string): JVMTypes.JVMArray<nu
     return null;
   }
 
-  var buff = new Buffer(str, 'utf8'), len = buff.length,
-    arr = util.newArray<number>(thread, thread.getBsCl(), '[B', len + 1),
-    i: number;
-  for (i = 0; i < len; i++) {
+  const buff = new Buffer(str, 'utf8'), len = buff.length,
+    arr = util.newArray<number>(thread, thread.getBsCl(), '[B', len);
+  for (let i = 0; i < len; i++) {
     arr.array[i] = buff.readUInt8(i);
   }
-  arr.array[len] = 0;
   return arr;
 }
 
-function convertError(thread: JVMThread, err: NodeJS.ErrnoException, cb: (err: JVMTypes.sun_nio_fs_UnixException) => void): void {
+function convertError(thread: JVMThread, err: NodeJS.ErrnoException, cb: (err: JVMTypes.java_lang_Exception) => void): void {
   thread.setStatus(ThreadStatus.ASYNC_WAITING);
-  thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixException;', (unixException) => {
-    thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixConstants;', (unixConstants) => {
-        var cons = (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixException>> unixException).getConstructor(thread),
-          rv = new cons(thread),
-          unixCons: typeof JVMTypes.sun_nio_fs_UnixConstants = <any> (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixConstants>> unixConstants).getConstructor(thread),
-          errCode: number = (<any> unixCons)[`sun/nio/fs/UnixConstants/${err.code}`];
-        if (typeof(errCode) !== 'number') {
-          errCode = -1;
-        }
-        rv['sun/nio/fs/UnixException/errno'] = errCode;
-        rv['sun/nio/fs/UnixException/msg'] = util.initString(thread.getBsCl(), err.message);
-        cb(rv);
+  if (err.code === 'ENOENT') {
+    thread.getBsCl().initializeClass(thread, 'Ljava/nio/file/NoSuchFileException;', (noSuchFileException) => {
+      const cons = (<ReferenceClassData<JVMTypes.java_nio_file_NoSuchFileException>> noSuchFileException).getConstructor(thread),
+      rv = new cons(thread);
+      rv['<init>(Ljava/lang/String;)V'](thread, [util.initString(thread.getBsCl(), err.path)], (e) => {
+        thread.throwException(rv);
+      });
     });
-  });
+  } else if (err.code === 'EEXIST') {
+    thread.getBsCl().initializeClass(thread, 'Ljava/nio/file/FileAlreadyExistsException;', (fileAlreadyExistsException) => {
+      const cons = (<ReferenceClassData<JVMTypes.java_nio_file_FileAlreadyExistsException>> fileAlreadyExistsException).getConstructor(thread),
+      rv = new cons(thread);
+      rv['<init>(Ljava/lang/String;)V'](thread, [util.initString(thread.getBsCl(), err.path)], (e) => {
+        cb(rv);
+      });
+    });
+  } else {
+    thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixException;', (unixException) => {
+      thread.getBsCl().initializeClass(thread, 'Lsun/nio/fs/UnixConstants;', (unixConstants) => {
+          var cons = (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixException>> unixException).getConstructor(thread),
+            rv = new cons(thread),
+            unixCons: typeof JVMTypes.sun_nio_fs_UnixConstants = <any> (<ReferenceClassData<JVMTypes.sun_nio_fs_UnixConstants>> unixConstants).getConstructor(thread),
+            errCode: number = (<any> unixCons)[`sun/nio/fs/UnixConstants/${err.code}`];
+          if (typeof(errCode) !== 'number') {
+            errCode = -1;
+          }
+          rv['sun/nio/fs/UnixException/errno'] = errCode;
+          rv['sun/nio/fs/UnixException/msg'] = util.initString(thread.getBsCl(), err.message);
+          cb(rv);
+      });
+    });
+  }
 }
 
 function convertStats(stats: fs.Stats, jvmStats: JVMTypes.sun_nio_fs_UnixFileAttributes): void {
@@ -463,9 +479,15 @@ class sun_nio_fs_UnixNativeDispatcher {
     });
   }
 
-  public static 'realpath0(J)[B'(thread: JVMThread, arg0: Long): JVMTypes.JVMArray<number> {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    return null;
+  public static 'realpath0(J)[B'(thread: JVMThread, pathAddress: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.realpath(getStringFromHeap(thread, pathAddress), (err, resolvedPath) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn(util.initCarr(thread.getBsCl(), resolvedPath));
+      }
+    });
   }
 
   public static 'symlink0(JJ)V'(thread: JVMThread, arg0: Long, arg1: Long): void {
@@ -593,8 +615,19 @@ class sun_nio_fs_UnixNativeDispatcher {
     });
   }
 
-  public static 'access0(JI)V'(thread: JVMThread, arg0: Long, arg1: number): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'access0(JI)V'(thread: JVMThread, pathAddress: Long, arg1: number): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    // TODO: Need to check specific flags
+    const pathString = getStringFromHeap(thread, pathAddress);
+    // TODO: fs.access() is better but not currently supported in browserfs: https://github.com/jvilk/BrowserFS/issues/128
+    const checker = util.are_in_browser() ? fs.stat : fs.access;
+    checker(pathString, (err, stat) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
   public static 'getpwuid(I)[B'(thread: JVMThread, arg0: number): JVMTypes.JVMArray<number> {
