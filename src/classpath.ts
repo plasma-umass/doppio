@@ -63,6 +63,10 @@ export interface IClasspathItem {
   tryStatSync(p: string): fs.Stats;
 }
 
+function win2nix(p: string): string {
+  return p.replace(/\\/g, '/');
+}
+
 /**
  * Represents a JAR file on the classpath.
  */
@@ -175,19 +179,19 @@ export abstract class AbstractClasspathJar {
 
   public readdir(p: string, cb: (e: Error, list?: string[]) => void): void {
     this._wrapOp(() => {
-      this._fs.readdir(p, cb);
+      this._fs.readdir(win2nix(p), cb);
     }, cb);
   }
 
   public tryReaddirSync(p: string): string[] {
     return this._wrapSyncOp<string[]>(() => {
-      return this._fs.readdirSync(p);
+      return this._fs.readdirSync(win2nix(p));
     });
   }
 
   public tryStatSync(p: string): fs.Stats {
     return this._wrapSyncOp<fs.Stats>(() => {
-      return this._fs.statSync(p);
+      return this._fs.statSync(win2nix(p));
     });
   }
 
