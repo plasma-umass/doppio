@@ -30,7 +30,13 @@ function java(grunt: IGrunt) {
     if (inputFiles.length === 0) {
       return done();
     }
-    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -J-Dfile.encoding=UTF8 -bootclasspath ' + grunt.config('build.bootclasspath') + ' -source 1.8 -target 1.8 ' + inputFiles.join(' '), function(err?: any) {
+    // Bootclasspath for javac uses OS's path separator.
+    // -Xbootclasspath always uses :.
+    let bootclasspath = grunt.config('build.bootclasspath');
+    if (os.platform() === 'win32') {
+      bootclasspath = bootclasspath.replace(/:/g, ';');
+    }
+    child_process.exec(shellEscape(grunt.config('build.javac')) + ' -J-Dfile.encoding=UTF8 -bootclasspath ' + bootclasspath + ' -source 1.8 -target 1.8 ' + inputFiles.join(' '), function(err?: any) {
       if (err) {
         grunt.fail.fatal('Error running javac: ' + err);
       }
