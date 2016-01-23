@@ -47,6 +47,7 @@
     "karma-opera-launcher": "^0.3.0",
     "karma-safari-launcher": "^0.1.1",
     "locate-java-home": "^0.1.4",
+    "rimraf": "^2.5.1",
     "semver": "^5.1.0",
     "tsify": "^0.13.0",
     "typescript": "^1.7.3",
