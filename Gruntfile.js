@@ -6,7 +6,7 @@ var Grunttasks, glob = require('glob'), ts_files = [], ts_files_to_compile = [],
     fs = require('fs'),
     child_process = require('child_process'),
     path = require('path'),
-    ts_path = path.resolve('node_modules', '.bin', 'tsc'),
+    ts_path = path.resolve('node_modules', '.bin', 'tsc' + (process.platform === "win32" ? ".cmd" : "")),
     result,
     ignoreCompileErrors = process.argv.indexOf('--grunt-ignore-compile-errors') !== -1;
 
