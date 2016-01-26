@@ -64,13 +64,137 @@ export interface IStackFrame {
   getLoader(): ClassLoader.ClassLoader;
 }
 
+export class PreAllocatedStack {
+  private store: any[];
+  private curr: number = 0;
+
+  constructor(initialSize: number) {
+    this.store = new Array(initialSize);
+  }
+
+  push(x: any) {
+    this.store[this.curr++] = x;
+  }
+
+  pushWithNull(x: any) {
+    this.store[this.curr] = x;
+
+    // XXX: Although setting `null` is required in theory, it has no functional impact in practice.
+    // Performance is improved when commented.
+    // this.store[this.curr + 1] = null;
+
+    this.curr += 2;
+  }
+
+  push6(x: any, y: any, z: any, z1: any, z2: any, z3: any) {
+    this.store[this.curr++] = x;
+    this.store[this.curr++] = y;
+    this.store[this.curr++] = z;
+    this.store[this.curr++] = z1;
+    this.store[this.curr++] = z2;
+    this.store[this.curr++] = z3;
+  }
+
+  swap() {
+    const tmp = this.store[this.curr - 1];
+    this.store[this.curr - 1] = this.store[this.curr - 2];
+    this.store[this.curr - 2] = tmp;
+  }
+
+  dup() {
+    this.store[this.curr] = this.store[this.curr - 1];
+    this.curr++;
+  }
+
+  dup2() {
+    this.store[this.curr] = this.store[this.curr - 2];
+    this.store[this.curr + 1] = this.store[this.curr - 1];
+    this.curr += 2;
+  }
+
+  dup_x1() {
+    const v1 = this.store[this.curr - 1];
+
+    this.store[this.curr - 1] = this.store[this.curr - 2];
+    this.store[this.curr] = v1;
+    this.store[this.curr - 2] = v1;
+
+    this.curr++;
+  }
+
+  dup_x2() {
+    const v1 = this.store[this.curr - 1];
+
+    this.store[this.curr - 1] = this.store[this.curr - 2];
+    this.store[this.curr - 2] = this.store[this.curr - 3];
+    this.store[this.curr] = v1;
+    this.store[this.curr - 3] = v1;
+
+    this.curr++;
+  }
+
+  dup2_x1() {
+    const v1 = this.store[this.curr - 1];
+    const v2 = this.store[this.curr - 2];
+
+    this.store[this.curr] = v2;
+    this.store[this.curr + 1] = v1;
+    this.store[this.curr - 1] = this.store[this.curr - 3];
+    this.store[this.curr - 2] = v1;
+    this.store[this.curr - 3] = v2;
+
+    this.curr += 2;
+  }
+
+  pop(): any {
+    return this.store[--this.curr];
+  }
+
+  pop2(): any {
+    this.curr -= 2;
+    return this.store[this.curr];
+  }
+
+  bottom(): any {
+    return this.store[0];
+  }
+
+  top(): any {
+    return this.store[this.curr - 1];
+  }
+
+  fromTop(n: number): any {
+    return this.store[this.curr - (n + 1)];
+  }
+
+  sliceFromBottom(n: number): any {
+    return this.store.slice(n, this.curr);
+  }
+
+  sliceFromTop(n: number): any {
+    return this.store.slice(this.curr - n, this.curr);
+  }
+
+  dropFromTop(n: number) {
+    this.curr -= n;
+  }
+
+  getRaw(): any[] {
+    return this.store.slice(0, this.curr);
+  }
+
+  clear() {
+    this.curr = 0;
+  }
+}
+
 /**
  * Represents a stack frame for a bytecode method.
  */
 export class BytecodeStackFrame implements IStackFrame {
   public pc: number = 0;
   public locals: any[];
-  public stack: any[] = [];
+  public stack: PreAllocatedStack = new PreAllocatedStack(12);
   public returnToThreadLoop: boolean = false;
   public lockedMethodLock: boolean = false;
   public method: methods.Method;
@@ -98,7 +222,7 @@ export class BytecodeStackFrame implements IStackFrame {
       } else {
         trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
       }
-      vtrace(`  S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
+      vtrace(`  S: [${logging.debug_vars(this.stack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
     }
 
     if (method.accessFlags.isSynchronized() && !this.lockedMethodLock) {
@@ -128,7 +252,7 @@ export class BytecodeStackFrame implements IStackFrame {
       }
       opcodeTable[op](thread, this, code, this.pc);
       if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-        vtrace(`    S: [${logging.debug_vars(this.stack)}], L: [${logging.debug_vars(this.locals)}]`);
+        vtrace(`    S: [${logging.debug_vars(this.stack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
       }
     }
   }
@@ -230,7 +354,11 @@ export class BytecodeStackFrame implements IStackFrame {
     if (handler != null) {
       // Found the handler.
       debug(`${method.getFullSignature()}: Caught ${e.getClass().getInternalName()} as subclass of ${handler.catchType}`);
-      this.stack = [e]; // clear out anything on the stack; it was made during the try block
+
+      // clear out anything on the stack; it was made during the try block
+      this.stack.clear();
+      this.stack.push(e);
+
       this.pc = handler.handlerPC;
       return true;
     } else {
@@ -260,7 +388,7 @@ export class BytecodeStackFrame implements IStackFrame {
     return {
       method: this.method,
       pc: this.pc,
-      stack: this.stack.slice(0),
+      stack: this.stack.sliceFromBottom(0),
       locals: this.locals.slice(0)
     };
   }
