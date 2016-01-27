@@ -67,6 +67,10 @@ export class Code implements IAttribute {
     return 'Code';
   }
 
+  public getMaxStack(): number {
+    return this.maxStack;
+  }
+
   public static parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool): IAttribute {
     var maxStack = byteStream.getUint16(),
       maxLocals = byteStream.getUint16(),
