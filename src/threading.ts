@@ -194,7 +194,7 @@ export class PreAllocatedStack {
 export class BytecodeStackFrame implements IStackFrame {
   public pc: number = 0;
   public locals: any[];
-  public stack: PreAllocatedStack = new PreAllocatedStack(12);
+  public stack: PreAllocatedStack;
   public returnToThreadLoop: boolean = false;
   public lockedMethodLock: boolean = false;
   public method: methods.Method;
@@ -211,6 +211,7 @@ export class BytecodeStackFrame implements IStackFrame {
     // try to do this.
     assert(!method.accessFlags.isAbstract(), 'Cannot run an abstract method!');
     this.locals = args;
+    this.stack = new PreAllocatedStack(method.getCodeAttribute().getMaxStack());
   }
 
   public run(thread: JVMThread): void {
