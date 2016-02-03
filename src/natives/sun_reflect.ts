@@ -104,7 +104,7 @@ class sun_reflect_NativeConstructorAccessorImpl {
     cls.$cls.initialize(thread, (cls: ReferenceClassData<JVMTypes.java_lang_Object>) => {
       if (cls !== null) {
         var method: Method = cls.getMethodFromSlot(slot),
-          obj = new (cls.getConstructor(thread))(thread), i: number,
+          obj = new (cls.getConstructor(thread))(thread),
           cb = (e?: JVMTypes.java_lang_Throwable) => {
             if (e) {
               // Wrap in a java.lang.reflect.InvocationTargetException
@@ -123,8 +123,9 @@ class sun_reflect_NativeConstructorAccessorImpl {
             }
           };
 
+        var paramTypes = m['java/lang/reflect/Constructor/parameterTypes'].array.map((pType) => pType.$cls.getInternalName());
         assert(slot >= 0, "Found a constructor without a slot?!");
-        (<JVMTypes.JVMFunction> (<any> obj)[method.signature])(thread, params ? params.array : null, cb);
+        (<JVMTypes.JVMFunction> (<any> obj)[method.signature])(thread, params ? util.unboxArguments(thread, paramTypes, params.array) : null, cb);
       }
     }, true);
   }

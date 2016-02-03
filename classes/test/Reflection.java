@@ -212,6 +212,15 @@ public class Reflection {
     System.out.println(byteClass.getName());
     System.out.println(byteClass.getCanonicalName());
     System.out.println(byteClass.getModifiers());
+
+    // Invoke constructor programmatically
+    try {
+        Constructor<?> constructor = ConstructorTest.class.getConstructors()[0];
+        constructor.newInstance(new Object[] { 42 });
+        new ConstructorTest(43);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
   }
 
   interface Iface {
@@ -222,6 +231,12 @@ public class Reflection {
     public String badString = "I'm a bad string";
     public void inYourIface(Object o) {
       System.out.println("called interface'd method inYourIface: "+o);
+    }
+  }
+
+  static class ConstructorTest {
+    public ConstructorTest(int a) {
+      System.out.println("Number: " + a);
     }
   }
 }

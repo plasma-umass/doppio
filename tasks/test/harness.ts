@@ -38,7 +38,9 @@ function registerWorkerListener(worker: Worker) {
       }
     }
   });
-
+  worker.onerror = function(e) {
+    throw e;
+  };
 }
 
 function runTestWebWorker(index: number, cb: (err: string, stack?: string, actual?: string, expected?: string) => void): void {

@@ -38,7 +38,8 @@ class NioFilesPaths {
         System.out.println("Does abspath.real == normalized path?: " + (pAbs.toRealPath() == pNorm));
       }
       System.out.println("Does '' exist?: " + Files.exists(p));
-      System.out.println("What is the length of ''?: " + Files.size(p));
+      // REMOVED: Returns OS-specific value.
+      // System.out.println("What is the length of ''?: " + Files.size(p));
       System.out.println("Can you write to ''?: " + Files.isWritable(p));
     }
 
