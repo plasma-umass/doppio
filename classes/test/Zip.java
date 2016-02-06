@@ -2,6 +2,8 @@ package classes.test;
 
 import java.util.zip.Inflater;
 import java.util.zip.Deflater;
+import java.io.IOException;
+import java.util.zip.DataFormatException;
 
 /**
  * Tests Doppio's natively implemented zip functions.
@@ -33,7 +35,7 @@ class Zip {
 			//Decode the bytes into a String
 			String outputString = new String(result, 0, resultLength, "UTF-8");
 			assert outputString.equals(inputString);
-		} catch (UnsuportedEncodingException e) {
+		} catch (IOException e) {
 			System.out.println(e);
 		} catch (DataFormatException e) {
 			System.out.println(e);
