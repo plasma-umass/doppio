@@ -12,7 +12,7 @@ class Zip {
 	public static void main(String[] args) {
 		try {
 			// Encode a String into bytes
-			String inputString = "This is my input string.";
+			String inputString = "blahblahblahblah";
 			byte[] input = inputString.getBytes("UTF-8");
 			int originalLength = inputString.length();
 
