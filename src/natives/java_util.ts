@@ -307,9 +307,7 @@ class java_util_zip_CRC32 {
 
 class java_util_zip_Deflater {
 
-  public static 'initIDs()V'(thread: JVMThread): void {
-    thread.getJVMObject
-  }
+  public static 'initIDs()V'(thread: JVMThread): void {}
 
   /**
    * Initialize a new deflater. Using the zlib recommended default values.
