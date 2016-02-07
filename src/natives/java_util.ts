@@ -351,21 +351,21 @@ class java_util_zip_Deflater {
 
     let res: Number;
 
+
+    let inBuf = thisBuf.array;
+    let outBuf = b.array;
+
+    strm.input = i82u8(inBuf, 0, inBuf.length);
+    strm.next_in = thisOff;
+    strm.avail_in = thisLen;
+
+    strm.output = i82u8(outBuf, 0, outBuf.length);
+    strm.next_out = off;
+    strm.avail_out = len;
+
     if (javaThis['java/util/zip/Deflater/setParams']) {
       let level = javaThis['java/util/zip/Deflater/level'];
       let strategy = javaThis['java/util/zip/Deflater/level'];
-
-      let inBuf = thisBuf.array;
-      let outBuf = b.array;
-
-      strm.input = i82u8(inBuf, 0, inBuf.length);
-      strm.next_in = thisOff;
-      strm.avail_in = thisLen;
-
-      strm.output = i82u8(outBuf, 0, outBuf.length);
-      strm.next_out = off;
-      strm.avail_out = len;
-      
       //deflateParams is not yet supported by pako. We'll open a new ZStream with the new parameters instead.
       // res = deflate.deflateParams(strm, level, strategy); 
       let newStream = new ZStreamCons();
@@ -386,16 +386,7 @@ class java_util_zip_Deflater {
       }
     } else {
       let finish = javaThis['java/util/zip/Deflater/finish'];
-      let inBuf = thisBuf.array;
-      let outBuf = b.array;
 
-      strm.input = i82u8(inBuf, 0, inBuf.length);
-      strm.next_in = thisOff;
-      strm.avail_in = thisLen;
-
-      strm.output = i82u8(outBuf, 0, outBuf.length);
-      strm.next_out = off;
-      strm.avail_out = len;
       res = deflate.deflate(strm, finish ? ZlibFlushValue.Z_FINISH : flush);
 
       switch (res) {
