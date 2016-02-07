@@ -13,8 +13,11 @@ class Zip {
 		try {
 			// Encode a String into bytes
 			String inputString = "blahblahblahblah";
+			System.out.println(inputString);
+
 			byte[] input = inputString.getBytes("UTF-8");
 			int originalLength = inputString.length();
+			System.out.println(originalLength);
 
 			// Compress the bytes
 			byte[] output = new byte[100];
@@ -22,7 +25,7 @@ class Zip {
 			compresser.setInput(input);
 			compresser.finish();
 			int compressedDataLength = compresser.deflate(output);
-			assert compressedDataLength < originalLength;
+			System.out.println(compressedDataLength);
 
 			// Decompress the bytes
 			Inflater decompresser = new Inflater();
@@ -30,11 +33,12 @@ class Zip {
 			byte[] result = new byte[100];
 			int resultLength = decompresser.inflate(result);
 			decompresser.end();
-			assert resultLength == originalLength;
+			System.out.println(resultLength);
 
 			//Decode the bytes into a String
 			String outputString = new String(result, 0, resultLength, "UTF-8");
-			assert outputString.equals(inputString);
+			System.out.println(outputString);
+			
 		} catch (IOException e) {
 			System.out.println(e);
 		} catch (DataFormatException e) {
