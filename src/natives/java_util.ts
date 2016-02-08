@@ -312,7 +312,6 @@ class java_util_zip_Deflater {
   /**
    * Initialize a new deflater. Using the zlib recommended default values.
    */
-
   public static 'init(IIZ)J'(thread: JVMThread, level: number, strategy: number, nowrap: number): Long {
     let DEF_MEM_LEVEL = 8; // Zlib recommended default
     let Z_DEFLATED = 8;    // This value is in the js version of pako under pako.Z_DEFLATED. 
@@ -322,7 +321,7 @@ class java_util_zip_Deflater {
     let ret = deflate.deflateInit2(strm, level, Z_DEFLATED, nowrap ? -MAX_WBITS : MAX_WBITS, DEF_MEM_LEVEL, strategy);
     
     if (ret != ZlibReturnCode.Z_OK) {
-      let msg = ((strm.msg != null) ? strm.msg :
+      let msg = ((strm.msg) ? strm.msg :
                 (ret == ZlibReturnCode.Z_STREAM_ERROR) ?
                 "inflateInit2 returned Z_STREAM_ERROR" :
                 "unknown error initializing zlib library");
@@ -336,7 +335,6 @@ class java_util_zip_Deflater {
    * Apparently this is explicitly not supported by pako.
    * @see Notes at http://nodeca.github.io/pako/
    */
-
   public static 'setDictionary(J[BII)V'(thread: JVMThread, arg0: Long, arg1: JVMTypes.JVMArray<number>, arg2: number, arg3: number): void {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
@@ -348,9 +346,6 @@ class java_util_zip_Deflater {
     let thisBuf = javaThis['java/util/zip/Deflater/buf'];
     let thisOff = javaThis['java/util/zip/Deflater/off'];
     let thisLen = javaThis['java/util/zip/Deflater/len'];
-
-    let res: Number;
-
 
     let inBuf = thisBuf.array;
     let outBuf = b.array;
@@ -369,7 +364,7 @@ class java_util_zip_Deflater {
       //deflateParams is not yet supported by pako. We'll open a new ZStream with the new parameters instead.
       // res = deflate.deflateParams(strm, level, strategy); 
       let newStream = new ZStreamCons();
-      res = deflate.deflateInit2(newStream, strm.state.level, strm.state.method, strm.state.windowBits, strm.state.memLevel, strm.state.strategy);
+      let res = deflate.deflateInit2(newStream, strm.state.level, strm.state.method, strm.state.windowBits, strm.state.memLevel, strm.state.strategy);
       ZStreams[addr.toNumber()] = newStream;
       switch (res) {
         case ZlibReturnCode.Z_OK:
@@ -387,7 +382,7 @@ class java_util_zip_Deflater {
     } else {
       let finish = javaThis['java/util/zip/Deflater/finish'];
 
-      res = deflate.deflate(strm, finish ? ZlibFlushValue.Z_FINISH : flush);
+      let res = deflate.deflate(strm, finish ? ZlibFlushValue.Z_FINISH : flush);
 
       switch (res) {
         case ZlibReturnCode.Z_STREAM_END:
@@ -417,7 +412,7 @@ class java_util_zip_Deflater {
   public static 'reset(J)V'(thread: JVMThread, addr: Long): void {
     let strm = GetZStream(thread, addr.toNumber());
     if (strm) {
-      if (deflate.deflateReset(strm) != ZlibReturnCode.Z_OK) {
+      if (deflate.deflateReset(strm) !== ZlibReturnCode.Z_OK) {
         thread.throwNewException('Ljava/lang/InternalError;', strm.msg);
       }
     }
@@ -426,7 +421,7 @@ class java_util_zip_Deflater {
   public static 'end(J)V'(thread: JVMThread, addr: Long): void {
     let strm = GetZStream(thread, addr.toNumber());
     if (strm) {
-      if (deflate.deflateEnd(strm) == ZlibReturnCode.Z_STREAM_ERROR) {
+      if (deflate.deflateEnd(strm) === ZlibReturnCode.Z_STREAM_ERROR) {
         thread.throwNewException('Ljava/lang/InternalError;', strm.msg);
       } else {
         CloseZStream(addr.toNumber());
@@ -452,7 +447,7 @@ class java_util_zip_Inflater {
         let num = OpenZStream(strm);
         return Long.fromNumber(num);
       default:
-        let msg = (strm.msg !== null) ? strm.msg :
+        let msg = (strm.msg) ? strm.msg :
                   (ret == ZlibReturnCode.Z_STREAM_ERROR) ?
                   "inflateInit2 returned Z_STREAM_ERROR" :
                   "unknown error initializing zlib library";
@@ -480,7 +475,7 @@ class java_util_zip_Inflater {
    */
   public static 'inflateBytes(J[BII)I'(thread: JVMThread, javaThis: JVMTypes.java_util_zip_Inflater, addr: Long, b: JVMTypes.JVMArray<number>, off: number, len: number): number {
     let strm = GetZStream(thread, addr.toNumber());
-    if (strm == null) {
+    if (!strm) {
       return;
     }
 
