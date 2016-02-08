@@ -321,14 +321,15 @@ class java_util_zip_Deflater {
     let ret = deflate.deflateInit2(strm, level, Z_DEFLATED, nowrap ? -MAX_WBITS : MAX_WBITS, DEF_MEM_LEVEL, strategy);
     
     if (ret != ZlibReturnCode.Z_OK) {
-      let msg = ((strm.msg) ? strm.msg :
-                (ret == ZlibReturnCode.Z_STREAM_ERROR) ?
+    let msg = ((strm.msg) ? strm.msg :
+      (ret == ZlibReturnCode.Z_STREAM_ERROR) ?
                 "inflateInit2 returned Z_STREAM_ERROR" :
                 "unknown error initializing zlib library");
-      thread.throwNewException("Ljava/lang/InternalError;", msg);
+    thread.throwNewException("Ljava/lang/InternalError;", msg);
+    } else {
+      let num = OpenZStream(strm);
+      return Long.fromNumber(num);
     }
-    let num = OpenZStream(strm);
-    return Long.fromNumber(num);
   }
 
   /**
@@ -364,7 +365,7 @@ class java_util_zip_Deflater {
       //deflateParams is not yet supported by pako. We'll open a new ZStream with the new parameters instead.
       // res = deflate.deflateParams(strm, level, strategy); 
       let newStream = new ZStreamCons();
-      let res = deflate.deflateInit2(newStream, strm.state.level, strm.state.method, strm.state.windowBits, strm.state.memLevel, strm.state.strategy);
+      let res = deflate.deflateInit2(newStream, level, strm.state.method, strm.state.windowBits, strm.state.memLevel, strategy);
       ZStreams[addr.toNumber()] = newStream;
       switch (res) {
         case ZlibReturnCode.Z_OK:
