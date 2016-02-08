@@ -400,7 +400,6 @@ class java_util_zip_Deflater {
           thread.throwNewException('Ljava/lang/InternalError;', strm.msg);
       }
     }
-    return 0;
   }
 
   public static 'getAdler(J)I'(thread: JVMThread, addr: Long): number {
