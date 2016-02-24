@@ -1,4 +1,4 @@
-/// <reference path="../../typings/tsd.d.ts" />
+/// <reference path="../../typings/main.d.ts" />
 /**
  * Main entry point for Doppio unit tests in the browser.
  * Sets up the test environment, and launches everything.

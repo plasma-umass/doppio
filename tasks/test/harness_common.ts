@@ -1,4 +1,4 @@
-/// <reference path="../../typings/tsd.d.ts" />
+/// <reference path="../../typings/main.d.ts" />
 /**
  * Contains the test logic, used in WW and main thread tests.
  */

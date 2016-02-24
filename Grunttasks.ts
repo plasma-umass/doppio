@@ -215,7 +215,7 @@ export function setup(grunt: IGrunt) {
         inlineSources: true
       },
       'dev-cli': {
-        src: ["console/*.ts", "src/**/*.ts", "typings/tsd.d.ts"],
+        src: ["console/*.ts", "src/**/*.ts", "typings/main.d.ts"],
         outDir: 'build/dev-cli',
         options: {
           module: 'commonjs'
