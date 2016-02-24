@@ -94,9 +94,16 @@ export abstract class AbstractClasspathJar {
           cb(e);
         } else {
           try {
-            this._fs.initialize(new ZipFS(data, path.basename(this._path)));
-            this._jarRead = TriState.TRUE;
-            cb();
+            ZipFS.computeIndex(data, (index) => {
+              try {
+                this._fs.initialize(new ZipFS(index, path.basename(this._path)));
+                this._jarRead = TriState.TRUE;
+                cb();
+              } catch (e) {
+                this._jarRead = TriState.FALSE;
+                cb(e);
+              }
+            });
           } catch (e) {
             this._jarRead = TriState.FALSE;
             cb(e);
