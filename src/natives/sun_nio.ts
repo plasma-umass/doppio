@@ -307,7 +307,6 @@ function flag2nodeflag(thread: JVMThread, flag: number): string {
       // 'w+' - Open file for reading and writing. The file is created (if it does not exist) or truncated (if it exists).
       // 'wx+' - Like 'w+' but fails if path exists.
       return failIfExists ? 'wx+' : 'w+';
-      return 'wx+';
     } else {
       // 'r+' - Open file for reading and writing. An exception occurs if the file does not exist.
       // 'rs+' - Open file for reading and writing, telling the OS to open it synchronously.

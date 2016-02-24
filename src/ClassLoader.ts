@@ -375,7 +375,10 @@ export class BootstrapClassLoader extends ClassLoader {
    *   Passes an error if one occurs.
    */
   constructor(javaHome: string, classpath: string[], cb: (e?: any) => void) {
-    super(this);
+    // The correct way to do this would be super(this), but we cannot reference this before calling super()
+    super(null);
+    this.bootstrap = this;
+
     this.classpath = null;
     this.loadedPackages = {};
 
