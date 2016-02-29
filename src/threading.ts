@@ -194,7 +194,7 @@ export class PreAllocatedStack {
 export class BytecodeStackFrame implements IStackFrame {
   public pc: number = 0;
   public locals: any[];
-  public stack: PreAllocatedStack;
+  public opStack: PreAllocatedStack;
   public returnToThreadLoop: boolean = false;
   public lockedMethodLock: boolean = false;
   public method: methods.Method;
@@ -211,7 +211,7 @@ export class BytecodeStackFrame implements IStackFrame {
     // try to do this.
     assert(!method.accessFlags.isAbstract(), 'Cannot run an abstract method!');
     this.locals = args;
-    this.stack = new PreAllocatedStack(method.getCodeAttribute().getMaxStack());
+    this.opStack = new PreAllocatedStack(method.getCodeAttribute().getMaxStack());
   }
 
   public run(thread: JVMThread): void {
@@ -223,7 +223,7 @@ export class BytecodeStackFrame implements IStackFrame {
       } else {
         trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
       }
-      vtrace(`  S: [${logging.debug_vars(this.stack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+      vtrace(`  S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
     }
 
     if (method.accessFlags.isSynchronized() && !this.lockedMethodLock) {
@@ -253,7 +253,7 @@ export class BytecodeStackFrame implements IStackFrame {
       }
       opcodeTable[op](thread, this, code, this.pc);
       if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-        vtrace(`    S: [${logging.debug_vars(this.stack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+        vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
       }
     }
   }
@@ -287,10 +287,10 @@ export class BytecodeStackFrame implements IStackFrame {
     }
 
     if (rv !== undefined) {
-      this.stack.push(rv);
+      this.opStack.push(rv);
     }
     if (rv2 !== undefined) {
-      this.stack.push(rv2);
+      this.opStack.push(rv2);
     }
   }
 
@@ -357,8 +357,8 @@ export class BytecodeStackFrame implements IStackFrame {
       debug(`${method.getFullSignature()}: Caught ${e.getClass().getInternalName()} as subclass of ${handler.catchType}`);
 
       // clear out anything on the stack; it was made during the try block
-      this.stack.clear();
-      this.stack.push(e);
+      this.opStack.clear();
+      this.opStack.push(e);
 
       this.pc = handler.handlerPC;
       return true;
@@ -389,7 +389,7 @@ export class BytecodeStackFrame implements IStackFrame {
     return {
       method: this.method,
       pc: this.pc,
-      stack: this.stack.sliceFromBottom(0),
+      stack: this.opStack.sliceFromBottom(0),
       locals: this.locals.slice(0)
     };
   }
