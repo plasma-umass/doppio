@@ -119,7 +119,8 @@ function writeJdkJson(): void {
 
     let jdkJson = {
       url: JDK_URL,
-      classpath: classpath
+      // Convert Windows-style paths to Unix-style paths
+      classpath: classpath.map((cpItem) => cpItem.replace(/\\/g, '/'))
     };
     fs.writeFileSync(path.resolve(JDK_PATH, JDK_FOLDER, "jdk.json"),
       new Buffer(JSON.stringify(jdkJson), "utf8"));

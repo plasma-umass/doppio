@@ -3,6 +3,7 @@ doppio: A JVM in TypeScript v0.3.1
 
 [![Join the chat at https://gitter.im/plasma-umass/doppio](https://badges.gitter.im/plasma-umass/doppio.svg)](https://gitter.im/plasma-umass/doppio?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/plasma-umass/doppio.svg?branch=master)](https://travis-ci.org/plasma-umass/doppio)
+[![Build status](https://ci.appveyor.com/api/projects/status/tcwicbagl9xi3m6v?svg=true)](https://ci.appveyor.com/project/jvilk/doppio)
 [![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/master.svg)](https://david-dm.org/plasma-umass/doppio/master#info=dependencies&view=table)
 [![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/master/dev-status.svg)](https://david-dm.org/plasma-umass/doppio/master#info=devDependencies&view=table)
 

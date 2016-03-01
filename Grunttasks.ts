@@ -332,10 +332,13 @@ export function setup(grunt: IGrunt) {
       }
     },
     lineending: {
+      options: {
+        eol: 'lf'
+      },
       default: {
         files: [{
           expand: true,
-          src: ['classes/test/*.+(runout)']
+          src: ['classes/test/*.runout']
         }]
       }
     },
@@ -492,7 +495,7 @@ export function setup(grunt: IGrunt) {
         let JDKInfo = require('./vendor/java_home/jdk.json');
         grunt.config.set("build.bootclasspath",
           JDKInfo.classpath.map((item: string) =>
-            path.resolve(grunt.config.get<string>("build.java_home_dir"), item)).join(":"));
+            path.resolve(grunt.config.get<string>("build.java_home_dir"), item).replace(/\\/g, '/')).join(":"));
       }
       done(code === 0);
     });
@@ -640,6 +643,11 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser-travis', 'Tests DoppioJVM in the browser in Travis.', function() {
     // Only test in Firefox.
     karmaOptions.browsers = ['Firefox'];
+    karmaOptions.singleRun = true;
+    grunt.task.run(['test-browser']);
+  });
+  grunt.registerTask('test-browser-appveyor', 'Tests DoppioJVM in the browser on AppVeyor.', function() {
+    karmaOptions.browsers = ['Firefox', 'Chrome', 'IE'];
     karmaOptions.singleRun = true;
     grunt.task.run(['test-browser']);
   });

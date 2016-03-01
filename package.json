@@ -56,9 +56,10 @@
     "underscore": "^1.8.3"
   },
   "scripts": {
-    "test": "./node_modules/.bin/grunt test",
+    "test": "grunt test",
     "prepublish": "node ./prepublish.js",
-    "install": "node ./install.js"
+    "install": "node ./install.js",
+    "appveyor-test": "grunt test-browser-appveyor"
   },
   "browserify-shim": {
     "browserfs": "global:BrowserFS"
