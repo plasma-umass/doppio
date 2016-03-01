@@ -251,7 +251,7 @@ export class BytecodeStackFrame implements IStackFrame {
       if (!RELEASE && logging.log_level === logging.VTRACE) {
         vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)}`);
       }
-      opcodeTable[op](thread, this, code, this.pc);
+      opcodeTable[op](thread, this, code);
       if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
         vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
       }

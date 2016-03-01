@@ -21,7 +21,7 @@ import JVMTypes = require('../includes/JVMTypes');
  * Interface for individual opcode implementations.
  */
 export interface IOpcodeImplementation {
-  (thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code?: Buffer, position?: number): void;
+  (thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code?: Buffer): void;
 }
 
 /**
@@ -292,7 +292,8 @@ export class Opcodes {
   }
 
   /* 32-bit load opcodes */
-  private static _load_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  private static _load_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.opStack.push(frame.locals[code.readUInt8(pc + 1)]);
     frame.pc += 2;
   }
@@ -334,7 +335,8 @@ export class Opcodes {
   public static aload_3 = Opcodes._load_3_32;
 
   /* 64-bit load opcodes */
-  private static _load_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  private static _load_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.opStack.pushWithNull(frame.locals[code.readUInt8(pc + 1)]);
     frame.pc += 2;
   }
@@ -371,7 +373,8 @@ export class Opcodes {
   public static dload_3 = Opcodes._load_3_64;
 
   /* 32-bit store opcodes */
-  private static _store_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  private static _store_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.locals[code.readUInt8(pc + 1)] = frame.opStack.pop();
     frame.pc += 2;
   }
@@ -413,7 +416,8 @@ export class Opcodes {
   public static astore_3 = Opcodes._store_3_32;
 
   /* 64-bit store opcodes */
-  private static _store_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  private static _store_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var offset = code.readUInt8(pc + 1);
     // NULL
     frame.locals[offset + 1] = frame.opStack.pop();
@@ -459,12 +463,14 @@ export class Opcodes {
 
   /* Misc. */
 
-  public static sipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static sipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.opStack.push(code.readInt16BE(pc + 1));
     frame.pc += 3;
   }
 
-  public static bipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static bipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.opStack.push(code.readInt8(pc + 1));
     frame.pc += 2;
   }
@@ -778,7 +784,8 @@ export class Opcodes {
     frame.pc++;
   }
 
-  public static iinc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static iinc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var idx = code.readUInt8(pc + 1),
       val = code.readInt8(pc + 2);
     frame.locals[idx] = (frame.locals[idx] + val) | 0;
@@ -949,7 +956,8 @@ export class Opcodes {
   }
 
   /* Unary branch opcodes */
-  public static ifeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ifeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() === 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -957,7 +965,8 @@ export class Opcodes {
     }
   }
 
-  public static ifne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ifne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() !== 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -965,7 +974,8 @@ export class Opcodes {
     }
   }
 
-  public static iflt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static iflt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() < 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -973,7 +983,8 @@ export class Opcodes {
     }
   }
 
-  public static ifge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ifge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() >= 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -981,7 +992,8 @@ export class Opcodes {
     }
   }
 
-  public static ifgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ifgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() > 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -989,7 +1001,8 @@ export class Opcodes {
     }
   }
 
-  public static ifle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ifle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() <= 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -998,7 +1011,8 @@ export class Opcodes {
   }
 
   /* Binary branch opcodes */
-  public static if_icmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_icmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 === v2) {
@@ -1008,7 +1022,8 @@ export class Opcodes {
     }
   }
 
-  public static if_icmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_icmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 !== v2) {
@@ -1018,7 +1033,8 @@ export class Opcodes {
     }
   }
 
-  public static if_icmplt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_icmplt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 < v2) {
@@ -1028,7 +1044,8 @@ export class Opcodes {
     }
   }
 
-  public static if_icmpge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_icmpge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 >= v2) {
@@ -1038,7 +1055,8 @@ export class Opcodes {
     }
   }
 
-  public static if_icmpgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_icmpgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 > v2) {
@@ -1048,7 +1066,8 @@ export class Opcodes {
     }
   }
 
-  public static if_icmple(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_icmple(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 <= v2) {
@@ -1058,7 +1077,8 @@ export class Opcodes {
     }
   }
 
-  public static if_acmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_acmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 === v2) {
@@ -1068,7 +1088,8 @@ export class Opcodes {
     }
   }
 
-  public static if_acmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static if_acmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 !== v2) {
@@ -1079,20 +1100,24 @@ export class Opcodes {
   }
 
   /* Jump opcodes */
-  public static goto(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static goto(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.pc += code.readInt16BE(pc + 1);
   }
 
-  public static jsr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static jsr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.opStack.push(frame.pc + 3);
     frame.pc += code.readInt16BE(pc + 1);
   }
 
-  public static ret(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ret(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.pc = frame.locals[code.readUInt8(pc + 1)];
   }
 
-  public static tableswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static tableswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    let pc = frame.pc;
     // Ignore padding bytes. The +1 is to skip the opcode byte.
     pc += ((4 - (pc + 1) % 4) % 4) + 1;
     var defaultOffset = code.readInt32BE(pc),
@@ -1107,7 +1132,8 @@ export class Opcodes {
     }
   }
 
-  public static lookupswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static lookupswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    let pc = frame.pc;
     // Skip padding bytes. The +1 is to skip the opcode byte.
     pc += ((4 - (pc + 1) % 4) % 4) + 1;
     var defaultOffset = code.readInt32BE(pc),
@@ -1174,7 +1200,8 @@ export class Opcodes {
   public static lreturn = Opcodes._return_64;
   public static dreturn = Opcodes._return_64;
 
-  public static getstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     assert(fieldInfo.getType() === enums.ConstantPoolItemType.FIELDREF);
     if (fieldInfo.isResolved()) {
@@ -1207,7 +1234,8 @@ export class Opcodes {
    *
    * Retrieves a 32-bit value.
    */
-  public static getstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     frame.opStack.push(fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName]);
     frame.pc += 3;
@@ -1219,13 +1247,15 @@ export class Opcodes {
    *
    * Retrieves a 64-bit value.
    */
-  public static getstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     frame.opStack.pushWithNull(fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName]);
     frame.pc += 3;
   }
 
-  public static putstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     assert(fieldInfo.getType() === enums.ConstantPoolItemType.FIELDREF);
 
@@ -1259,7 +1289,8 @@ export class Opcodes {
    *
    * Puts a 32-bit value.
    */
-  public static putstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName] = frame.opStack.pop();
     frame.pc += 3;
@@ -1271,13 +1302,15 @@ export class Opcodes {
    *
    * Puts a 64-bit value.
    */
-  public static putstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName] = frame.opStack.pop2();
     frame.pc += 3;
   }
 
-  public static getfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       loader = frame.getLoader(),
       obj = frame.opStack.top();
@@ -1302,7 +1335,8 @@ export class Opcodes {
     }
   }
 
-  public static getfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, obj: JVMTypes.java_lang_Object = opStack.pop();
     if (!isNull(thread, frame, obj)) {
@@ -1311,7 +1345,8 @@ export class Opcodes {
     }
   }
 
-  public static getfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, obj: JVMTypes.java_lang_Object = opStack.pop();
     if (!isNull(thread, frame, obj)) {
@@ -1320,7 +1355,8 @@ export class Opcodes {
     }
   }
 
-  public static putfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       loader = frame.getLoader(),
       isLong = fieldInfo.nameAndTypeInfo.descriptor == 'J' || fieldInfo.nameAndTypeInfo.descriptor == 'D',
@@ -1349,7 +1385,8 @@ export class Opcodes {
     }
   }
 
-  public static putfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var opStack = frame.opStack,
       val = opStack.pop(),
       obj: JVMTypes.java_lang_Object = opStack.pop(),
@@ -1362,7 +1399,8 @@ export class Opcodes {
     // NPE has been thrown.
   }
 
-  public static putfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var opStack = frame.opStack,
       val = opStack.pop2(),
       obj: JVMTypes.java_lang_Object = opStack.pop(),
@@ -1375,7 +1413,8 @@ export class Opcodes {
     // NPE has been thrown.
   }
 
-  public static invokevirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokevirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
 
     // Ensure referenced class is loaded in the current classloader.
@@ -1405,7 +1444,8 @@ export class Opcodes {
     }
   }
 
-  public static invokeinterface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokeinterface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       if (methodReference.method.cls.isInitialized(thread)) {
@@ -1422,7 +1462,8 @@ export class Opcodes {
     }
   }
 
-  public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     callSiteSpecifier.constructCallSiteObject(thread, frame.getLoader(), frame.method.cls, pc, (status: boolean) => {
@@ -1439,7 +1480,8 @@ export class Opcodes {
   /**
    * XXX: Actually perform superclass method lookup.
    */
-  public static invokespecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokespecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       // Rewrite and rerun.
@@ -1449,7 +1491,8 @@ export class Opcodes {
     }
   }
 
-  public static invokestatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokestatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       var m = methodReference.method;
@@ -1482,7 +1525,8 @@ export class Opcodes {
 
   /// Fast invoke opcodes.
 
-  public static invokenonvirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokenonvirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, paramSize = methodReference.paramWordSize,
       obj: JVMTypes.java_lang_Object = opStack.fromTop(paramSize),
@@ -1496,7 +1540,8 @@ export class Opcodes {
     }
   }
 
-  public static invokestatic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokestatic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, paramSize = methodReference.paramWordSize,
       args = opStack.sliceFromTop(paramSize);
@@ -1507,7 +1552,8 @@ export class Opcodes {
     frame.returnToThreadLoop = true;
   }
 
-  public static invokevirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokevirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       count = methodReference.getParamWordSize(),
       opStack = frame.opStack,
@@ -1524,7 +1570,8 @@ export class Opcodes {
 
   public static invokeinterface_fast = Opcodes.invokevirtual_fast;
 
-  public static invokedynamic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokedynamic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cso = callSiteSpecifier.getCallSiteObject(pc),
       appendix = cso[1],
@@ -1543,7 +1590,8 @@ export class Opcodes {
   /**
    * Opcode for MethodHandle.invoke and MethodHandle.invokeExact.
    */
-  public static invokehandle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokehandle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack,
       fcn = methodReference.memberName.vmtarget,
@@ -1572,7 +1620,8 @@ export class Opcodes {
    * This can cause crashes with malformed calls, thus it is only accesssible
    * to trusted JDK code.
    */
-  public static invokebasic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokebasic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       paramSize = methodReference.getParamWordSize(),
       opStack = frame.opStack,
@@ -1600,7 +1649,8 @@ export class Opcodes {
    * TODO: De-conflate the two.
    * TODO: Varargs functions.
    */
-  public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, paramSize = methodReference.paramWordSize,
       // Final argument is the relevant MemberName. Function args are right
@@ -1621,7 +1671,8 @@ export class Opcodes {
   }
 
   // XXX: Varargs functions. We're supposed to box args if target is varargs.
-  public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       paramSize = methodReference.paramWordSize,
       opStack = frame.opStack,
@@ -1644,7 +1695,8 @@ export class Opcodes {
     throwException(thread, frame, "Ljava/lang/Error;", "breakpoint not implemented.");
   }
 
-  public static new(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static new(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       var cls = classRef.cls;
@@ -1659,13 +1711,15 @@ export class Opcodes {
     }
   }
 
-  public static new_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static new_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     frame.opStack.push(new classRef.clsConstructor(thread));
     frame.pc += 3;
   }
 
-  public static newarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static newarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     // TODO: Stash all of these array types during JVM startup.
     var opStack = frame.opStack,
       type = "[" + ArrayTypes[code.readUInt8(pc + 1)],
@@ -1679,7 +1733,8 @@ export class Opcodes {
     }
   }
 
-  public static anewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static anewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite and rerun.
@@ -1691,7 +1746,8 @@ export class Opcodes {
     }
   }
 
-  public static anewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static anewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var opStack = frame.opStack,
       classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       length = opStack.pop();
@@ -1718,7 +1774,8 @@ export class Opcodes {
     frame.returnToThreadLoop = true;
   }
 
-  public static checkcast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static checkcast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite to fast version, and re-execute.
@@ -1728,7 +1785,8 @@ export class Opcodes {
     }
   }
 
-  public static checkcast_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static checkcast_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cls = classRef.cls,
       opStack = frame.opStack,
@@ -1743,7 +1801,8 @@ export class Opcodes {
     }
   }
 
-  public static instanceof(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static instanceof(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite and rerun.
@@ -1754,7 +1813,8 @@ export class Opcodes {
     }
   }
 
-  public static instanceof_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static instanceof_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cls = classRef.cls,
       opStack = frame.opStack,
@@ -1791,7 +1851,8 @@ export class Opcodes {
     }
   }
 
-  public static multianewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static multianewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite and rerun.
@@ -1801,7 +1862,8 @@ export class Opcodes {
     }
   }
 
-  public static multianewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static multianewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack,
       dim = code.readUInt8(pc + 3),
@@ -1821,7 +1883,8 @@ export class Opcodes {
     frame.pc += 4;
   }
 
-  public static ifnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ifnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() == null) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1829,7 +1892,8 @@ export class Opcodes {
     }
   }
 
-  public static ifnonnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ifnonnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     if (frame.opStack.pop() != null) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1837,11 +1901,13 @@ export class Opcodes {
     }
   }
 
-  public static goto_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static goto_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.pc += code.readInt32BE(pc + 1);
   }
 
-  public static jsr_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static jsr_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.opStack.push(frame.pc + 5);
     frame.pc += code.readInt32BE(pc + 1);
   }
@@ -1850,7 +1916,8 @@ export class Opcodes {
     frame.pc += 1;
   }
 
-  public static ldc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ldc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var constant = frame.method.cls.constantPool.get(code.readUInt8(pc + 1));
     if (constant.isResolved()) {
       assert((() => {
@@ -1873,7 +1940,8 @@ export class Opcodes {
     }
   }
 
-  public static ldc_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ldc_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var constant = frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (constant.isResolved()) {
       assert((() => {
@@ -1896,7 +1964,8 @@ export class Opcodes {
     }
   }
 
-  public static ldc2_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ldc2_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var constant = frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     assert(constant.getType() === enums.ConstantPoolItemType.LONG
       || constant.getType() === enums.ConstantPoolItemType.DOUBLE,
@@ -1905,7 +1974,8 @@ export class Opcodes {
     frame.pc += 3;
   }
 
-  public static wide(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static wide(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var index = code.readUInt16BE(pc + 2);
     // Increment PC before switch to avoid issue where ret chances PC and we
     // erroneously increment the PC further.
