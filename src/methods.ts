@@ -19,11 +19,11 @@ declare var RELEASE: boolean;
 if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } = {
-  'java/lang/ref/Reference': {
+  'Ljava/lang/ref/Reference;': {
     // NOP, because we don't do our own GC and also this starts a thread?!?!?!
     '<clinit>()V': function (thread: threading.JVMThread): void { }
   },
-  'java/lang/System': {
+  'Ljava/lang/System;': {
     'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, libName: JVMTypes.java_lang_String): void {
       // Some libraries test if native libraries are available,
       // and expect an exception if they are not.
@@ -43,19 +43,19 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
       }
     }
   },
-  'java/lang/Terminator': {
+  'Ljava/lang/Terminator;': {
     'setup()V': function (thread: threading.JVMThread): void {
       // XXX: We should probably fix this; we support threads now.
       // Historically: NOP'd because we didn't support threads.
     }
   },
-  'java/nio/charset/Charset$3': {
+  'Ljava/nio/charset/Charset$3;': {
     // this is trapped and NOP'ed for speed
     'run()Ljava/lang/Object;': function (thread: threading.JVMThread, javaThis: JVMTypes.java_nio_charset_Charset$3): JVMTypes.java_lang_Object {
       return null;
     }
   },
-  'sun/nio/fs/DefaultFileSystemProvider': {
+  'Lsun/nio/fs/DefaultFileSystemProvider;': {
     // OpenJDK doesn't know what the "Doppio" platform is. Tell it to use the Linux file system.
     'create()Ljava/nio/file/spi/FileSystemProvider;': function(thread: threading.JVMThread): void {
       thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
@@ -65,7 +65,7 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
     }
   },
 
-  'java/lang/Math': {
+  'Ljava/lang/Math;': {
     'min(II)I' : function(thread: threading.JVMThread, first: number, second: number): number {
       return first < second ? first : second;
     },
@@ -74,13 +74,13 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
     }
   },
 
-  'java/lang/Object': {
+  'Ljava/lang/Object;': {
     '<init>()V' : function(thread: threading.JVMThread): void {
       // NOP
     }
   },
 
-  'java/lang/String': {
+  'Ljava/lang/String;': {
     'length()I' : function(thread: threading.JVMThread, obj: JVMTypes.java_lang_String): number {
       const v1 = obj['java/lang/String/value'].array;
       return v1.length;
@@ -123,7 +123,7 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
     }
   },
 
-  'com/sun/tools/javac/file/ZipFileIndex': {
+  'Lcom/sun/tools/javac/file/ZipFileIndex;': {
      'access$400([BI)I' : function(thread: threading.JVMThread, bArray: JVMTypes.JVMArray<number>, index: number): number {
        const array: number[] = bArray.array;
        return (
@@ -143,7 +143,7 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
      }
   },
 
-  'com/sun/tools/javac/util/List': {
+  'Lcom/sun/tools/javac/util/List;': {
      'nonEmpty()Z' : function(thread: threading.JVMThread, obj: JVMTypes.java_util_List): number {
        return (<any>obj)['com/sun/tools/javac/util/List/tail'] === null ? 0 : 1;
      }
@@ -152,11 +152,11 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
 };
 
 function getTrappedMethod(clsName: string, methSig: string): Function {
-  clsName = util.descriptor2typestr(clsName);
-  if (trapped_methods.hasOwnProperty(clsName) && trapped_methods[clsName].hasOwnProperty(methSig)) {
-    return trapped_methods[clsName][methSig];
+  const trappedClass = trapped_methods[clsName];
+  if (trappedClass) {
+    return trappedClass[methSig];
   }
-  return null;
+  return undefined;
 }
 
 /**
@@ -359,8 +359,9 @@ export class Method extends AbstractMethodField {
 
     // Initialize 'code' property.
     var clsName = this.cls.getInternalName();
-    if (getTrappedMethod(clsName, this.signature) !== null) {
-      this.code = getTrappedMethod(clsName, this.signature);
+    const trappedMethod = getTrappedMethod(clsName, this.signature);
+    if (trappedMethod !== undefined) {
+      this.code = trappedMethod;
       this.accessFlags.setNative(true);
     } else if (this.accessFlags.isNative()) {
       if (this.signature.indexOf('registerNatives()V', 0) < 0 && this.signature.indexOf('initIDs()V', 0) < 0) {
