@@ -63,7 +63,92 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
        dfspCls: typeof JVMTypes.sun_nio_fs_DefaultFileSystemProvider = <any> dfsp.getConstructor(thread);
       dfspCls['createProvider(Ljava/lang/String;)Ljava/nio/file/spi/FileSystemProvider;'](thread, [thread.getJVM().internString('sun.nio.fs.LinuxFileSystemProvider')], util.forwardResult(thread));
     }
+  },
+
+  'java/lang/Math': {
+    'min(II)I' : function(thread: threading.JVMThread, first: number, second: number): number {
+      return first < second ? first : second;
+    },
+    'abs(D)D' : function(thread: threading.JVMThread, value: number): number {
+      return value < 0 ? -value : value;
+    }
+  },
+
+  'java/lang/Object': {
+    '<init>()V' : function(thread: threading.JVMThread): void {
+      // NOP
+    }
+  },
+
+  'java/lang/String': {
+    'length()I' : function(thread: threading.JVMThread, obj: JVMTypes.java_lang_String): number {
+      const v1 = obj['java/lang/String/value'].array;
+      return v1.length;
+    },
+
+    'charAt(I)C' : function stringCharAt(thread: threading.JVMThread, obj: JVMTypes.java_lang_String, index: number): number {
+      if (index < 0) {
+        thread.throwNewException<JVMTypes.java_lang_Throwable>('Ljava/lang/StringIndexOutOfBoundsException;', ''+index);
+      } else {
+        const v1 = obj['java/lang/String/value'].array;
+        const len1 = v1.length;
+        if (index >= len1) {
+          thread.throwNewException<JVMTypes.java_lang_Throwable>('Ljava/lang/StringIndexOutOfBoundsException;', ''+index);
+        } else {
+          return v1[index];
+        }
+      }
+    },
+
+    'compareTo(Ljava/lang/String;)I' : function stringCompareTo(thread: threading.JVMThread, obj: JVMTypes.java_lang_String, otherString: JVMTypes.java_lang_String): number {
+      if (otherString == null) {
+        thread.throwNewException<JVMTypes.java_lang_Throwable>('Ljava/lang/NullPointerException;', '');
+      } else {
+        const v1 = obj['java/lang/String/value'].array;
+        const v2 = otherString['java/lang/String/value'].array;
+        const len1 = v1.length;
+        const len2 = v2.length;
+        const lim = Math.min(len1, len2);
+        let k = 0;
+        while (k < lim) {
+          const c1 = v1[k];
+          const c2 = v2[k];
+          if (c1 != c2) {
+            return c1 - c2;
+          }
+          k++;
+        }
+        return len1 - len2;
+      }
+    }
+  },
+
+  'com/sun/tools/javac/file/ZipFileIndex': {
+     'access$400([BI)I' : function(thread: threading.JVMThread, bArray: JVMTypes.JVMArray<number>, index: number): number {
+       const array: number[] = bArray.array;
+       return (
+         ((array[index    ] & 0xff)      ) |
+         ((array[index + 1] & 0xff) << 8 )
+       );
+     },
+
+     'access$500([BI)I' : function(thread: threading.JVMThread, bArray: JVMTypes.JVMArray<number>, index: number): number {
+       const array: number[] = bArray.array;
+       return (
+         ((array[index    ] & 0xff)      ) |
+         ((array[index + 1] & 0xff) << 8 ) |
+         ((array[index + 2] & 0xff) << 16) |
+         ((array[index + 3] & 0xff) << 24)
+       );
+     }
+  },
+
+  'com/sun/tools/javac/util/List': {
+     'nonEmpty()Z' : function(thread: threading.JVMThread, obj: JVMTypes.java_util_List): number {
+       return (<any>obj)['com/sun/tools/javac/util/List/tail'] === null ? 0 : 1;
+     }
   }
+
 };
 
 function getTrappedMethod(clsName: string, methSig: string): Function {
