@@ -137,6 +137,8 @@ export default class ThreadPool<T extends Thread> {
   /**
    * Called when the ThreadPool becomes empty. This is usually a sign that
    * execution has finished.
+   *
+   * If the callback returns true it signals that this threadpool can free its resources.
    */
   private emptyCallback: () => boolean;
 
