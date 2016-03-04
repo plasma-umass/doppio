@@ -164,7 +164,7 @@ class JVM {
      * the first thread.
      */
     bootupTasks.push((next: (err?: any) => void): void => {
-      this.threadPool = new ThreadPool<JVMThread>((): void => { this.threadPoolIsEmpty(); });
+      this.threadPool = new ThreadPool<JVMThread>((): boolean => { return this.threadPoolIsEmpty(); });
       // Resolve Ljava/lang/Thread so we can fake a thread.
       // NOTE: This should never actually use the Thread object unless
       // there's an error loading java/lang/Thread and associated classes.
@@ -405,16 +405,16 @@ class JVM {
   /**
    * Called when the ThreadPool is empty.
    */
-  private threadPoolIsEmpty() {
+  private threadPoolIsEmpty(): boolean {
     var systemClass: ReferenceClassData<JVMTypes.java_lang_System>,
       systemCons: typeof JVMTypes.java_lang_System;
     switch (this.status) {
       case JVMStatus.BOOTING:
         // Ignore empty thread pools during boot process.
-        return;
+        return false;
       case JVMStatus.BOOTED:
         assert(false, `Thread pool should not become empty after JVM is booted, but before it begins to run.`);
-        return;
+        return false;
       case JVMStatus.RUNNING:
         this.status = JVMStatus.TERMINATING;
         systemClass = <any> this.bsCl.getInitializedClass(this.firstThread, 'Ljava/lang/System;');
@@ -422,16 +422,17 @@ class JVM {
         systemCons = <any> systemClass.getConstructor(this.firstThread);
         // This is a normal, non-erroneous exit. When this function completes, threadPoolIsEmpty() will be invoked again.
         systemCons['java/lang/System/exit(I)V'](this.firstThread, [0]);
-        return;
+        return false;
       case JVMStatus.TERMINATED:
         assert(false, `Invariant failure: Thread pool cannot be emptied post-JVM termination.`);
-        return;
+        return false;
       case JVMStatus.TERMINATING:
         this.status = JVMStatus.TERMINATED;
         if (this.terminationCb) {
           this.terminationCb(this.exitCode);
         }
-        return;
+        this.firstThread.close();
+        return true;
     }
   }
 

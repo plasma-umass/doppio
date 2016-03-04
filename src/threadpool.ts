@@ -137,10 +137,12 @@ export default class ThreadPool<T extends Thread> {
   /**
    * Called when the ThreadPool becomes empty. This is usually a sign that
    * execution has finished.
+   *
+   * If the callback returns true it signals that this threadpool can free its resources.
    */
-  private emptyCallback: () => void;
+  private emptyCallback: () => boolean;
 
-  constructor(emptyCallback: () => void) {
+  constructor(emptyCallback: () => boolean) {
     this.emptyCallback = emptyCallback;
   }
 
@@ -180,7 +182,10 @@ export default class ThreadPool<T extends Thread> {
     this.threads.splice(idx, 1);
 
     if (!this.anyNonDaemonicThreads()) {
-      this.emptyCallback();
+      const close = this.emptyCallback();
+      if (close) {
+        this.emptyCallback = null;
+      }
     }
   }
 

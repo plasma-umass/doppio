@@ -1143,6 +1143,10 @@ export class JVMThread implements Thread {
   public handleUncaughtException(exception: JVMTypes.java_lang_Throwable) {
     this.jvmThreadObj['dispatchUncaughtException(Ljava/lang/Throwable;)V'](this, [exception]);
   }
+
+  public close() {
+    this.jvm = null;
+  }
 }
 
 /**
