@@ -21,7 +21,7 @@ import JVMTypes = require('../includes/JVMTypes');
  * Interface for individual opcode implementations.
  */
 export interface IOpcodeImplementation {
-  (thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code?: Buffer, position?: number): void;
+  (thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code?: Buffer): void;
 }
 
 /**
@@ -40,10 +40,10 @@ export function isNull(thread: threading.JVMThread, frame: threading.BytecodeSta
 /**
  * Helper function: Pops off two items, returns the second.
  */
-export function pop2(stack: any[]): any {
+export function pop2(opStack: any[]): any {
   // Ignore NULL.
-  stack.pop();
-  return stack.pop();
+  opStack.pop();
+  return opStack.pop();
 }
 
 export function resolveCPItem(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, cpItem: ConstantPool.IConstantPoolItem): void {
@@ -117,15 +117,15 @@ export class Opcodes {
    * 32-bit array load opcode
    */
   private static _aload_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      idx = stack.pop(),
-      obj = <JVMTypes.JVMArray<any>> stack.pop();
+    var opStack = frame.opStack,
+      idx = opStack.pop(),
+      obj = <JVMTypes.JVMArray<any>> opStack.pop();
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
         throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', `${idx} not in length ${len} array of type ${obj.getClass().getInternalName()}`);
       } else {
-        stack.push(obj.array[idx]);
+        opStack.push(obj.array[idx]);
         frame.pc++;
       }
     }
@@ -145,17 +145,17 @@ export class Opcodes {
    * 64-bit array load opcode.
    */
   private static _aload_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      idx = stack.pop(),
-      obj = <JVMTypes.JVMArray<any>> stack.pop();
+    var opStack = frame.opStack,
+      idx = opStack.pop(),
+      obj = <JVMTypes.JVMArray<any>> opStack.pop();
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
         throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', `${idx} not in length ${len} array of type ${obj.getClass().getInternalName()}`);
       } else {
-        stack.push(obj.array[idx]);
+        opStack.push(obj.array[idx]);
         // 64-bit value.
-        stack.push(null);
+        opStack.push(null);
         frame.pc++;
       }
     }
@@ -172,10 +172,10 @@ export class Opcodes {
    * @private
    */
   private static _astore_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      value = stack.pop(),
-      idx = stack.pop(),
-      obj = <JVMTypes.JVMArray<any>> stack.pop();
+    var opStack = frame.opStack,
+      value = opStack.pop(),
+      idx = opStack.pop(),
+      obj = <JVMTypes.JVMArray<any>> opStack.pop();
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
@@ -202,10 +202,10 @@ export class Opcodes {
    * @private
    */
   private static _astore_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      value = stack.pop2(),
-      idx = stack.pop(),
-      obj = <JVMTypes.JVMArray<any>> stack.pop();
+    var opStack = frame.opStack,
+      value = opStack.pop2(),
+      idx = opStack.pop(),
+      obj = <JVMTypes.JVMArray<any>> opStack.pop();
     if (!isNull(thread, frame, obj)) {
       var len = obj.array.length;
       if (idx < 0 || idx >= len) {
@@ -223,27 +223,27 @@ export class Opcodes {
 
   /* 32-bit constants */
   public static aconst_null(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(null);
+    frame.opStack.push(null);
     frame.pc++;
   }
 
   private static _const_0_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(0);
+    frame.opStack.push(0);
     frame.pc++;
   }
 
   private static _const_1_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(1);
+    frame.opStack.push(1);
     frame.pc++;
   }
 
   private static _const_2_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(2);
+    frame.opStack.push(2);
     frame.pc++;
   }
 
   public static iconst_m1(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(-1);
+    frame.opStack.push(-1);
     frame.pc++;
   }
 
@@ -252,17 +252,17 @@ export class Opcodes {
   public static iconst_2 = Opcodes._const_2_32;
 
   public static iconst_3(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(3);
+    frame.opStack.push(3);
     frame.pc++;
   }
 
   public static iconst_4(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(4);
+    frame.opStack.push(4);
     frame.pc++;
   }
 
   public static iconst_5(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(5);
+    frame.opStack.push(5);
     frame.pc++;
   }
 
@@ -272,48 +272,49 @@ export class Opcodes {
 
   /* 64-bit constants */
   public static lconst_0(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(gLong.ZERO);
+    frame.opStack.pushWithNull(gLong.ZERO);
     frame.pc++;
   }
 
   public static lconst_1(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(gLong.ONE);
+    frame.opStack.pushWithNull(gLong.ONE);
     frame.pc++;
   }
 
   public static dconst_0(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(0);
+    frame.opStack.pushWithNull(0);
     frame.pc++;
   }
 
   public static dconst_1(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(1);
+    frame.opStack.pushWithNull(1);
     frame.pc++;
   }
 
   /* 32-bit load opcodes */
-  private static _load_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    frame.stack.push(frame.locals[code.readUInt8(pc + 1)]);
+  private static _load_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    frame.opStack.push(frame.locals[code.readUInt8(pc + 1)]);
     frame.pc += 2;
   }
 
   private static _load_0_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(frame.locals[0]);
+    frame.opStack.push(frame.locals[0]);
     frame.pc++;
   }
 
   private static _load_1_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(frame.locals[1]);
+    frame.opStack.push(frame.locals[1]);
     frame.pc++;
   }
 
   private static _load_2_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(frame.locals[2]);
+    frame.opStack.push(frame.locals[2]);
     frame.pc++;
   }
 
   private static _load_3_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(frame.locals[3]);
+    frame.opStack.push(frame.locals[3]);
     frame.pc++;
   }
 
@@ -334,28 +335,29 @@ export class Opcodes {
   public static aload_3 = Opcodes._load_3_32;
 
   /* 64-bit load opcodes */
-  private static _load_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    frame.stack.pushWithNull(frame.locals[code.readUInt8(pc + 1)]);
+  private static _load_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    frame.opStack.pushWithNull(frame.locals[code.readUInt8(pc + 1)]);
     frame.pc += 2;
   }
 
   private static _load_0_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(frame.locals[0]);
+    frame.opStack.pushWithNull(frame.locals[0]);
     frame.pc++;
   }
 
   private static _load_1_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(frame.locals[1]);
+    frame.opStack.pushWithNull(frame.locals[1]);
     frame.pc++;
   }
 
   private static _load_2_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(frame.locals[2]);
+    frame.opStack.pushWithNull(frame.locals[2]);
     frame.pc++;
   }
 
   private static _load_3_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.pushWithNull(frame.locals[3]);
+    frame.opStack.pushWithNull(frame.locals[3]);
     frame.pc++;
   }
 
@@ -371,28 +373,29 @@ export class Opcodes {
   public static dload_3 = Opcodes._load_3_64;
 
   /* 32-bit store opcodes */
-  private static _store_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    frame.locals[code.readUInt8(pc + 1)] = frame.stack.pop();
+  private static _store_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    frame.locals[code.readUInt8(pc + 1)] = frame.opStack.pop();
     frame.pc += 2;
   }
 
   private static _store_0_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[0] = frame.stack.pop();
+    frame.locals[0] = frame.opStack.pop();
     frame.pc++;
   }
 
   private static _store_1_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[1] = frame.stack.pop();
+    frame.locals[1] = frame.opStack.pop();
     frame.pc++;
   }
 
   private static _store_2_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[2] = frame.stack.pop();
+    frame.locals[2] = frame.opStack.pop();
     frame.pc++;
   }
 
   private static _store_3_32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[3] = frame.stack.pop();
+    frame.locals[3] = frame.opStack.pop();
     frame.pc++;
   }
 
@@ -413,36 +416,37 @@ export class Opcodes {
   public static astore_3 = Opcodes._store_3_32;
 
   /* 64-bit store opcodes */
-  private static _store_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  private static _store_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var offset = code.readUInt8(pc + 1);
     // NULL
-    frame.locals[offset + 1] = frame.stack.pop();
+    frame.locals[offset + 1] = frame.opStack.pop();
     // The actual value.
-    frame.locals[offset] = frame.stack.pop();
+    frame.locals[offset] = frame.opStack.pop();
     frame.pc += 2;
   }
 
   private static _store_0_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[1] = frame.stack.pop();
-    frame.locals[0] = frame.stack.pop();
+    frame.locals[1] = frame.opStack.pop();
+    frame.locals[0] = frame.opStack.pop();
     frame.pc++;
   }
 
   private static _store_1_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[2] = frame.stack.pop();
-    frame.locals[1] = frame.stack.pop();
+    frame.locals[2] = frame.opStack.pop();
+    frame.locals[1] = frame.opStack.pop();
     frame.pc++;
   }
 
   private static _store_2_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[3] = frame.stack.pop();
-    frame.locals[2] = frame.stack.pop();
+    frame.locals[3] = frame.opStack.pop();
+    frame.locals[2] = frame.opStack.pop();
     frame.pc++;
   }
 
   private static _store_3_64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.locals[4] = frame.stack.pop();
-    frame.locals[3] = frame.stack.pop();
+    frame.locals[4] = frame.opStack.pop();
+    frame.locals[3] = frame.opStack.pop();
     frame.pc++;
   }
 
@@ -459,142 +463,144 @@ export class Opcodes {
 
   /* Misc. */
 
-  public static sipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    frame.stack.push(code.readInt16BE(pc + 1));
+  public static sipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    frame.opStack.push(code.readInt16BE(pc + 1));
     frame.pc += 3;
   }
 
-  public static bipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    frame.stack.push(code.readInt8(pc + 1));
+  public static bipush(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    frame.opStack.push(code.readInt8(pc + 1));
     frame.pc += 2;
   }
 
   public static pop(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.dropFromTop(1);
+    frame.opStack.dropFromTop(1);
     frame.pc++;
   }
 
   public static pop2(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
     // http://i.imgur.com/MieF0KG.jpg
-    frame.stack.dropFromTop(2);
+    frame.opStack.dropFromTop(2);
     frame.pc++;
   }
 
   public static dup(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.dup();
+    frame.opStack.dup();
     frame.pc++;
   }
 
   public static dup_x1(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.dup_x1();
+    frame.opStack.dup_x1();
     frame.pc++;
   }
 
   public static dup_x2(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.dup_x2();
+    frame.opStack.dup_x2();
     frame.pc++;
   }
 
   public static dup2(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.dup2();
+    frame.opStack.dup2();
     frame.pc++;
   }
 
   public static dup2_x1(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.dup2_x1();
+    frame.opStack.dup2_x1();
     frame.pc++;
   }
 
   public static dup2_x2(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      v1 = stack.pop(),
-      v2 = stack.pop(),
-      v3 = stack.pop(),
-      v4 = stack.pop();
-    stack.push6(v2, v1, v4, v3, v2, v1);
+    var opStack = frame.opStack,
+      v1 = opStack.pop(),
+      v2 = opStack.pop(),
+      v3 = opStack.pop(),
+      v4 = opStack.pop();
+    opStack.push6(v2, v1, v4, v3, v2, v1);
     frame.pc++;
   }
 
   public static swap(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.swap();
+    frame.opStack.swap();
     frame.pc++;
   }
 
   /* Math Opcodes */
   public static iadd(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push((stack.pop() + stack.pop()) | 0);
+    var opStack = frame.opStack;
+    opStack.push((opStack.pop() + opStack.pop()) | 0);
     frame.pc++;
   }
 
   public static ladd(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().add(stack.pop2()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().add(opStack.pop2()));
     frame.pc++;
   }
 
   public static fadd(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(util.wrapFloat(stack.pop() + stack.pop()));
+    var opStack = frame.opStack;
+    opStack.push(util.wrapFloat(opStack.pop() + opStack.pop()));
     frame.pc++;
   }
 
   public static dadd(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2() + stack.pop2());
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2() + opStack.pop2());
     frame.pc++;
   }
 
   public static isub(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push((-stack.pop() + stack.pop()) | 0);
+    var opStack = frame.opStack;
+    opStack.push((-opStack.pop() + opStack.pop()) | 0);
     frame.pc++;
   }
 
   public static fsub(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(util.wrapFloat(-stack.pop() + stack.pop()));
+    var opStack = frame.opStack;
+    opStack.push(util.wrapFloat(-opStack.pop() + opStack.pop()));
     frame.pc++;
   }
 
   public static dsub(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(-stack.pop2() + stack.pop2());
+    var opStack = frame.opStack;
+    opStack.pushWithNull(-opStack.pop2() + opStack.pop2());
     frame.pc++;
   }
 
   public static lsub(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().negate().add(stack.pop2()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().negate().add(opStack.pop2()));
     frame.pc++;
   }
 
   public static imul(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push((<any> Math).imul(stack.pop(), stack.pop()));
+    var opStack = frame.opStack;
+    opStack.push((<any> Math).imul(opStack.pop(), opStack.pop()));
     frame.pc++;
   }
 
   public static lmul(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().multiply(stack.pop2()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().multiply(opStack.pop2()));
     frame.pc++;
   }
 
   public static fmul(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(util.wrapFloat(stack.pop() * stack.pop()));
+    var opStack = frame.opStack;
+    opStack.push(util.wrapFloat(opStack.pop() * opStack.pop()));
     frame.pc++;
   }
 
   public static dmul(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2() * stack.pop2());
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2() * opStack.pop2());
     frame.pc++;
   }
 
   public static idiv(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack, b: number = stack.pop(), a: number = stack.pop();
+    var opStack = frame.opStack, b: number = opStack.pop(), a: number = opStack.pop();
     if (b === 0) {
       throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
     } else {
@@ -602,183 +608,184 @@ export class Opcodes {
       // for the int type, and the divisor is -1, then overflow occurs, and the
       // result is equal to the dividend."
       if (a === enums.Constants.INT_MIN && b === -1) {
-        stack.push(a);
+        opStack.push(a);
       } else {
-        stack.push((a / b) | 0);
+        opStack.push((a / b) | 0);
       }
       frame.pc++;
     }
   }
 
   public static ldiv(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      b: gLong = stack.pop2(),
-      a: gLong = stack.pop2();
+    var opStack = frame.opStack,
+      b: gLong = opStack.pop2(),
+      a: gLong = opStack.pop2();
     if (b.isZero()) {
       throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
     } else {
-      stack.pushWithNull(a.div(b));
+      opStack.pushWithNull(a.div(b));
       frame.pc++;
     }
   }
 
   public static fdiv(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      a: number = stack.pop();
-    stack.push(util.wrapFloat(stack.pop() / a));
+    var opStack = frame.opStack,
+      a: number = opStack.pop();
+    opStack.push(util.wrapFloat(opStack.pop() / a));
     frame.pc++;
   }
 
   public static ddiv(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      v: number = stack.pop2();
-    stack.pushWithNull(stack.pop2() / v);
+    var opStack = frame.opStack,
+      v: number = opStack.pop2();
+    opStack.pushWithNull(opStack.pop2() / v);
     frame.pc++;
   }
 
   public static irem(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      b: number = stack.pop(),
-      a: number = stack.pop();
+    var opStack = frame.opStack,
+      b: number = opStack.pop(),
+      a: number = opStack.pop();
     if (b === 0) {
       throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
     } else {
-      stack.push(a % b);
+      opStack.push(a % b);
       frame.pc++;
     }
   }
 
   public static lrem(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      b: gLong = stack.pop2(),
-      a: gLong = stack.pop2();
+    var opStack = frame.opStack,
+      b: gLong = opStack.pop2(),
+      a: gLong = opStack.pop2();
     if (b.isZero()) {
       throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
     } else {
-      stack.pushWithNull(a.modulo(b));
+      opStack.pushWithNull(a.modulo(b));
       frame.pc++;
     }
   }
 
   public static frem(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      b: number = stack.pop();
-    stack.push(stack.pop() % b);
+    var opStack = frame.opStack,
+      b: number = opStack.pop();
+    opStack.push(opStack.pop() % b);
     frame.pc++;
   }
 
   public static drem(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      b: number = stack.pop2();
-    stack.pushWithNull(stack.pop2() % b);
+    var opStack = frame.opStack,
+      b: number = opStack.pop2();
+    opStack.pushWithNull(opStack.pop2() % b);
     frame.pc++;
   }
 
   public static ineg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(-stack.pop() | 0);
+    var opStack = frame.opStack;
+    opStack.push(-opStack.pop() | 0);
     frame.pc++;
   }
 
   public static lneg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().negate());
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().negate());
     frame.pc++;
   }
 
   public static fneg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(-stack.pop());
+    var opStack = frame.opStack;
+    opStack.push(-opStack.pop());
     frame.pc++;
   }
 
   public static dneg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(-stack.pop2());
+    var opStack = frame.opStack;
+    opStack.pushWithNull(-opStack.pop2());
     frame.pc++;
   }
 
   /* Bitwise Operations */
 
   public static ishl(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      s: number = stack.pop();
-    stack.push(stack.pop() << s);
+    var opStack = frame.opStack,
+      s: number = opStack.pop();
+    opStack.push(opStack.pop() << s);
     frame.pc++;
   }
 
   public static lshl(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      s: number = stack.pop();
-    stack.pushWithNull(stack.pop2().shiftLeft(gLong.fromInt(s)));
+    var opStack = frame.opStack,
+      s: number = opStack.pop();
+    opStack.pushWithNull(opStack.pop2().shiftLeft(gLong.fromInt(s)));
     frame.pc++;
   }
 
   public static ishr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      s: number = stack.pop();
-    stack.push(stack.pop() >> s);
+    var opStack = frame.opStack,
+      s: number = opStack.pop();
+    opStack.push(opStack.pop() >> s);
     frame.pc++;
   }
 
   public static lshr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      s: number = stack.pop();
-    stack.pushWithNull(stack.pop2().shiftRight(gLong.fromInt(s)));
+    var opStack = frame.opStack,
+      s: number = opStack.pop();
+    opStack.pushWithNull(opStack.pop2().shiftRight(gLong.fromInt(s)));
     frame.pc++;
   }
 
   public static iushr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      s: number = stack.pop();
-    stack.push((stack.pop() >>> s) | 0);
+    var opStack = frame.opStack,
+      s: number = opStack.pop();
+    opStack.push((opStack.pop() >>> s) | 0);
     frame.pc++;
   }
 
   public static lushr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      s: number = stack.pop();
-    stack.pushWithNull(stack.pop2().shiftRightUnsigned(gLong.fromInt(s)));
+    var opStack = frame.opStack,
+      s: number = opStack.pop();
+    opStack.pushWithNull(opStack.pop2().shiftRightUnsigned(gLong.fromInt(s)));
     frame.pc++;
   }
 
   public static iand(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(stack.pop() & stack.pop());
+    var opStack = frame.opStack;
+    opStack.push(opStack.pop() & opStack.pop());
     frame.pc++;
   }
 
   public static land(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().and(stack.pop2()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().and(opStack.pop2()));
     frame.pc++;
   }
 
   public static ior(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(stack.pop() | stack.pop());
+    var opStack = frame.opStack;
+    opStack.push(opStack.pop() | opStack.pop());
     frame.pc++;
   }
 
   public static lor(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().or(stack.pop2()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().or(opStack.pop2()));
     frame.pc++;
   }
 
   public static ixor(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(stack.pop() ^ stack.pop());
+    var opStack = frame.opStack;
+    opStack.push(opStack.pop() ^ opStack.pop());
     frame.pc++;
   }
 
   public static lxor(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().xor(stack.pop2()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().xor(opStack.pop2()));
     frame.pc++;
   }
 
-  public static iinc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static iinc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var idx = code.readUInt8(pc + 1),
       val = code.readInt8(pc + 2);
     frame.locals[idx] = (frame.locals[idx] + val) | 0;
@@ -786,8 +793,8 @@ export class Opcodes {
   }
 
   public static i2l(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(gLong.fromInt(stack.pop()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(gLong.fromInt(opStack.pop()));
     frame.pc++;
   }
 
@@ -798,199 +805,205 @@ export class Opcodes {
   }
 
   public static i2d(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(null);
+    frame.opStack.push(null);
     frame.pc++;
   }
 
   public static l2i(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(stack.pop2().toInt());
+    var opStack = frame.opStack;
+    opStack.push(opStack.pop2().toInt());
     frame.pc++;
   }
 
   public static l2f(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(stack.pop2().toNumber());
+    var opStack = frame.opStack;
+    opStack.push(opStack.pop2().toNumber());
     frame.pc++;
   }
 
   public static l2d(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(stack.pop2().toNumber());
+    var opStack = frame.opStack;
+    opStack.pushWithNull(opStack.pop2().toNumber());
     frame.pc++;
   }
 
   public static f2i(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(util.float2int(stack.pop()));
+    var opStack = frame.opStack;
+    opStack.push(util.float2int(opStack.pop()));
     frame.pc++;
   }
 
   public static f2l(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pushWithNull(gLong.fromNumber(stack.pop()));
+    var opStack = frame.opStack;
+    opStack.pushWithNull(gLong.fromNumber(opStack.pop()));
     frame.pc++;
   }
 
   public static f2d(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    frame.stack.push(null);
+    frame.opStack.push(null);
     frame.pc++;
   }
 
   public static d2i(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(util.float2int(stack.pop2()));
+    var opStack = frame.opStack;
+    opStack.push(util.float2int(opStack.pop2()));
     frame.pc++;
   }
 
   public static d2l(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      d_val: number = stack.pop2();
+    var opStack = frame.opStack,
+      d_val: number = opStack.pop2();
     if (d_val === Number.POSITIVE_INFINITY) {
-      stack.pushWithNull(gLong.MAX_VALUE);
+      opStack.pushWithNull(gLong.MAX_VALUE);
     } else if (d_val === Number.NEGATIVE_INFINITY) {
-      stack.pushWithNull(gLong.MIN_VALUE);
+      opStack.pushWithNull(gLong.MIN_VALUE);
     } else {
-      stack.pushWithNull(gLong.fromNumber(d_val));
+      opStack.pushWithNull(gLong.fromNumber(d_val));
     }
     frame.pc++;
   }
 
   public static d2f(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.pop();
-    stack.push(util.wrapFloat(stack.pop()));
+    var opStack = frame.opStack;
+    opStack.pop();
+    opStack.push(util.wrapFloat(opStack.pop()));
     frame.pc++;
   }
 
   public static i2b(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push((stack.pop() << 24) >> 24);
+    var opStack = frame.opStack;
+    opStack.push((opStack.pop() << 24) >> 24);
     frame.pc++;
   }
 
   public static i2c(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push(stack.pop() & 0xFFFF);
+    var opStack = frame.opStack;
+    opStack.push(opStack.pop() & 0xFFFF);
     frame.pc++;
   }
 
   public static i2s(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack;
-    stack.push((stack.pop() << 16) >> 16);
+    var opStack = frame.opStack;
+    opStack.push((opStack.pop() << 16) >> 16);
     frame.pc++;
   }
 
   public static lcmp(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      v2: gLong = stack.pop2();
-    stack.push(stack.pop2().compare(v2));
+    var opStack = frame.opStack,
+      v2: gLong = opStack.pop2();
+    opStack.push(opStack.pop2().compare(v2));
     frame.pc++;
   }
 
   public static fcmpl(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      v2 = stack.pop(),
-      v1 = stack.pop();
+    var opStack = frame.opStack,
+      v2 = opStack.pop(),
+      v1 = opStack.pop();
     if (v1 === v2) {
-      stack.push(0);
+      opStack.push(0);
     } else if (v1 > v2) {
-      stack.push(1);
+      opStack.push(1);
     } else {
       // v1 < v2, and if v1 or v2 is NaN.
-      stack.push(-1);
+      opStack.push(-1);
     }
     frame.pc++;
   }
 
   public static fcmpg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      v2 = stack.pop(),
-      v1 = stack.pop();
+    var opStack = frame.opStack,
+      v2 = opStack.pop(),
+      v1 = opStack.pop();
     if (v1 === v2) {
-      stack.push(0);
+      opStack.push(0);
     } else if (v1 < v2) {
-      stack.push(-1);
+      opStack.push(-1);
     } else {
       // v1 > v2, and if v1 or v2 is NaN.
-      stack.push(1);
+      opStack.push(1);
     }
     frame.pc++;
   }
 
   public static dcmpl(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      v2 = stack.pop2(),
-      v1 = stack.pop2();
+    var opStack = frame.opStack,
+      v2 = opStack.pop2(),
+      v1 = opStack.pop2();
     if (v1 === v2) {
-      stack.push(0);
+      opStack.push(0);
     } else if (v1 > v2) {
-      stack.push(1);
+      opStack.push(1);
     } else {
       // v1 < v2, and if v1 or v2 is NaN.
-      stack.push(-1);
+      opStack.push(-1);
     }
     frame.pc++;
   }
 
   public static dcmpg(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack,
-      v2 = stack.pop2(),
-      v1 = stack.pop2();
+    var opStack = frame.opStack,
+      v2 = opStack.pop2(),
+      v1 = opStack.pop2();
     if (v1 === v2) {
-      stack.push(0);
+      opStack.push(0);
     } else if (v1 < v2) {
-      stack.push(-1);
+      opStack.push(-1);
     } else {
       // v1 > v2, and if v1 or v2 is NaN.
-      stack.push(1);
+      opStack.push(1);
     }
     frame.pc++;
   }
 
   /* Unary branch opcodes */
-  public static ifeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() === 0) {
+  public static ifeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() === 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
     }
   }
 
-  public static ifne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() !== 0) {
+  public static ifne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() !== 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
     }
   }
 
-  public static iflt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() < 0) {
+  public static iflt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() < 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
     }
   }
 
-  public static ifge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() >= 0) {
+  public static ifge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() >= 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
     }
   }
 
-  public static ifgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() > 0) {
+  public static ifgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() > 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
     }
   }
 
-  public static ifle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() <= 0) {
+  public static ifle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() <= 0) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
@@ -998,9 +1011,10 @@ export class Opcodes {
   }
 
   /* Binary branch opcodes */
-  public static if_icmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_icmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 === v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1008,9 +1022,10 @@ export class Opcodes {
     }
   }
 
-  public static if_icmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_icmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 !== v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1018,9 +1033,10 @@ export class Opcodes {
     }
   }
 
-  public static if_icmplt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_icmplt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 < v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1028,9 +1044,10 @@ export class Opcodes {
     }
   }
 
-  public static if_icmpge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_icmpge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 >= v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1038,9 +1055,10 @@ export class Opcodes {
     }
   }
 
-  public static if_icmpgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_icmpgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 > v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1048,9 +1066,10 @@ export class Opcodes {
     }
   }
 
-  public static if_icmple(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_icmple(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 <= v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1058,9 +1077,10 @@ export class Opcodes {
     }
   }
 
-  public static if_acmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_acmpeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 === v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1068,9 +1088,10 @@ export class Opcodes {
     }
   }
 
-  public static if_acmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var v2 = frame.stack.pop();
-    var v1 = frame.stack.pop();
+  public static if_acmpne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var v2 = frame.opStack.pop();
+    var v1 = frame.opStack.pop();
     if (v1 !== v2) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
@@ -1079,26 +1100,30 @@ export class Opcodes {
   }
 
   /* Jump opcodes */
-  public static goto(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static goto(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.pc += code.readInt16BE(pc + 1);
   }
 
-  public static jsr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    frame.stack.push(frame.pc + 3);
+  public static jsr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    frame.opStack.push(frame.pc + 3);
     frame.pc += code.readInt16BE(pc + 1);
   }
 
-  public static ret(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ret(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.pc = frame.locals[code.readUInt8(pc + 1)];
   }
 
-  public static tableswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static tableswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    let pc = frame.pc;
     // Ignore padding bytes. The +1 is to skip the opcode byte.
     pc += ((4 - (pc + 1) % 4) % 4) + 1;
     var defaultOffset = code.readInt32BE(pc),
       low = code.readInt32BE(pc + 4),
       high = code.readInt32BE(pc + 8),
-      offset = frame.stack.pop();
+      offset = frame.opStack.pop();
 
     if (offset >= low && offset <= high) {
       frame.pc += code.readInt32BE(pc + 12 + ((offset - low) * 4));
@@ -1107,13 +1132,14 @@ export class Opcodes {
     }
   }
 
-  public static lookupswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static lookupswitch(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    let pc = frame.pc;
     // Skip padding bytes. The +1 is to skip the opcode byte.
     pc += ((4 - (pc + 1) % 4) % 4) + 1;
     var defaultOffset = code.readInt32BE(pc),
       nPairs = code.readInt32BE(pc + 4),
       i: number,
-      v: number = frame.stack.pop();
+      v: number = frame.opStack.pop();
 
     pc += 8;
     for (i = 0; i < nPairs; i++) {
@@ -1150,7 +1176,7 @@ export class Opcodes {
         return;
       }
     }
-    thread.asyncReturn(frame.stack.bottom());
+    thread.asyncReturn(frame.opStack.bottom());
   }
 
   public static ireturn = Opcodes._return_32;
@@ -1168,13 +1194,14 @@ export class Opcodes {
         return;
       }
     }
-    thread.asyncReturn(frame.stack.bottom(), null);
+    thread.asyncReturn(frame.opStack.bottom(), null);
   }
 
   public static lreturn = Opcodes._return_64;
   public static dreturn = Opcodes._return_64;
 
-  public static getstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     assert(fieldInfo.getType() === enums.ConstantPoolItemType.FIELDREF);
     if (fieldInfo.isResolved()) {
@@ -1207,9 +1234,10 @@ export class Opcodes {
    *
    * Retrieves a 32-bit value.
    */
-  public static getstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
-    frame.stack.push(fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName]);
+    frame.opStack.push(fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName]);
     frame.pc += 3;
   }
 
@@ -1219,13 +1247,15 @@ export class Opcodes {
    *
    * Retrieves a 64-bit value.
    */
-  public static getstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
-    frame.stack.pushWithNull(fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName]);
+    frame.opStack.pushWithNull(fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName]);
     frame.pc += 3;
   }
 
-  public static putstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putstatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     assert(fieldInfo.getType() === enums.ConstantPoolItemType.FIELDREF);
 
@@ -1259,9 +1289,10 @@ export class Opcodes {
    *
    * Puts a 32-bit value.
    */
-  public static putstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putstatic_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
-    fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName] = frame.stack.pop();
+    fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName] = frame.opStack.pop();
     frame.pc += 3;
   }
 
@@ -1271,16 +1302,18 @@ export class Opcodes {
    *
    * Puts a 64-bit value.
    */
-  public static putstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putstatic_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
-    fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName] = frame.stack.pop2();
+    fieldInfo.fieldOwnerConstructor[fieldInfo.fullFieldName] = frame.opStack.pop2();
     frame.pc += 3;
   }
 
-  public static getfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       loader = frame.getLoader(),
-      obj = frame.stack.top();
+      obj = frame.opStack.top();
     assert(fieldInfo.getType() === enums.ConstantPoolItemType.FIELDREF);
     // Check if the object is null; if we do not do this before get_class, then
     // we might try to get a class that we have not initialized!
@@ -1302,29 +1335,32 @@ export class Opcodes {
     }
   }
 
-  public static getfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      stack = frame.stack, obj: JVMTypes.java_lang_Object = stack.pop();
+      opStack = frame.opStack, obj: JVMTypes.java_lang_Object = opStack.pop();
     if (!isNull(thread, frame, obj)) {
-      stack.push((<any> obj)[fieldInfo.fullFieldName]);
+      opStack.push((<any> obj)[fieldInfo.fullFieldName]);
       frame.pc += 3;
     }
   }
 
-  public static getfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static getfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      stack = frame.stack, obj: JVMTypes.java_lang_Object = stack.pop();
+      opStack = frame.opStack, obj: JVMTypes.java_lang_Object = opStack.pop();
     if (!isNull(thread, frame, obj)) {
-      stack.pushWithNull((<any> obj)[fieldInfo.fullFieldName]);
+      opStack.pushWithNull((<any> obj)[fieldInfo.fullFieldName]);
       frame.pc += 3;
     }
   }
 
-  public static putfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static putfield(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       loader = frame.getLoader(),
       isLong = fieldInfo.nameAndTypeInfo.descriptor == 'J' || fieldInfo.nameAndTypeInfo.descriptor == 'D',
-      obj = frame.stack.fromTop(isLong ? 2 : 1);
+      obj = frame.opStack.fromTop(isLong ? 2 : 1);
     assert(fieldInfo.getType() === enums.ConstantPoolItemType.FIELDREF);
 
     // Check if the object is null; if we do not do this before get_class, then
@@ -1349,10 +1385,11 @@ export class Opcodes {
     }
   }
 
-  public static putfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var stack = frame.stack,
-      val = stack.pop(),
-      obj: JVMTypes.java_lang_Object = stack.pop(),
+  public static putfield_fast32(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var opStack = frame.opStack,
+      val = opStack.pop(),
+      obj: JVMTypes.java_lang_Object = opStack.pop(),
       fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
 
     if (!isNull(thread, frame, obj)) {
@@ -1362,10 +1399,11 @@ export class Opcodes {
     // NPE has been thrown.
   }
 
-  public static putfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var stack = frame.stack,
-      val = stack.pop2(),
-      obj: JVMTypes.java_lang_Object = stack.pop(),
+  public static putfield_fast64(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var opStack = frame.opStack,
+      val = opStack.pop2(),
+      obj: JVMTypes.java_lang_Object = opStack.pop(),
       fieldInfo = <ConstantPool.FieldReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
 
     if (!isNull(thread, frame, obj)) {
@@ -1375,7 +1413,8 @@ export class Opcodes {
     // NPE has been thrown.
   }
 
-  public static invokevirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokevirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
 
     // Ensure referenced class is loaded in the current classloader.
@@ -1405,7 +1444,8 @@ export class Opcodes {
     }
   }
 
-  public static invokeinterface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokeinterface(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       if (methodReference.method.cls.isInitialized(thread)) {
@@ -1422,7 +1462,8 @@ export class Opcodes {
     }
   }
 
-  public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokedynamic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
     callSiteSpecifier.constructCallSiteObject(thread, frame.getLoader(), frame.method.cls, pc, (status: boolean) => {
@@ -1439,7 +1480,8 @@ export class Opcodes {
   /**
    * XXX: Actually perform superclass method lookup.
    */
-  public static invokespecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokespecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       // Rewrite and rerun.
@@ -1449,7 +1491,8 @@ export class Opcodes {
     }
   }
 
-  public static invokestatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokestatic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (methodReference.isResolved()) {
       var m = methodReference.method;
@@ -1482,41 +1525,44 @@ export class Opcodes {
 
   /// Fast invoke opcodes.
 
-  public static invokenonvirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokenonvirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      stack = frame.stack, paramSize = methodReference.paramWordSize,
-      obj: JVMTypes.java_lang_Object = stack.fromTop(paramSize),
-      args = stack.sliceFromTop(paramSize);
+      opStack = frame.opStack, paramSize = methodReference.paramWordSize,
+      obj: JVMTypes.java_lang_Object = opStack.fromTop(paramSize),
+      args = opStack.sliceFromTop(paramSize);
 
     if (!isNull(thread, frame, obj)) {
-      stack.dropFromTop(paramSize + 1);
+      opStack.dropFromTop(paramSize + 1);
       assert(typeof (<any> obj)[methodReference.fullSignature] === 'function', `Resolved method ${methodReference.fullSignature} isn't defined?!`, thread);
       (<any> obj)[methodReference.fullSignature](thread, args);
       frame.returnToThreadLoop = true;
     }
   }
 
-  public static invokestatic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokestatic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      stack = frame.stack, paramSize = methodReference.paramWordSize,
-      args = stack.sliceFromTop(paramSize);
-    stack.dropFromTop(paramSize);
+      opStack = frame.opStack, paramSize = methodReference.paramWordSize,
+      args = opStack.sliceFromTop(paramSize);
+    opStack.dropFromTop(paramSize);
     assert(methodReference.jsConstructor != null, "jsConstructor is missing?!");
     assert(typeof(methodReference.jsConstructor[methodReference.fullSignature]) === 'function', "Resolved method isn't defined?!");
     methodReference.jsConstructor[methodReference.fullSignature](thread, args);
     frame.returnToThreadLoop = true;
   }
 
-  public static invokevirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokevirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       count = methodReference.getParamWordSize(),
-      stack = frame.stack,
-      obj: JVMTypes.java_lang_Object = stack.fromTop(count);
+      opStack = frame.opStack,
+      obj: JVMTypes.java_lang_Object = opStack.fromTop(count);
     if (!isNull(thread, frame, obj)) {
       // Use the class of the *object*.
       assert(typeof (<any> obj)[methodReference.signature] === 'function', `Resolved method ${methodReference.signature} isn't defined?!`);
-      (<any> obj)[methodReference.signature](thread, stack.sliceFromTop(count));
-      stack.dropFromTop(count + 1);
+      (<any> obj)[methodReference.signature](thread, opStack.sliceFromTop(count));
+      opStack.dropFromTop(count + 1);
       frame.returnToThreadLoop = true;
     }
     // Object is NULL; NPE has been thrown.
@@ -1524,15 +1570,16 @@ export class Opcodes {
 
   public static invokeinterface_fast = Opcodes.invokevirtual_fast;
 
-  public static invokedynamic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokedynamic_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var callSiteSpecifier = <ConstantPool.InvokeDynamic> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cso = callSiteSpecifier.getCallSiteObject(pc),
       appendix = cso[1],
       fcn = cso[0].vmtarget,
-      stack = frame.stack, paramSize = callSiteSpecifier.paramWordSize,
-      args = stack.sliceFromTop(paramSize);
+      opStack = frame.opStack, paramSize = callSiteSpecifier.paramWordSize,
+      args = opStack.sliceFromTop(paramSize);
 
-    stack.dropFromTop(paramSize);
+    opStack.dropFromTop(paramSize);
     if (appendix !== null) {
       args.push(appendix);
     }
@@ -1543,21 +1590,22 @@ export class Opcodes {
   /**
    * Opcode for MethodHandle.invoke and MethodHandle.invokeExact.
    */
-  public static invokehandle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokehandle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      stack = frame.stack,
+      opStack = frame.opStack,
       fcn = methodReference.memberName.vmtarget,
       // Add in 1 for the method handle itself.
       paramSize = methodReference.paramWordSize + 1,
       appendix = methodReference.appendix,
-      args = stack.sliceFromTop(paramSize);
+      args = opStack.sliceFromTop(paramSize);
 
     if (appendix !== null) {
       args.push(appendix);
     }
 
     if (!isNull(thread, frame, args[0])) {
-      stack.dropFromTop(paramSize);
+      opStack.dropFromTop(paramSize);
       // fcn will handle invoking 'this' and such.
       // TODO: If this can be varargs, pass in parameter types to the function.
       fcn(thread, null, args);
@@ -1572,21 +1620,22 @@ export class Opcodes {
    * This can cause crashes with malformed calls, thus it is only accesssible
    * to trusted JDK code.
    */
-  public static invokebasic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static invokebasic(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       paramSize = methodReference.getParamWordSize(),
-      stack = frame.stack,
-      obj: JVMTypes.java_lang_invoke_MethodHandle = stack.fromTop(paramSize),
+      opStack = frame.opStack,
+      obj: JVMTypes.java_lang_invoke_MethodHandle = opStack.fromTop(paramSize),
       // Need to include the MethodHandle in the arguments to vmtarget. vmtarget
       // will appropriately invoke it.
-      args = stack.sliceFromTop(paramSize + 1),
+      args = opStack.sliceFromTop(paramSize + 1),
       lmbdaForm: JVMTypes.java_lang_invoke_LambdaForm,
       mn: JVMTypes.java_lang_invoke_MemberName,
       m: methods.Method;
 
     // obj is a MethodHandle.
     if (!isNull(thread, frame, obj)) {
-      stack.dropFromTop(paramSize + 1);
+      opStack.dropFromTop(paramSize + 1);
       lmbdaForm = obj['java/lang/invoke/MethodHandle/form'];
       mn = lmbdaForm['java/lang/invoke/LambdaForm/vmentry'];
       assert(mn.vmtarget !== null && mn.vmtarget !== undefined, "vmtarget must be defined");
@@ -1600,18 +1649,19 @@ export class Opcodes {
    * TODO: De-conflate the two.
    * TODO: Varargs functions.
    */
-  public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static linktospecial(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      stack = frame.stack, paramSize = methodReference.paramWordSize,
+      opStack = frame.opStack, paramSize = methodReference.paramWordSize,
       // Final argument is the relevant MemberName. Function args are right
       // before it.
-      args = stack.sliceFromTop(paramSize),
+      args = opStack.sliceFromTop(paramSize),
       memberName: JVMTypes.java_lang_invoke_MemberName = args.pop(),
       // TODO: Use parsed descriptor.
       desc = methodReference.nameAndTypeInfo.descriptor;
 
     if (!isNull(thread, frame, memberName)) {
-      stack.dropFromTop(paramSize);
+      opStack.dropFromTop(paramSize);
       assert(memberName.getClass().getInternalName() === "Ljava/lang/invoke/MemberName;");
       // parameterTypes for function are the same as the method reference, but without the trailing MemberName.
       // TODO: Use parsed descriptor, avoid re-doing work here.
@@ -1621,18 +1671,19 @@ export class Opcodes {
   }
 
   // XXX: Varargs functions. We're supposed to box args if target is varargs.
-  public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static linktovirtual(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       paramSize = methodReference.paramWordSize,
-      stack = frame.stack,
-      args = stack.sliceFromTop(paramSize),
+      opStack = frame.opStack,
+      args = opStack.sliceFromTop(paramSize),
       // Final argument is the relevant MemberName. Function args are right
       // before it.
       memberName: JVMTypes.java_lang_invoke_MemberName = args.pop(),
       desc = methodReference.nameAndTypeInfo.descriptor;
 
     if (!isNull(thread, frame, memberName)) {
-      stack.dropFromTop(paramSize);
+      opStack.dropFromTop(paramSize);
       assert(memberName.getClass().getInternalName() === "Ljava/lang/invoke/MemberName;");
       // parameterTypes for function are the same as the method reference, but without the trailing MemberName.
       memberName.vmtarget(thread, desc.replace("Ljava/lang/invoke/MemberName;)", ")"), args);
@@ -1644,7 +1695,8 @@ export class Opcodes {
     throwException(thread, frame, "Ljava/lang/Error;", "breakpoint not implemented.");
   }
 
-  public static new(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static new(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       var cls = classRef.cls;
@@ -1659,27 +1711,30 @@ export class Opcodes {
     }
   }
 
-  public static new_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static new_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
-    frame.stack.push(new classRef.clsConstructor(thread));
+    frame.opStack.push(new classRef.clsConstructor(thread));
     frame.pc += 3;
   }
 
-  public static newarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static newarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     // TODO: Stash all of these array types during JVM startup.
-    var stack = frame.stack,
+    var opStack = frame.opStack,
       type = "[" + ArrayTypes[code.readUInt8(pc + 1)],
       cls = <ClassData.ArrayClassData<any>> frame.getLoader().getInitializedClass(thread, type),
-      length = stack.pop();
+      length = opStack.pop();
     if (length >= 0) {
-      stack.push(new (cls.getConstructor(thread))(thread, length));
+      opStack.push(new (cls.getConstructor(thread))(thread, length));
       frame.pc += 2;
     } else {
       throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', `Tried to init ${type} array with length ${length}`);
     }
   }
 
-  public static anewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static anewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite and rerun.
@@ -1691,13 +1746,14 @@ export class Opcodes {
     }
   }
 
-  public static anewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    var stack = frame.stack,
+  public static anewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    var opStack = frame.opStack,
       classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      length = stack.pop();
+      length = opStack.pop();
 
     if (length >= 0) {
-      stack.push(new classRef.arrayClassConstructor(thread, length));
+      opStack.push(new classRef.arrayClassConstructor(thread, length));
       frame.pc += 3;
     } else {
       throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', `Tried to init ${classRef.arrayClass.getInternalName()} array with length ${length}`);
@@ -1705,20 +1761,21 @@ export class Opcodes {
   }
 
   public static arraylength(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack, obj: JVMTypes.JVMArray<any> = stack.pop();
+    var opStack = frame.opStack, obj: JVMTypes.JVMArray<any> = opStack.pop();
     if (!isNull(thread, frame, obj)) {
-      stack.push(obj.array.length);
+      opStack.push(obj.array.length);
       frame.pc++;
     }
     // obj is NULL. isNull threw an exception for us.
   }
 
   public static athrow(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    thread.throwException(frame.stack.pop());
+    thread.throwException(frame.opStack.pop());
     frame.returnToThreadLoop = true;
   }
 
-  public static checkcast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static checkcast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite to fast version, and re-execute.
@@ -1728,11 +1785,12 @@ export class Opcodes {
     }
   }
 
-  public static checkcast_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static checkcast_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cls = classRef.cls,
-      stack = frame.stack,
-      o: JVMTypes.java_lang_Object = stack.top();
+      opStack = frame.opStack,
+      o: JVMTypes.java_lang_Object = opStack.top();
     if ((o != null) && !o.getClass().isCastable(cls)) {
       var targetClass = cls.getExternalName();
       var candidateClass = o.getClass().getExternalName();
@@ -1743,7 +1801,8 @@ export class Opcodes {
     }
   }
 
-  public static instanceof(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static instanceof(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite and rerun.
@@ -1754,17 +1813,18 @@ export class Opcodes {
     }
   }
 
-  public static instanceof_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static instanceof_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       cls = classRef.cls,
-      stack = frame.stack,
-      o = <JVMTypes.java_lang_Object> stack.pop();
-    stack.push(o !== null ? (o.getClass().isCastable(cls) ? 1 : 0) : 0);
+      opStack = frame.opStack,
+      o = <JVMTypes.java_lang_Object> opStack.pop();
+    opStack.push(o !== null ? (o.getClass().isCastable(cls) ? 1 : 0) : 0);
     frame.pc += 3;
   }
 
   public static monitorenter(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var stack = frame.stack, monitorObj: JVMTypes.java_lang_Object = stack.pop(),
+    var opStack = frame.opStack, monitorObj: JVMTypes.java_lang_Object = opStack.pop(),
       monitorEntered = () => {
         // [Note: Thread is now in the RUNNABLE state.]
         // Increment the PC.
@@ -1782,7 +1842,7 @@ export class Opcodes {
   }
 
   public static monitorexit(thread: threading.JVMThread, frame: threading.BytecodeStackFrame) {
-    var monitorObj: JVMTypes.java_lang_Object = frame.stack.pop();
+    var monitorObj: JVMTypes.java_lang_Object = frame.opStack.pop();
     if (monitorObj.getMonitor().exit(thread)) {
       frame.pc++;
     } else {
@@ -1791,7 +1851,8 @@ export class Opcodes {
     }
   }
 
-  public static multianewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static multianewarray(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (classRef.isResolved()) {
       // Rewrite and rerun.
@@ -1801,48 +1862,53 @@ export class Opcodes {
     }
   }
 
-  public static multianewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static multianewarray_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var classRef = <ConstantPool.ClassReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      stack = frame.stack,
+      opStack = frame.opStack,
       dim = code.readUInt8(pc + 3),
       i: number,
       // Arguments to the constructor.
       args = new Array<number>(dim), dimSize: number;
 
     for (i = 0; i < dim; i++) {
-      dimSize = stack.pop();
+      dimSize = opStack.pop();
       args[dim - i - 1] = dimSize;
       if (dimSize < 0) {
         throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', `Tried to init ${classRef.cls.getInternalName()} array with a dimension of length ${dimSize}`);
         return;
       }
     }
-    stack.push(new (classRef.cls.getConstructor(thread))(thread, args));
+    opStack.push(new (classRef.cls.getConstructor(thread))(thread, args));
     frame.pc += 4;
   }
 
-  public static ifnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() == null) {
+  public static ifnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() == null) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
     }
   }
 
-  public static ifnonnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    if (frame.stack.pop() != null) {
+  public static ifnonnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    if (frame.opStack.pop() != null) {
       frame.pc += code.readInt16BE(pc + 1);
     } else {
       frame.pc += 3;
     }
   }
 
-  public static goto_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static goto_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     frame.pc += code.readInt32BE(pc + 1);
   }
 
-  public static jsr_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
-    frame.stack.push(frame.pc + 5);
+  public static jsr_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
+    frame.opStack.push(frame.pc + 5);
     frame.pc += code.readInt32BE(pc + 1);
   }
 
@@ -1850,7 +1916,8 @@ export class Opcodes {
     frame.pc += 1;
   }
 
-  public static ldc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ldc(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var constant = frame.method.cls.constantPool.get(code.readUInt8(pc + 1));
     if (constant.isResolved()) {
       assert((() => {
@@ -1866,14 +1933,15 @@ export class Opcodes {
             return false;
         }
       })(), `Constant pool item ${enums.ConstantPoolItemType[constant.getType()]} is not appropriate for LDC.`);
-      frame.stack.push(constant.getConstant(thread));
+      frame.opStack.push(constant.getConstant(thread));
       frame.pc += 2;
     } else {
       resolveCPItem(thread, frame, constant);
     }
   }
 
-  public static ldc_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ldc_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var constant = frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     if (constant.isResolved()) {
       assert((() => {
@@ -1889,23 +1957,25 @@ export class Opcodes {
             return false;
         }
       })(), `Constant pool item ${enums.ConstantPoolItemType[constant.getType()]} is not appropriate for LDC_W.`);
-      frame.stack.push(constant.getConstant(thread));
+      frame.opStack.push(constant.getConstant(thread));
       frame.pc += 3;
     } else {
       resolveCPItem(thread, frame, constant);
     }
   }
 
-  public static ldc2_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static ldc2_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var constant = frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
     assert(constant.getType() === enums.ConstantPoolItemType.LONG
       || constant.getType() === enums.ConstantPoolItemType.DOUBLE,
       `Invalid ldc_w constant pool type: ${enums.ConstantPoolItemType[constant.getType()]}`);
-    frame.stack.pushWithNull((<ConstantPool.ConstLong | ConstantPool.ConstDouble> constant).value);
+    frame.opStack.pushWithNull((<ConstantPool.ConstLong | ConstantPool.ConstDouble> constant).value);
     frame.pc += 3;
   }
 
-  public static wide(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer, pc: number) {
+  public static wide(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
+    const pc = frame.pc;
     var index = code.readUInt16BE(pc + 2);
     // Increment PC before switch to avoid issue where ret chances PC and we
     // erroneously increment the PC further.
@@ -1914,23 +1984,23 @@ export class Opcodes {
       case enums.OpCode.ILOAD:
       case enums.OpCode.FLOAD:
       case enums.OpCode.ALOAD:
-        frame.stack.push(frame.locals[index]);
+        frame.opStack.push(frame.locals[index]);
         break;
       case enums.OpCode.LLOAD:
       case enums.OpCode.DLOAD:
-        frame.stack.pushWithNull(frame.locals[index]);
+        frame.opStack.pushWithNull(frame.locals[index]);
         break;
       case enums.OpCode.ISTORE:
       case enums.OpCode.FSTORE:
       case enums.OpCode.ASTORE:
-        frame.locals[index] = frame.stack.pop();
+        frame.locals[index] = frame.opStack.pop();
         break;
       case enums.OpCode.LSTORE:
       case enums.OpCode.DSTORE:
         // NULL
-        frame.locals[index + 1] = frame.stack.pop();
+        frame.locals[index + 1] = frame.opStack.pop();
         // The actual value.
-        frame.locals[index] = frame.stack.pop();
+        frame.locals[index] = frame.opStack.pop();
         break;
       case enums.OpCode.RET:
         frame.pc = frame.locals[index];
