@@ -286,13 +286,6 @@ class Trace {
           }
         }
 
-        // symbolicStack.forEach((e: string) => {info.onError += `frame.opStack.push(${e});`});
-        /*
-        for (let j = 0; j < symbolicStack.length; j++) {
-          const e = symbolicStack[j];
-          info.onError += `frame.opStack.push(${e});`;
-        }
-        */
         info.onErrorPushes = symbolicStack.slice();
 
         const pushes = info.pushes;
