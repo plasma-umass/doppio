@@ -394,7 +394,8 @@ export class Method extends AbstractMethodField {
       }
     } else if (!this.accessFlags.isAbstract()) {
       this.code = this.getAttribute('Code');
-      this.jitThreshold = 1000 * this.code.code.length;
+      const codeLength = this.code.code.length;
+      this.jitThreshold = (codeLength > 4) ? 400 * codeLength : 80000 * codeLength;
     }
   }
 
