@@ -179,6 +179,12 @@ export class PreAllocatedStack {
     this.curr -= n;
   }
 
+  sliceAndDropFromTop(n: number): any {
+    const curr = this.curr;
+    this.curr -= n;
+    return this.store.slice(curr - n, curr);
+  }
+
   getRaw(): any[] {
     return this.store.slice(0, this.curr);
   }
