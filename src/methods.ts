@@ -14,6 +14,7 @@ import Monitor = require('./Monitor');
 import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
 import global = require('./global');
+import {JitInfo, opJitInfo} from './jit';
 
 declare var RELEASE: boolean;
 if (typeof RELEASE === 'undefined') global.RELEASE = false;
@@ -226,6 +227,101 @@ export class Field extends AbstractMethodField {
   }
 }
 
+const opcodeSize: number[] = function() {
+  const table:number[] = [];
+  const layoutType = enums.OpcodeLayoutType;
+
+  table[layoutType.OPCODE_ONLY] = 1;
+  table[layoutType.CONSTANT_POOL_UINT8] = 2;
+  table[layoutType.CONSTANT_POOL] = 3;
+  table[layoutType.CONSTANT_POOL_AND_UINT8_VALUE] = 4;
+  table[layoutType.UINT8_VALUE] = 2;
+  table[layoutType.UINT8_AND_INT8_VALUE] = 3;
+  table[layoutType.INT8_VALUE] = 2;
+  table[layoutType.INT16_VALUE] = 3;
+  table[layoutType.INT32_VALUE] = 5;
+  table[layoutType.ARRAY_TYPE] = 2;
+  table[layoutType.WIDE] = 1;
+
+  return table;
+}();
+
+class TraceInfo {
+  pops: string[] = [];
+  pushes: string[] = [];
+  prefixEmit: string = "";
+  onErrorPushes: string[];
+
+  constructor(public pc: number, public jitInfo: JitInfo) {
+  }
+}
+
+class Trace {
+  private infos: TraceInfo[] = [];
+
+  constructor(public startPC: number, private code: Buffer) {
+  }
+
+  public addOp(pc: number, jitInfo: JitInfo) {
+    this.infos.push(new TraceInfo(pc, jitInfo));
+  }
+
+  public close(): Function {
+    if (this.infos.length > 1) {
+      const symbolicStack: string[] = [];
+      let symbolCount = 0;
+      let emitted = "";
+      for (let i = 0; i < this.infos.length; i++) {
+        const info = this.infos[i];
+        const jitInfo = info.jitInfo;
+
+        const pops = info.pops;
+        for (let i = 0; i < jitInfo.pops; i++) {
+          if (symbolicStack.length > 0) {
+            pops.push(symbolicStack.pop());
+          } else {
+            const symbol = "s" + symbolCount++;
+            info.prefixEmit += `var ${symbol} = frame.opStack.pop();`;
+            pops.push(symbol);
+          }
+        }
+
+        // symbolicStack.forEach((e: string) => {info.onError += `frame.opStack.push(${e});`});
+        /*
+        for (let j = 0; j < symbolicStack.length; j++) {
+          const e = symbolicStack[j];
+          info.onError += `frame.opStack.push(${e});`;
+        }
+        */
+        info.onErrorPushes = symbolicStack.slice();
+
+        const pushes = info.pushes;
+        for (let i = 0; i < jitInfo.pushes; i++) {
+          const symbol = "s" + symbolCount++;
+          symbolicStack.push(symbol);
+          pushes.push(symbol);
+        }
+
+      }
+
+      while(symbolicStack.length > 0) {
+        emitted += `frame.opStack.push(${symbolicStack.shift()});`;
+      }
+
+      for (let i = this.infos.length-1; i >= 0; i--) {
+        const info = this.infos[i];
+        const jitInfo = info.jitInfo;
+        emitted = info.prefixEmit + jitInfo.emit(info.pops, info.pushes, ""+i, emitted, this.code, info.pc, info.onErrorPushes);
+      }
+
+      // console.log(`Emitted trace of ${this.infos.length} ops: ` + emitted);
+      return new Function("frame", "thread", "util", emitted);
+    } else {
+      return null;
+    }
+  }
+}
+
 export class Method extends AbstractMethodField {
   /**
    * The method's parameters, if any, in descriptor form.
@@ -253,6 +349,12 @@ export class Method extends AbstractMethodField {
    * TODO: Differentiate between NativeMethod objects and BytecodeMethod objects.
    */
   private code: any;
+
+  private numOpcodeExecs = 0;
+  private jitThreshold = 0;
+  private compiled = false;
+  private compiledFunctions: Function[] = [];
+  private failedCompile: boolean[] = [];
 
   constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
     super(cls, constantPool, slot, byteStream);
@@ -299,6 +401,7 @@ export class Method extends AbstractMethodField {
       }
     } else if (!this.accessFlags.isAbstract()) {
       this.code = this.getAttribute('Code');
+      this.jitThreshold = 1000 * this.code.code.length;
     }
   }
 
@@ -345,6 +448,115 @@ export class Method extends AbstractMethodField {
   public getCodeAttribute(): attributes.Code {
     assert(!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
     return this.code;
+  }
+
+  public getOp(pc: number, codeBuffer: Buffer): any {
+    /*
+    if (this.numOpcodeExecs == 50000 && !this.compiled) {
+      this.numOpcodeExecs++;
+      this.jitCompile();
+    }
+   */
+    if (this.numOpcodeExecs === this.jitThreshold) {
+      if (!this.failedCompile[pc]) {
+        const cachedCompiledFunction = this.compiledFunctions[pc];
+        if (!cachedCompiledFunction) {
+          const compiledFunction = this.jitCompileFrom(pc);
+          if (compiledFunction) {
+            return compiledFunction;
+          } else {
+            this.failedCompile[pc] = true;
+          }
+        } else {
+          return cachedCompiledFunction;
+        }
+      }
+    } else {
+      this.numOpcodeExecs++;
+    }
+    return codeBuffer.readUInt8(pc);
+  }
+
+  private jitCompileFrom(startPC: number) {
+    // console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
+    const code = this.code.code;
+    let trace: Trace = null;
+    const _this = this;
+    let done = false;
+
+    function closeCurrentTrace() {
+      if (trace !== null) {
+        const compiledFunction = trace.close();
+        if (compiledFunction) {
+          _this.compiledFunctions[trace.startPC] = compiledFunction;
+        }
+        trace = null;
+      }
+      done = true;
+    }
+
+    for (let i = startPC; i < code.length && !done;) {
+      const op = code.readUInt8(i);
+      // TODO: handle wide()
+      // console.log(`${i}: ${threading.annotateOpcode(op, this, code, i)}`);
+      const jitInfo = opJitInfo[op];
+      if (jitInfo) {
+        if (trace === null) {
+          trace = new Trace(i, code);
+        }
+        trace.addOp(i, jitInfo);
+        if (jitInfo.hasBranch) {
+          this.failedCompile[i] = true;
+          closeCurrentTrace();
+        }
+      } else {
+        // statCloser[op]++;
+        this.failedCompile[i] = true;
+        closeCurrentTrace();
+      }
+      i += opcodeSize[enums.OpcodeLayouts[op]];
+    }
+
+    // this.compiled = true;
+    return _this.compiledFunctions[startPC];
+  }
+
+  private jitCompile() {
+    // console.log("Planning to JIT: " + this.fullSignature);
+    const code = this.code.code;
+    let trace: Trace = null;
+    const _this = this;
+
+    function closeCurrentTrace() {
+      const compiledFunction = trace.close();
+      if (compiledFunction) {
+        _this.compiledFunctions[trace.startPC] = compiledFunction;
+      }
+      trace = null;
+    }
+
+    for (let i = 0; i < code.length;) {
+      if (trace == null) {
+        trace = new Trace(i, code);
+      }
+      const op = code.readUInt8(i);
+      // TODO: handle wide()
+      // console.log(`${i}: ${threading.annotateOpcode(op, this, code, i)}`);
+      const jitInfo = opJitInfo[op];
+      if (jitInfo) {
+        trace.addOp(i, jitInfo);
+        if (jitInfo.hasBranch) {
+          closeCurrentTrace();
+        }
+      } else {
+        // statCloser[op]++;
+        closeCurrentTrace();
+      }
+      i += opcodeSize[enums.OpcodeLayouts[op]];
+    }
+
+    this.compiled = true;
+
   }
 
   public getNativeFunction(): Function {
@@ -593,5 +805,26 @@ _create`);
     thread.setStatus(${enums.ThreadStatus.RUNNABLE});
   };
 })(cls.getSpecificMethod("${util.reescapeJVMName(this.cls.getInternalName())}", "${util.reescapeJVMName(this.signature)}"));\n`);
+  }
+}
+
+const statCloser: number[] = new Array(256);
+
+for (let i = 0; i < 256; i++) {
+  statCloser[i] = 0;
+}
+
+export function dumpStats() {
+  const range = new Array(256);
+  for (let i = 0; i < 256; i++) {
+    range[i] = i;
+  }
+  range.sort((x, y) => statCloser[y] - statCloser[x]);
+  const top = range.slice(0, 24);
+  for (let i = 0; i < top.length; i++) {
+    const op = top[i];
+    if (statCloser[op] > 0) {
+      console.log(enums.OpCode[op], statCloser[op]);
+    }
   }
 }
