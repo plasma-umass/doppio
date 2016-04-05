@@ -1529,7 +1529,7 @@ export class Opcodes {
     const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, paramSize = methodReference.paramWordSize,
-      obj: JVMTypes.java_lang_Object = opStack.fromTop(paramSize),
+      obj: JVMTypes.java_lang_Object = opStack.fromTop(paramSize);
 
     if (!isNull(thread, frame, obj)) {
       var args = opStack.sliceFromTop(paramSize);
