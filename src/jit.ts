@@ -809,7 +809,7 @@ ${onSuccess}`;
 
 table[OpCode.DCMPL] = {hasBranch: true, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} > ${pops[1]} ? -1 : 1);
+${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} > ${pops[1]} ? 1 : -1);
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1006,7 +1006,7 @@ ${onSuccess}`;
 
 table[OpCode.DSUB] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (${pops[3]}-${pops[1]}) | 0;
+var ${pushes[0]} = ${pops[3]}-${pops[1]};
 var ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
