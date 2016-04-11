@@ -276,7 +276,7 @@ class Trace {
         const jitInfo = info.jitInfo;
 
         const pops = info.pops;
-        for (let i = 0; i < jitInfo.pops; i++) {
+        for (let j = 0; j < jitInfo.pops; j++) {
           if (symbolicStack.length > 0) {
             pops.push(symbolicStack.pop());
           } else {
@@ -289,7 +289,7 @@ class Trace {
         info.onErrorPushes = symbolicStack.slice();
 
         const pushes = info.pushes;
-        for (let i = 0; i < jitInfo.pushes; i++) {
+        for (let j = 0; j < jitInfo.pushes; j++) {
           const symbol = "s" + symbolCount++;
           symbolicStack.push(symbol);
           pushes.push(symbol);
