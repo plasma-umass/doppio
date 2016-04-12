@@ -4,7 +4,7 @@ import enums = require('./enums');
 import opcodes = require('./opcodes');
 
 export interface JitInfo {
-  pops: number,
+  pops: number,                 // If negative, then it is treated a request rather than a demand
   pushes: number,
   hasBranch: boolean,
   emit: (pops: string[], pushes: string[], suffix: string, onSuccess: string, code: Buffer, pc: number, onErrorPushes: string[]) => string
@@ -795,35 +795,35 @@ ${onSuccess}`;
 
 table[OpCode.LCMP] = {hasBranch: true, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = ${pops[3]}.compare(${pops[1]});
+var ${pushes[0]} = ${pops[3]}.compare(${pops[1]});
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.FCMPL] = {hasBranch: true, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} > ${pops[0]} ? -1 : 1);
+var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} > ${pops[0]} ? -1 : 1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DCMPL] = {hasBranch: true, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} > ${pops[1]} ? 1 : -1);
+var ${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} > ${pops[1]} ? 1 : -1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.FCMPG] = {hasBranch: true, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} < ${pops[0]} ? -1 : 1);
+var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} < ${pops[0]} ? -1 : 1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DCMPG] = {hasBranch: true, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} < ${pops[1]} ? -1 : 1);
+var ${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} < ${pops[1]} ? -1 : 1);
 frame.pc++;
 ${onSuccess}`;
 }};
