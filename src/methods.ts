@@ -532,6 +532,26 @@ frame.returnToThreadLoop = true;
 ${onSuccess}
 }`;
     }};
+  }
+
+  private makeCheckCastJitInfo(code: Buffer, pc: number) : JitInfo {
+    const index = code.readUInt16BE(pc + 1);
+    const classRef = <ConstantPool.ClassReference> this.cls.constantPool.get(index),
+      cls = classRef.cls,
+      targetClass = cls.getExternalName();
+    return {hasBranch: false, pops: -1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+      // TODO: could replace oSuffix with pushes[0]
+      return `
+var cls${suffix} = frame.method.cls.constantPool.get(${index}).cls,
+    o${suffix} = ${pops.length === 1 ? pops[0] : 'frame.opStack.top()'};
+if ((o${suffix} != null) && !o${suffix}.getClass().isCastable(cls${suffix})) {
+  util.throwException(thread, frame, 'Ljava/lang/ClassCastException;', o${suffix}.getClass().getExternalName() + ' cannot be cast to ${targetClass}');
+} else {
+  frame.pc += 3;
+  var ${pushes[0]} = o${suffix};
+  ${onSuccess}
+}`
+     }};
 
   }
 
@@ -587,6 +607,9 @@ ${onSuccess}
 
         this.failedCompile[i] = true;
         closeCurrentTrace();
+      } else if ((op === enums.OpCode.CHECKCAST_FAST) && trace !== null) {
+        const invokeJitInfo: JitInfo = this.makeCheckCastJitInfo(code, i);
+        trace.addOp(i, invokeJitInfo);
       } else {
         // statCloser[op]++;
         this.failedCompile[i] = true;
