@@ -298,8 +298,10 @@ class Trace {
 
       }
 
-      while(symbolicStack.length > 0) {
-        emitted += `frame.opStack.push(${symbolicStack.shift()});`;
+      if (symbolicStack.length === 1) {
+        emitted += `frame.opStack.push(${symbolicStack[0]});`;
+      } else if (symbolicStack.length > 1) {
+        emitted += `frame.opStack.pushAll(${symbolicStack.join(',')});`;
       }
 
       for (let i = this.infos.length-1; i >= 0; i--) {

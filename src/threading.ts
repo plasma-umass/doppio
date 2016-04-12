@@ -76,6 +76,13 @@ export class PreAllocatedStack {
     this.store[this.curr++] = x;
   }
 
+  pushAll() {
+    const n = arguments.length;
+    for (let i = 0; i < n; i++) {
+      this.store[this.curr++] = arguments[i];
+    }
+  }
+
   pushWithNull(x: any) {
     this.store[this.curr] = x;
 
