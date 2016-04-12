@@ -276,7 +276,8 @@ class Trace {
         const jitInfo = info.jitInfo;
 
         const pops = info.pops;
-        for (let j = 0; j < jitInfo.pops; j++) {
+        const normalizedPops = jitInfo.pops < 0 ? Math.min(-jitInfo.pops, symbolicStack.length) : jitInfo.pops;
+        for (let j = 0; j < normalizedPops; j++) {
           if (symbolicStack.length > 0) {
             pops.push(symbolicStack.pop());
           } else {
@@ -471,6 +472,47 @@ export class Method extends AbstractMethodField {
     return codeBuffer.readUInt8(pc);
   }
 
+  private makeInvokeStaticJitInfo(code: Buffer, pc: number) : JitInfo {
+    const index = code.readUInt16BE(pc + 1);
+    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
+    const paramSize = methodReference.paramWordSize;
+    return {hasBranch: true, pops: -paramSize, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
+      const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.reduce((a,b) => b + ',' + a, '')}];`;
+      let argMaker = `var args${suffix}=` + argInitialiser;
+      if ((paramSize > pops.length) && (pops.length > 0)) {
+        argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
+      }
+      return argMaker + `
+var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
+methodReference${suffix}.jsConstructor[methodReference${suffix}.fullSignature](thread, args${suffix});
+frame.returnToThreadLoop = true;
+${onSuccess}`;
+    }};
+
+  }
+
+  private makeInvokeVirtualJitInfo(code: Buffer, pc: number) : JitInfo {
+    const index = code.readUInt16BE(pc + 1);
+    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
+    const paramSize = methodReference.paramWordSize;
+    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
+      const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
+      let argMaker = `var args${suffix}=` + argInitialiser;
+      if ((paramSize > pops.length) && (pops.length > 0)) {
+        argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
+      }
+      return argMaker + `
+var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "frame.opStack.pop();"}
+if (!util.isNull(thread, frame, obj${suffix})) {
+var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
+obj${suffix}[methodReference${suffix}.signature](thread, args${suffix});
+frame.returnToThreadLoop = true;
+${onSuccess}
+}`;
+    }};
+
+  }
+
   private jitCompileFrom(startPC: number) {
     // console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
     const code = this.code.code;
@@ -480,6 +522,7 @@ export class Method extends AbstractMethodField {
 
     function closeCurrentTrace() {
       if (trace !== null) {
+        // console.log("Tracing method: " + _this.fullSignature);
         const compiledFunction = trace.close();
         if (compiledFunction) {
           _this.compiledFunctions[trace.startPC] = compiledFunction;
@@ -503,6 +546,19 @@ export class Method extends AbstractMethodField {
           this.failedCompile[i] = true;
           closeCurrentTrace();
         }
+      } else if (op === enums.OpCode.INVOKESTATIC_FAST && trace !== null) {
+        const invokeJitInfo: JitInfo = this.makeInvokeStaticJitInfo(code, i);
+        trace.addOp(i, invokeJitInfo);
+
+        this.failedCompile[i] = true;
+        closeCurrentTrace();
+
+      } else if (op === enums.OpCode.INVOKEVIRTUAL_FAST && trace !== null) {
+        const invokeJitInfo: JitInfo = this.makeInvokeVirtualJitInfo(code, i);
+        trace.addOp(i, invokeJitInfo);
+
+        this.failedCompile[i] = true;
+        closeCurrentTrace();
       } else {
         // statCloser[op]++;
         this.failedCompile[i] = true;
