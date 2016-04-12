@@ -1044,7 +1044,7 @@ ${onSuccess}`;
 
 table[OpCode.LNEG] = {hasBranch: false, pops: 2, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (${pops[1]}.negate()) | 0;
+var ${pushes[0]} = ${pops[1]}.negate();
 var ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
