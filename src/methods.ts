@@ -513,6 +513,28 @@ ${onSuccess}
 
   }
 
+  private makeInvokeNonVirtualJitInfo(code: Buffer, pc: number) : JitInfo {
+    const index = code.readUInt16BE(pc + 1);
+    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
+    const paramSize = methodReference.paramWordSize;
+    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
+      const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
+      let argMaker = `var args${suffix}=` + argInitialiser;
+      if ((paramSize > pops.length) && (pops.length > 0)) {
+        argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
+      }
+      return argMaker + `
+var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "frame.opStack.pop();"}
+if (!util.isNull(thread, frame, obj${suffix})) {
+var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
+obj${suffix}[methodReference${suffix}.fullSignature](thread, args${suffix});
+frame.returnToThreadLoop = true;
+${onSuccess}
+}`;
+    }};
+
+  }
+
   private jitCompileFrom(startPC: number) {
     // console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
     const code = this.code.code;
@@ -553,8 +575,14 @@ ${onSuccess}
         this.failedCompile[i] = true;
         closeCurrentTrace();
 
-      } else if (op === enums.OpCode.INVOKEVIRTUAL_FAST && trace !== null) {
+      } else if (((op === enums.OpCode.INVOKEVIRTUAL_FAST) || (op === enums.OpCode.INVOKEINTERFACE_FAST)) && trace !== null) {
         const invokeJitInfo: JitInfo = this.makeInvokeVirtualJitInfo(code, i);
+        trace.addOp(i, invokeJitInfo);
+
+        this.failedCompile[i] = true;
+        closeCurrentTrace();
+      } else if ((op === enums.OpCode.INVOKENONVIRTUAL_FAST) && trace !== null) {
+        const invokeJitInfo: JitInfo = this.makeInvokeNonVirtualJitInfo(code, i);
         trace.addOp(i, invokeJitInfo);
 
         this.failedCompile[i] = true;
