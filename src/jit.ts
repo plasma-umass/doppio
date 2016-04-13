@@ -330,6 +330,8 @@ if (!util.isNull(thread, frame, obj${suffix})) {
     frame.pc++;
     ${onSuccess}
   }
+} else {
+  ${onError}
 }`;
 }}
 
@@ -357,6 +359,8 @@ if (!util.isNull(thread, frame, obj${suffix})) {
     frame.pc++;
     ${onSuccess}
   }
+} else {
+  ${onError}
 }`;
 }}
 
@@ -380,6 +384,8 @@ if (!util.isNull(thread, frame, obj${suffix})) {
     frame.pc++;
     ${onSuccess}
   }
+} else {
+  ${onError}
 }`;
 }}
 
@@ -407,6 +413,8 @@ if (!util.isNull(thread, frame, obj${suffix})) {
     frame.pc++;
     ${onSuccess}
   }
+} else {
+  ${onError}
 }`;
 }}
 
@@ -479,7 +487,8 @@ ${onSuccess}`;
 }};
 
 // TODO: get the field info at JIT time ?
-table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
 var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
@@ -488,11 +497,14 @@ if (!util.isNull(thread, frame, obj${suffix})) {
   var ${pushes[0]} = obj${suffix}[fieldInfo${suffix}.fullFieldName];
   frame.pc += 3;
   ${onSuccess}
+} else {
+  ${onError}
 }`;
 }};
 
 // TODO: get the field info at JIT time ?
-table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
 var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
@@ -502,11 +514,14 @@ if (!util.isNull(thread, frame, obj${suffix})) {
   var ${pushes[1]} = null;
   frame.pc += 3;
   ${onSuccess}
+} else {
+  ${onError}
 }`;
 }};
 
 // TODO: get the field info at JIT time ?
-table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
 var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
@@ -515,11 +530,14 @@ if (!util.isNull(thread, frame, obj${suffix})) {
   obj${suffix}[fieldInfo${suffix}.fullFieldName] = ${pops[0]};
   frame.pc += 3;
   ${onSuccess}
+} else {
+  ${onError}
 }`;
 }};
 
 // TODO: get the field info at JIT time ?
-table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
 var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
@@ -528,6 +546,8 @@ if (!util.isNull(thread, frame, obj${suffix})) {
   obj${suffix}[fieldInfo${suffix}.fullFieldName] = ${pops[1]};
   frame.pc += 3;
   ${onSuccess}
+} else {
+  ${onError}
 }`;
 }};
 
@@ -542,13 +562,16 @@ frame.pc += 3;
 ${onSuccess}`;
 }};
 
-table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   return `
 var  obj${suffix} = ${pops[0]};
 if (!util.isNull(thread, frame, obj${suffix})) {
   var ${pushes[0]} = obj${suffix}.array.length;
   frame.pc++;
   ${onSuccess}
+} else {
+  ${onError}
 }`;
 }};
 
@@ -614,11 +637,12 @@ ${onSuccess}`;
 }};
 
 // This is marked as hasBranch: true to stop further opcode inclusion during JITC. The name of "hasBranch" ought to be changed.
-table[OpCode.ATHROW] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.ATHROW] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   return `
+${onError}
 thread.throwException(${pops[0]});
-frame.returnToThreadLoop = true;
-${onSuccess}`;
+frame.returnToThreadLoop = true;`;
 }};
 
 table[OpCode.GOTO] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
@@ -965,9 +989,11 @@ frame.pc++;
 ${onSuccess}`;
 }};
 
-table[OpCode.IDIV] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.IDIV] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   return `
 if (${pops[0]} === 0) {
+  ${onError}
   util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
 } else {
   var ${pushes[0]} = (${pops[1]} === util.Constants.INT_MIN && ${pops[0]} === -1) ? ${pops[1]} : ((${pops[1]} / ${pops[0]}) | 0);
@@ -1007,9 +1033,11 @@ frame.pc++;
 ${onSuccess}`;
 }};
 
-table[OpCode.IREM] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.IREM] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   return `
 if (${pops[0]} === 0) {
+  ${onError}
   util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
 } else {
   var ${pushes[0]} = ${pops[1]} % ${pops[0]};
@@ -1018,9 +1046,11 @@ if (${pops[0]} === 0) {
 }`;
 }};
 
-table[OpCode.LREM] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.LREM] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
   return `
 if (${pops[1]}.isZero()) {
+  ${onError}
   util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
 } else {
   var ${pushes[0]} = ${pops[3]}.modulo(${pops[1]});
@@ -1207,9 +1237,10 @@ frame.pc += 3;
 ${onSuccess}`;
 }};
 
-table[OpCode.NEWARRAY] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.NEWARRAY] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const index = code.readUInt8(pc + 1);
   const arrayType = "[" + opcodes.ArrayTypes[index];
+  const onError = makeOnError(onErrorPushes);
   return `
 var cls${suffix} = frame.getLoader().getInitializedClass(thread, '${arrayType}');
 if (${pops[0]} >= 0) {
@@ -1217,13 +1248,15 @@ if (${pops[0]} >= 0) {
   frame.pc += 2;
   ${onSuccess}
 } else {
+  ${onError}
   util.throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ${arrayType} array with length ' + ${pops[0]});
 }`;
 }};
 
-table[OpCode.ANEWARRAY_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.ANEWARRAY_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const index = code.readUInt16BE(pc + 1);
   const arrayType = "[" + opcodes.ArrayTypes[index];
+  const onError = makeOnError(onErrorPushes);
   return `
 var classRef${suffix} = frame.method.cls.constantPool.get(${index});
 if (${pops[0]} >= 0) {
@@ -1231,6 +1264,7 @@ if (${pops[0]} >= 0) {
   frame.pc += 3;
   ${onSuccess}
 } else {
+  ${onError}
   util.throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ' + classRef${suffix}.arrayClass.getInternalName() + ' array with length ' + ${pops[0]});
 }`;
 }};

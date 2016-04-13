@@ -497,7 +497,8 @@ ${onSuccess}`;
     const index = code.readUInt16BE(pc + 1);
     const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
-    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
+    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+      const onError = makeOnError(onErrorPushes);
       const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
       let argMaker = `var args${suffix}=` + argInitialiser;
       if ((paramSize > pops.length) && (pops.length > 0)) {
@@ -510,6 +511,8 @@ var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
 obj${suffix}[methodReference${suffix}.signature](thread, args${suffix});
 frame.returnToThreadLoop = true;
 ${onSuccess}
+} else {
+${onError}
 }`;
     }};
 
@@ -519,7 +522,8 @@ ${onSuccess}
     const index = code.readUInt16BE(pc + 1);
     const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
-    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
+    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+      const onError = makeOnError(onErrorPushes);
       const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
       let argMaker = `var args${suffix}=` + argInitialiser;
       if ((paramSize > pops.length) && (pops.length > 0)) {
@@ -532,6 +536,8 @@ var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
 obj${suffix}[methodReference${suffix}.fullSignature](thread, args${suffix});
 frame.returnToThreadLoop = true;
 ${onSuccess}
+} else {
+${onError}
 }`;
     }};
   }
@@ -909,6 +915,10 @@ _create`);
   };
 })(cls.getSpecificMethod("${util.reescapeJVMName(this.cls.getInternalName())}", "${util.reescapeJVMName(this.signature)}"));\n`);
   }
+}
+
+function makeOnError(onErrorPushes: string[]) {
+  return onErrorPushes.length > 0 ? `frame.opStack.pushAll(${onErrorPushes.join(',')})` : '';
 }
 
 const statCloser: number[] = new Array(256);
