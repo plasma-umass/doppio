@@ -1217,7 +1217,7 @@ if (${pops[0]} >= 0) {
   frame.pc += 2;
   ${onSuccess}
 } else {
-  throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ${arrayType} array with length ' + ${pops[0]});
+  util.throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ${arrayType} array with length ' + ${pops[0]});
 }`;
 }};
 
@@ -1231,7 +1231,7 @@ if (${pops[0]} >= 0) {
   frame.pc += 3;
   ${onSuccess}
 } else {
-  throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ' + classRef${suffix}.arrayClass.getInternalName() + ' array with length ' + ${pops[0]});
+  util.throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ' + classRef${suffix}.arrayClass.getInternalName() + ' array with length ' + ${pops[0]});
 }`;
 }};
 
