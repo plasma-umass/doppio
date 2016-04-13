@@ -703,7 +703,7 @@ ${onSuccess}`;
 table[OpCode.IFNULL] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} === null) {
+if(${pops[0]} == null) {
   frame.pc += ${offset};
 } else {
   frame.pc += 3;
