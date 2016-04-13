@@ -1020,7 +1020,7 @@ if (${pops[0]} === 0) {
 
 table[OpCode.LREM] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-if (${pops[1]} === 0) {
+if (${pops[1]}.isZero()) {
   util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
 } else {
   var ${pushes[0]} = ${pops[3]}.modulo(${pops[1]});
