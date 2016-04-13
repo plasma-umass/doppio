@@ -797,7 +797,7 @@ ${onSuccess}`;
 
 table[OpCode.FCMPL] = {hasBranch: true, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} > ${pops[0]} ? -1 : 1);
+var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} > ${pops[0]} ? 1 : -1);
 frame.pc++;
 ${onSuccess}`;
 }};
