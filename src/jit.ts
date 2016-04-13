@@ -11,12 +11,7 @@ export interface JitInfo {
 }
 
 function makeOnError(onErrorPushes: string[]) {
-  let onError = "";
-  for (let j = 0; j < onErrorPushes.length; j++) {
-    const e = onErrorPushes[j];
-    onError += `frame.opStack.push(${e});`;
-  }
-  return onError;
+  return onErrorPushes.length > 0 ? `frame.opStack.pushAll(${onErrorPushes.join(',')})` : '';
 }
 
 export const opJitInfo: JitInfo[] = function() {
