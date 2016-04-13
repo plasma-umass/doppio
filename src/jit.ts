@@ -968,7 +968,7 @@ ${onSuccess}`;
 table[OpCode.IDIV] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
 if (${pops[0]} === 0) {
-  throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
+  util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
 } else {
   var ${pushes[0]} = (${pops[1]} === util.Constants.INT_MIN && ${pops[0]} === -1) ? ${pops[1]} : ((${pops[1]} / ${pops[0]}) | 0);
   frame.pc++;
