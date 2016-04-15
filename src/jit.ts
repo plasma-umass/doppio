@@ -812,35 +812,35 @@ if(${pops[0]} <= 0) {
 ${onSuccess}`;
 }};
 
-table[OpCode.LCMP] = {hasBranch: true, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.LCMP] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
 var ${pushes[0]} = ${pops[3]}.compare(${pops[1]});
 frame.pc++;
 ${onSuccess}`;
 }};
 
-table[OpCode.FCMPL] = {hasBranch: true, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.FCMPL] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
 var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} > ${pops[0]} ? 1 : -1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
-table[OpCode.DCMPL] = {hasBranch: true, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.DCMPL] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
 var ${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} > ${pops[1]} ? 1 : -1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
-table[OpCode.FCMPG] = {hasBranch: true, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.FCMPG] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
 var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} < ${pops[0]} ? -1 : 1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
-table[OpCode.DCMPG] = {hasBranch: true, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
+table[OpCode.DCMPG] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
 var ${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} < ${pops[1]} ? -1 : 1);
 frame.pc++;
