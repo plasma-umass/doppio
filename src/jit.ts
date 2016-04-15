@@ -899,6 +899,19 @@ thread.asyncReturn(${pops[1]}, null);
 table[OpCode.LRETURN] = return64;
 table[OpCode.DRETURN] = return64;
 
+table[OpCode.MONITOREXIT] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
+  return `
+if (${pops[0]}.getMonitor().exit(thread)) {
+frame.pc++;
+${onSuccess}
+} else {
+${onError}
+frame.returnToThreadLoop = true;
+}
+`;
+}};
+
 table[OpCode.IXOR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
 var ${pushes[0]} = ${pops[0]} ^ ${pops[1]};
@@ -1058,6 +1071,14 @@ if (${pops[1]}.isZero()) {
   frame.pc++;
   ${onSuccess}
 }`;
+}};
+
+table[OpCode.DREM] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
+  return `
+var ${pushes[0]} = ${pops[3]} % ${pops[1]};
+var ${pushes[1]} = null;
+frame.pc++;
+${onSuccess}`;
 }};
 
 table[OpCode.INEG] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
@@ -1224,6 +1245,16 @@ table[OpCode.DUP_X1] = {hasBranch: false, pops: 2, pushes: 3, emit: (pops, pushe
 var ${pushes[0]} = ${pops[0]};
 var ${pushes[1]} = ${pops[1]};
 var ${pushes[2]} = ${pops[0]};
+frame.pc++;
+${onSuccess}`;
+}};
+
+table[OpCode.DUP_X2] = {hasBranch: false, pops: 3, pushes: 4, emit: (pops, pushes, suffix, onSuccess) => {
+  return `
+var ${pushes[0]} = ${pops[0]};
+var ${pushes[1]} = ${pops[2]};
+var ${pushes[2]} = ${pops[1]};
+var ${pushes[3]} = ${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
