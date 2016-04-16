@@ -853,9 +853,7 @@ table[OpCode.RETURN] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes
   return `
 frame.returnToThreadLoop = true;
 if (frame.method.accessFlags.isSynchronized()) {
-  // monitorexit
   if (!frame.method.methodLock(thread, frame).exit(thread)) {
-    // monitorexit threw an exception.
     return;
   }
 }
@@ -869,9 +867,7 @@ const return32: JitInfo = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pus
   return `
 frame.returnToThreadLoop = true;
 if (frame.method.accessFlags.isSynchronized()) {
-  // monitorexit
   if (!frame.method.methodLock(thread, frame).exit(thread)) {
-    // monitorexit threw an exception.
     return;
   }
 }
@@ -887,9 +883,7 @@ const return64: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pus
   return `
 frame.returnToThreadLoop = true;
 if (frame.method.accessFlags.isSynchronized()) {
-  // monitorexit
   if (!frame.method.methodLock(thread, frame).exit(thread)) {
-    // monitorexit threw an exception.
     return;
   }
 }
@@ -1172,8 +1166,6 @@ ${onSuccess}`;
 
 table[OpCode.I2F] = {hasBranch: false, pops: 0, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-// NOP; we represent ints as floats anyway.
-// @todo What about quantities unexpressable as floats?
 frame.pc++;
 ${onSuccess}`;
 }};
