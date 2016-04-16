@@ -34,42 +34,42 @@ const OpCode = enums.OpCode;
 
 table[OpCode.ACONST_NULL] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = null;
+var ${pushes[0]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.ICONST_M1] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = -1;
+var ${pushes[0]}=-1;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load0_32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[0];
+var ${pushes[0]}=frame.locals[0];
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load1_32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[1];
+var ${pushes[0]}=frame.locals[1];
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load2_32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[2];
+var ${pushes[0]}=frame.locals[2];
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load3_32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[3];
+var ${pushes[0]}=frame.locals[3];
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -92,28 +92,28 @@ table[OpCode.FLOAD_3] = load3_32;
 
 const load0_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[0], ${pushes[1]} = null;
+var ${pushes[0]}=frame.locals[0],${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load1_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[1], ${pushes[1]} = null;
+var ${pushes[0]}=frame.locals[1],${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load2_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[2], ${pushes[1]} = null;
+var ${pushes[0]}=frame.locals[2],${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load3_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[3], ${pushes[1]} = null;
+var ${pushes[0]}=frame.locals[3],${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -132,28 +132,28 @@ table[OpCode.DLOAD_3] = load3_64;
 
 const store0_32: JitInfo = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[0] = ${pops[0]};
+frame.locals[0]=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }}
 
 const store1_32: JitInfo = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[1] = ${pops[0]};
+frame.locals[1]=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }}
 
 const store2_32: JitInfo = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[2] = ${pops[0]};
+frame.locals[2]=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }}
 
 const store3_32: JitInfo = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[3] = ${pops[0]};
+frame.locals[3]=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }}
@@ -177,40 +177,40 @@ table[OpCode.FSTORE_3] = store3_32;
 const store_64: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readUInt8(pc + 1);
   return `
-frame.locals[${offset + 1}] = ${pops[0]};
-frame.locals[${offset}] = ${pops[1]};
-frame.pc += 2;
+frame.locals[${offset+1}]=${pops[0]};
+frame.locals[${offset}]=${pops[1]};
+frame.pc+=2;
 ${onSuccess}`;
 }}
 
 const store0_64: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[1] = ${pops[0]};
-frame.locals[0] = ${pops[1]};
+frame.locals[1]=${pops[0]};
+frame.locals[0]=${pops[1]};
 frame.pc++;
 ${onSuccess}`;
 }}
 
 const store1_64: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[2] = ${pops[0]};
-frame.locals[1] = ${pops[1]};
+frame.locals[2]=${pops[0]};
+frame.locals[1]=${pops[1]};
 frame.pc++;
 ${onSuccess}`;
 }}
 
 const store2_64: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[3] = ${pops[0]};
-frame.locals[2] = ${pops[1]};
+frame.locals[3]=${pops[0]};
+frame.locals[2]=${pops[1]};
 frame.pc++;
 ${onSuccess}`;
 }}
 
 const store3_64: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-frame.locals[4] = ${pops[0]};
-frame.locals[3] = ${pops[1]};
+frame.locals[4]=${pops[0]};
+frame.locals[3]=${pops[1]};
 frame.pc++;
 ${onSuccess}`;
 }}
@@ -232,19 +232,19 @@ table[OpCode.DSTORE_3] = store3_64;
 
 const const0_32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 0;
+var ${pushes[0]}=0;
 frame.pc++;
 ${onSuccess}`;
 }}
 const const1_32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 1;
+var ${pushes[0]}=1;
 frame.pc++;
 ${onSuccess}`;
 }}
 const const2_32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 2;
+var ${pushes[0]}=2;
 frame.pc++;
 ${onSuccess}`;
 }}
@@ -260,49 +260,49 @@ table[OpCode.FCONST_2] = const2_32;
 
 table[OpCode.ICONST_3] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 3;
+var ${pushes[0]}=3;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.ICONST_4] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 4;
+var ${pushes[0]}=4;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.ICONST_5] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 5;
+var ${pushes[0]}=5;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.LCONST_0] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.gLong.ZERO, ${pushes[1]} = null;
+var ${pushes[0]}=util.gLong.ZERO,${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.LCONST_1] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.gLong.ONE, ${pushes[1]} = null;
+var ${pushes[0]}=util.gLong.ONE,${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.DCONST_0] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 0, ${pushes[1]} = null;
+var ${pushes[0]}=0,${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.DCONST_1] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 1, ${pushes[1]} = null;
+var ${pushes[0]}=1,${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }}
@@ -310,20 +310,20 @@ ${onSuccess}`;
 const aload32: JitInfo = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var idx${suffix} = ${pops[0]},
-  obj${suffix} = ${pops[1]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  var len${suffix} = obj${suffix}.array.length;
-  if (idx${suffix} < 0 || idx${suffix} >= len${suffix}) {
-    ${onError}
-    util.throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', "" + idx${suffix} + " not in length " + len${suffix} + " array of type " + obj${suffix}.getClass().getInternalName());
-  } else {
-    var ${pushes[0]} = obj${suffix}.array[idx${suffix}];
-    frame.pc++;
-    ${onSuccess}
-  }
-} else {
-  ${onError}
+var idx${suffix}=${pops[0]},
+obj${suffix}=${pops[1]};
+if(!util.isNull(thread,frame,obj${suffix})){
+var len${suffix}=obj${suffix}.array.length;
+if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+${onError}
+util.throwException(thread,frame,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
+}else{
+var ${pushes[0]}=obj${suffix}.array[idx${suffix}];
+frame.pc++;
+${onSuccess}
+}
+}else{
+${onError}
 }`;
 }}
 
@@ -338,20 +338,20 @@ table[OpCode.SALOAD] = aload32;
 const aload64: JitInfo = {hasBranch: false, pops: 2, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var idx${suffix} = ${pops[0]},
-  obj${suffix} = ${pops[1]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  var len${suffix} = obj${suffix}.array.length;
-  if (idx${suffix} < 0 || idx${suffix} >= len${suffix}) {
-    ${onError}
-    util.throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', "" + idx${suffix} + " not in length " + len${suffix} + " array of type " + obj${suffix}.getClass().getInternalName());
-  } else {
-    var ${pushes[0]} = obj${suffix}.array[idx${suffix}], ${pushes[1]} = null;
-    frame.pc++;
-    ${onSuccess}
-  }
-} else {
-  ${onError}
+var idx${suffix}=${pops[0]},
+obj${suffix}=${pops[1]};
+if(!util.isNull(thread,frame,obj${suffix})){
+var len${suffix}=obj${suffix}.array.length;
+if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+${onError}
+util.throwException(thread,frame,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
+}else{
+var ${pushes[0]}=obj${suffix}.array[idx${suffix}],${pushes[1]}=null;
+frame.pc++;
+${onSuccess}
+}
+}else{
+${onError}
 }`;
 }}
 
@@ -362,21 +362,21 @@ table[OpCode.LALOAD] = aload64;
 const astore32: JitInfo = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var val${suffix} = ${pops[0]},
-  idx${suffix} = ${pops[1]},
-  obj${suffix} = ${pops[2]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  var len${suffix} = obj${suffix}.array.length;
-  if (idx${suffix} < 0 || idx${suffix} >= len${suffix}) {
-    ${onError}
-    util.throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', "" + idx${suffix} + " not in length " + len${suffix} + " array of type " + obj${suffix}.getClass().getInternalName());
-  } else {
-    obj${suffix}.array[idx${suffix}] = val${suffix};
-    frame.pc++;
-    ${onSuccess}
-  }
-} else {
-  ${onError}
+var val${suffix}=${pops[0]},
+idx${suffix}=${pops[1]},
+obj${suffix}=${pops[2]};
+if(!util.isNull(thread,frame,obj${suffix})){
+var len${suffix}=obj${suffix}.array.length;
+if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+${onError}
+util.throwException(thread,frame,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
+}else{
+obj${suffix}.array[idx${suffix}]=val${suffix};
+frame.pc++;
+${onSuccess}
+}
+}else{
+${onError}
 }`;
 }}
 
@@ -391,21 +391,21 @@ table[OpCode.SASTORE] = astore32;
 const astore64: JitInfo = {hasBranch: false, pops: 4, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var val${suffix} = ${pops[1]},
-  idx${suffix} = ${pops[2]},
-  obj${suffix} = ${pops[3]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  var len${suffix} = obj${suffix}.array.length;
-  if (idx${suffix} < 0 || idx${suffix} >= len${suffix}) {
-    ${onError}
-    util.throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', "" + idx${suffix} + " not in length " + len${suffix} + " array of type " + obj${suffix}.getClass().getInternalName());
-  } else {
-    obj${suffix}.array[idx${suffix}] = val${suffix};
-    frame.pc++;
-    ${onSuccess}
-  }
-} else {
-  ${onError}
+var val${suffix}=${pops[1]},
+idx${suffix}=${pops[2]},
+obj${suffix}=${pops[3]};
+if(!util.isNull(thread,frame,obj${suffix})){
+var len${suffix}=obj${suffix}.array.length;
+if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+${onError}
+util.throwException(thread,frame,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
+}else{
+obj${suffix}.array[idx${suffix}]=val${suffix};
+frame.pc++;
+${onSuccess}
+}
+}else{
+${onError}
 }`;
 }}
 
@@ -418,14 +418,14 @@ table[OpCode.LDC] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, 
   const index = code.readUInt8(pc + 1);
   const onError = makeOnError(onErrorPushes);
   return `
-var constant${suffix} = frame.method.cls.constantPool.get(${index});
-if (constant${suffix}.isResolved()) {
-  var ${pushes[0]} = constant${suffix}.getConstant(thread);
-  frame.pc += 2;
-  ${onSuccess}
-} else {
-  ${onError}
-  util.resolveCPItem(thread, frame, constant${suffix});
+var constant${suffix}=frame.method.cls.constantPool.get(${index});
+if(constant${suffix}.isResolved()){
+var ${pushes[0]}=constant${suffix}.getConstant(thread);
+frame.pc+=2;
+${onSuccess}
+}else{
+${onError}
+util.resolveCPItem(thread,frame,constant${suffix});
 }`;
 }};
 
@@ -434,14 +434,14 @@ table[OpCode.LDC_W] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes
   const index = code.readUInt16BE(pc + 1);
   const onError = makeOnError(onErrorPushes);
   return `
-var constant${suffix} = frame.method.cls.constantPool.get(${index});
-if (constant${suffix}.isResolved()) {
-  var ${pushes[0]} = constant${suffix}.getConstant(thread);
-  frame.pc += 3;
-  ${onSuccess}
-} else {
-  ${onError}
-  util.resolveCPItem(thread, frame, constant${suffix});
+var constant${suffix}=frame.method.cls.constantPool.get(${index});
+if(constant${suffix}.isResolved()){
+var ${pushes[0]}=constant${suffix}.getConstant(thread);
+frame.pc+=3;
+${onSuccess}
+}else{
+${onError}
+util.resolveCPItem(thread,frame,constant${suffix});
 }`;
 }};
 
@@ -449,9 +449,9 @@ if (constant${suffix}.isResolved()) {
 table[OpCode.LDC2_W] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var constant${suffix} = frame.method.cls.constantPool.get(${index});
-var ${pushes[0]} = constant${suffix}.value, ${pushes[1]} = null;
-frame.pc += 3;
+var constant${suffix}=frame.method.cls.constantPool.get(${index});
+var ${pushes[0]}=constant${suffix}.value,${pushes[1]}=null;
+frame.pc+=3;
 ${onSuccess}`;
 }};
 
@@ -459,9 +459,9 @@ ${onSuccess}`;
 table[OpCode.GETSTATIC_FAST32] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
-${pushes[0]} = fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName];
-frame.pc += 3;
+var fieldInfo${suffix}=frame.method.cls.constantPool.get(${index}),
+${pushes[0]}=fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName];
+frame.pc+=3;
 ${onSuccess}`;
 }};
 
@@ -469,10 +469,10 @@ ${onSuccess}`;
 table[OpCode.GETSTATIC_FAST64] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
-${pushes[0]} = fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName],
-${pushes[1]} = null;
-frame.pc += 3;
+var fieldInfo${suffix}=frame.method.cls.constantPool.get(${index}),
+${pushes[0]}=fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName],
+${pushes[1]}=null;
+frame.pc+=3;
 ${onSuccess}`;
 }};
 
@@ -481,14 +481,14 @@ table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
-    obj${suffix} = ${pops[0]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  var ${pushes[0]} = obj${suffix}[fieldInfo${suffix}.fullFieldName];
-  frame.pc += 3;
-  ${onSuccess}
-} else {
-  ${onError}
+var fieldInfo${suffix}=frame.method.cls.constantPool.get(${index}),
+obj${suffix}=${pops[0]};
+if(!util.isNull(thread,frame,obj${suffix})){
+var ${pushes[0]}=obj${suffix}[fieldInfo${suffix}.fullFieldName];
+frame.pc+=3;
+${onSuccess}
+}else{
+${onError}
 }`;
 }};
 
@@ -497,14 +497,14 @@ table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
-    obj${suffix} = ${pops[0]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  var ${pushes[0]} = obj${suffix}[fieldInfo${suffix}.fullFieldName], ${pushes[1]} = null;
-  frame.pc += 3;
-  ${onSuccess}
-} else {
-  ${onError}
+var fieldInfo${suffix}=frame.method.cls.constantPool.get(${index}),
+obj${suffix}=${pops[0]};
+if(!util.isNull(thread,frame,obj${suffix})){
+var ${pushes[0]}=obj${suffix}[fieldInfo${suffix}.fullFieldName],${pushes[1]}=null;
+frame.pc+=3;
+${onSuccess}
+}else{
+${onError}
 }`;
 }};
 
@@ -513,14 +513,14 @@ table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
-    obj${suffix} = ${pops[1]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  obj${suffix}[fieldInfo${suffix}.fullFieldName] = ${pops[0]};
-  frame.pc += 3;
-  ${onSuccess}
-} else {
-  ${onError}
+var fieldInfo${suffix}=frame.method.cls.constantPool.get(${index}),
+obj${suffix}=${pops[1]};
+if(!util.isNull(thread,frame,obj${suffix})){
+obj${suffix}[fieldInfo${suffix}.fullFieldName]=${pops[0]};
+frame.pc+=3;
+${onSuccess}
+}else{
+${onError}
 }`;
 }};
 
@@ -529,14 +529,14 @@ table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
-    obj${suffix} = ${pops[2]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  obj${suffix}[fieldInfo${suffix}.fullFieldName] = ${pops[1]};
-  frame.pc += 3;
-  ${onSuccess}
-} else {
-  ${onError}
+var fieldInfo${suffix}=frame.method.cls.constantPool.get(${index}),
+obj${suffix}=${pops[2]};
+if(!util.isNull(thread,frame,obj${suffix})){
+obj${suffix}[fieldInfo${suffix}.fullFieldName]=${pops[1]};
+frame.pc+=3;
+${onSuccess}
+}else{
+${onError}
 }`;
 }};
 
@@ -544,31 +544,31 @@ if (!util.isNull(thread, frame, obj${suffix})) {
 table[OpCode.INSTANCEOF_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var cls${suffix} = frame.method.cls.constantPool.get(${index}).cls,
-o${suffix} = ${pops[0]},
-${pushes[0]} = o${suffix} !== null ? (o${suffix}.getClass().isCastable(cls${suffix}) ? 1 : 0) : 0;
-frame.pc += 3;
+var cls${suffix}=frame.method.cls.constantPool.get(${index}).cls,
+o${suffix}=${pops[0]},
+${pushes[0]}=o${suffix}!==null?(o${suffix}.getClass().isCastable(cls${suffix})?1:0):0;
+frame.pc+=3;
 ${onSuccess}`;
 }};
 
 table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var  obj${suffix} = ${pops[0]};
-if (!util.isNull(thread, frame, obj${suffix})) {
-  var ${pushes[0]} = obj${suffix}.array.length;
-  frame.pc++;
-  ${onSuccess}
-} else {
-  ${onError}
+var obj${suffix}=${pops[0]};
+if(!util.isNull(thread,frame,obj${suffix})){
+var ${pushes[0]}=obj${suffix}.array.length;
+frame.pc++;
+${onSuccess}
+}else{
+${onError}
 }`;
 }};
 
 const load32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt8(pc + 1);
   return `
-var ${pushes[0]} = frame.locals[${index}];
-frame.pc += 2;
+var ${pushes[0]}=frame.locals[${index}];
+frame.pc+=2;
 ${onSuccess}`;
 }}
 
@@ -579,8 +579,8 @@ table[OpCode.FLOAD] = load32;
 const load64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt8(pc + 1);
   return `
-var ${pushes[0]} = frame.locals[${index}], ${pushes[1]} = null;
-frame.pc += 2;
+var ${pushes[0]}=frame.locals[${index}],${pushes[1]}=null;
+frame.pc+=2;
 ${onSuccess}`;
 }}
 
@@ -590,8 +590,8 @@ table[OpCode.DLOAD] = load64;
 const store32: JitInfo = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt8(pc + 1);
   return `
-frame.locals[${index}] = ${pops[0]};
-frame.pc += 2;
+frame.locals[${index}]=${pops[0]};
+frame.pc+=2;
 ${onSuccess}`;
 }}
 
@@ -602,16 +602,16 @@ table[OpCode.FSTORE] = store32;
 table[OpCode.BIPUSH] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const value = code.readInt8(pc + 1);
   return `
-var ${pushes[0]} = ${value};
-frame.pc += 2;
+var ${pushes[0]}=${value};
+frame.pc+=2;
 ${onSuccess}`;
 }};
 
 table[OpCode.SIPUSH] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const value = code.readInt16BE(pc + 1);
   return `
-var ${pushes[0]} = ${value};
-frame.pc += 3;
+var ${pushes[0]}=${value};
+frame.pc+=3;
 ${onSuccess}`;
 }};
 
@@ -619,8 +619,8 @@ table[OpCode.IINC] = {hasBranch: false, pops: 0, pushes: 0, emit: (pops, pushes,
   const idx = code.readUInt8(pc + 1);
   const val = code.readInt8(pc + 2);
   return `
-frame.locals[${idx}] = (frame.locals[${idx}] + ${val}) | 0;
-frame.pc += 3;
+frame.locals[${idx}]=(frame.locals[${idx}]+${val})|0;
+frame.pc+=3;
 ${onSuccess}`;
 }};
 
@@ -630,23 +630,23 @@ table[OpCode.ATHROW] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes
   return `
 ${onError}
 thread.throwException(${pops[0]});
-frame.returnToThreadLoop = true;`;
+frame.returnToThreadLoop=true;`;
 }};
 
 table[OpCode.GOTO] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-frame.pc += ${offset};
+frame.pc+=${offset};
 ${onSuccess}`;
 }};
 
 const cmpeq: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} === ${pops[1]}) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}===${pops[1]}){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -657,10 +657,10 @@ table[OpCode.IF_ACMPEQ] = cmpeq;
 const cmpne: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} !== ${pops[1]}) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}!==${pops[1]}){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -671,10 +671,10 @@ table[OpCode.IF_ACMPNE] = cmpne;
 table[OpCode.IF_ICMPGE] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[1]} >= ${pops[0]}) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[1]}>=${pops[0]}){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -682,10 +682,10 @@ ${onSuccess}`;
 table[OpCode.IF_ICMPGT] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[1]} > ${pops[0]}) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[1]}>${pops[0]}){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -693,10 +693,10 @@ ${onSuccess}`;
 table[OpCode.IF_ICMPLE] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[1]} <= ${pops[0]}) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[1]}<=${pops[0]}){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -704,10 +704,10 @@ ${onSuccess}`;
 table[OpCode.IF_ICMPLT] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[1]} < ${pops[0]}) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[1]}<${pops[0]}){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -715,10 +715,10 @@ ${onSuccess}`;
 table[OpCode.IFNULL] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} == null) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}==null){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -726,10 +726,10 @@ ${onSuccess}`;
 table[OpCode.IFNONNULL] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} != null) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}!=null){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -737,10 +737,10 @@ ${onSuccess}`;
 table[OpCode.IFEQ] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} === 0) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}===0){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -748,10 +748,10 @@ ${onSuccess}`;
 table[OpCode.IFNE] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} !== 0) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}!==0){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -759,10 +759,10 @@ ${onSuccess}`;
 table[OpCode.IFGT] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} > 0) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}>0){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -770,10 +770,10 @@ ${onSuccess}`;
 table[OpCode.IFLT] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} < 0) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}<0){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -781,10 +781,10 @@ ${onSuccess}`;
 table[OpCode.IFGE] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} >= 0) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}>=0){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
@@ -792,45 +792,45 @@ ${onSuccess}`;
 table[OpCode.IFLE] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const offset = code.readInt16BE(pc + 1);
   return `
-if(${pops[0]} <= 0) {
-  frame.pc += ${offset};
-} else {
-  frame.pc += 3;
+if(${pops[0]}<=0){
+frame.pc+=${offset};
+}else{
+frame.pc+=3;
 }
 ${onSuccess}`;
 }};
 
 table[OpCode.LCMP] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}.compare(${pops[1]});
+var ${pushes[0]}=${pops[3]}.compare(${pops[1]});
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.FCMPL] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} > ${pops[0]} ? 1 : -1);
+var ${pushes[0]}=${pops[0]}===${pops[1]}?0:(${pops[1]}>${pops[0]}?1:-1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DCMPL] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} > ${pops[1]} ? 1 : -1);
+var ${pushes[0]}=${pops[3]}===${pops[1]}?0:(${pops[3]}>${pops[1]}?1:-1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.FCMPG] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]} === ${pops[1]} ? 0 : (${pops[1]} < ${pops[0]} ? -1 : 1);
+var ${pushes[0]}=${pops[0]}===${pops[1]}?0:(${pops[1]}<${pops[0]}?-1:1);
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DCMPG] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} === ${pops[1]} ? 0 : (${pops[3]} < ${pops[1]} ? -1 : 1);
+var ${pushes[0]}=${pops[3]}===${pops[1]}?0:(${pops[3]}<${pops[1]}?-1:1);
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -839,11 +839,11 @@ table[OpCode.RETURN] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes
   // TODO: check flags at JIT time
   // TODO: on error pushes
   return `
-frame.returnToThreadLoop = true;
-if (frame.method.accessFlags.isSynchronized()) {
-  if (!frame.method.methodLock(thread, frame).exit(thread)) {
-    return;
-  }
+frame.returnToThreadLoop=true;
+if(frame.method.accessFlags.isSynchronized()){
+if(!frame.method.methodLock(thread,frame).exit(thread)){
+ return;
+}
 }
 thread.asyncReturn();
 `;
@@ -853,12 +853,8 @@ const return32: JitInfo = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pus
   // TODO: check flags at JIT time
   // TODO: on error pushes
   return `
-frame.returnToThreadLoop = true;
-if (frame.method.accessFlags.isSynchronized()) {
-  if (!frame.method.methodLock(thread, frame).exit(thread)) {
-    return;
-  }
-}
+frame.returnToThreadLoop=true;
+if(frame.method.accessFlags.isSynchronized()){if(!frame.method.methodLock(thread,frame).exit(thread)){return;}}
 thread.asyncReturn(${pops[0]});
 `;
 }};
@@ -869,13 +865,9 @@ table[OpCode.ARETURN] = return32;
 const return64: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix) => {
   // TODO: check flags at JIT time
   return `
-frame.returnToThreadLoop = true;
-if (frame.method.accessFlags.isSynchronized()) {
-  if (!frame.method.methodLock(thread, frame).exit(thread)) {
-    return;
-  }
-}
-thread.asyncReturn(${pops[1]}, null);
+frame.returnToThreadLoop=true;
+if(frame.method.accessFlags.isSynchronized()){if(!frame.method.methodLock(thread,frame).exit(thread)){return;}}
+thread.asyncReturn(${pops[1]},null);
 `;
 }};
 table[OpCode.LRETURN] = return64;
@@ -884,96 +876,96 @@ table[OpCode.DRETURN] = return64;
 table[OpCode.MONITOREXIT] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-if (${pops[0]}.getMonitor().exit(thread)) {
+if(${pops[0]}.getMonitor().exit(thread)){
 frame.pc++;
 ${onSuccess}
-} else {
+}else{
 ${onError}
-frame.returnToThreadLoop = true;
+frame.returnToThreadLoop=true;
 }
 `;
 }};
 
 table[OpCode.IXOR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]} ^ ${pops[1]};
+var ${pushes[0]}=${pops[0]}^${pops[1]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.IOR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]} | ${pops[1]};
+var ${pushes[0]}=${pops[0]}|${pops[1]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LOR] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}.or(${pops[1]}), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[3]}.or(${pops[1]}),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.IAND] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]} & ${pops[1]};
+var ${pushes[0]}=${pops[0]}&${pops[1]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LAND] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}.and(${pops[1]}), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[3]}.and(${pops[1]}),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.IADD] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (${pops[0]} + ${pops[1]}) | 0;
+var ${pushes[0]}=(${pops[0]}+${pops[1]})|0;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LADD] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.add(${pops[3]}), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[1]}.add(${pops[3]}),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DADD] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]} + ${pops[3]}, ${pushes[1]} = null;
+var ${pushes[0]}=${pops[1]}+${pops[3]},${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.IMUL] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = Math.imul(${pops[0]},  ${pops[1]});
+var ${pushes[0]}=Math.imul(${pops[0]}, ${pops[1]});
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.FMUL] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.wrapFloat(${pops[0]} * ${pops[1]});
+var ${pushes[0]}=util.wrapFloat(${pops[0]}*${pops[1]});
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LMUL] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}.multiply(${pops[1]}), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[3]}.multiply(${pops[1]}),${pushes[1]}= null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DMUL] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} * ${pops[1]}, ${pushes[1]} = null;
+var ${pushes[0]}=${pops[3]}*${pops[1]},${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -981,40 +973,40 @@ ${onSuccess}`;
 table[OpCode.IDIV] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-if (${pops[0]} === 0) {
-  ${onError}
-  util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
-} else {
-  var ${pushes[0]} = (${pops[1]} === util.Constants.INT_MIN && ${pops[0]} === -1) ? ${pops[1]} : ((${pops[1]} / ${pops[0]}) | 0);
-  frame.pc++;
-  ${onSuccess}
+if(${pops[0]}===0){
+${onError}
+util.throwException(thread,frame,'Ljava/lang/ArithmeticException;','/ by zero');
+}else{
+var ${pushes[0]}=(${pops[1]}===util.Constants.INT_MIN&&${pops[0]}===-1)?${pops[1]}:((${pops[1]}/${pops[0]})|0);
+frame.pc++;
+${onSuccess}
 }`;
 }};
 
 table[OpCode.DDIV] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} / ${pops[1]}, ${pushes[1]} = null;
+var ${pushes[0]}=${pops[3]}/${pops[1]},${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.ISUB] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (${pops[1]} - ${pops[0]}) | 0;
+var ${pushes[0]}=(${pops[1]}-${pops[0]})|0;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LSUB] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.negate().add(${pops[3]}), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[1]}.negate().add(${pops[3]}),${pushes[1]}= null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DSUB] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}-${pops[1]}, ${pushes[1]} = null;
+var ${pushes[0]}=${pops[3]}-${pops[1]},${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1022,117 +1014,117 @@ ${onSuccess}`;
 table[OpCode.IREM] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-if (${pops[0]} === 0) {
-  ${onError}
-  util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
-} else {
-  var ${pushes[0]} = ${pops[1]} % ${pops[0]};
-  frame.pc++;
-  ${onSuccess}
+if(${pops[0]}===0){
+${onError}
+util.throwException(thread,frame,'Ljava/lang/ArithmeticException;','/ by zero');
+}else{
+var ${pushes[0]}=${pops[1]}%${pops[0]};
+frame.pc++;
+${onSuccess}
 }`;
 }};
 
 table[OpCode.LREM] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-if (${pops[1]}.isZero()) {
-  ${onError}
-  util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
-} else {
-  var ${pushes[0]} = ${pops[3]}.modulo(${pops[1]}), ${pushes[1]} = null;
-  frame.pc++;
-  ${onSuccess}
+if(${pops[1]}.isZero()){
+${onError}
+util.throwException(thread,frame,'Ljava/lang/ArithmeticException;','/ by zero');
+}else{
+var ${pushes[0]}=${pops[3]}.modulo(${pops[1]}),${pushes[1]}=null;
+frame.pc++;
+${onSuccess}
 }`;
 }};
 
 table[OpCode.DREM] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} % ${pops[1]}, ${pushes[1]} = null;
+var ${pushes[0]}=${pops[3]}%${pops[1]},${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.INEG] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (-${pops[0]}) | 0;
+var ${pushes[0]}=(-${pops[0]})|0;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LNEG] = {hasBranch: false, pops: 2, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.negate(), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[1]}.negate(),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.ISHL] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]} << ${pops[0]};
+var ${pushes[0]}=${pops[1]}<<${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LSHL] = {hasBranch: false, pops: 3, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[2]}.shiftLeft(util.gLong.fromInt(${pops[0]})), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[2]}.shiftLeft(util.gLong.fromInt(${pops[0]})),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.ISHR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]} >> ${pops[0]};
+var ${pushes[0]}=${pops[1]}>>${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LSHR] = {hasBranch: false, pops: 3, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[2]}.shiftRight(util.gLong.fromInt(${pops[0]})), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[2]}.shiftRight(util.gLong.fromInt(${pops[0]})),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.IUSHR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (${pops[1]} >>> ${pops[0]}) | 0;
+var ${pushes[0]}=(${pops[1]}>>>${pops[0]})|0;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.LUSHR] = {hasBranch: false, pops: 3, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[2]}.shiftRightUnsigned(util.gLong.fromInt(${pops[0]}));
-var ${pushes[1]} = null;
+var ${pushes[0]}=${pops[2]}.shiftRightUnsigned(util.gLong.fromInt(${pops[0]}));
+var ${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.I2B] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (${pops[0]} << 24) >> 24;
+var ${pushes[0]}=(${pops[0]}<<24)>>24;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.I2S] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = (${pops[0]} << 16) >> 16;
+var ${pushes[0]}=(${pops[0]}<<16)>>16;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.I2C] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]} & 0xFFFF;
+var ${pushes[0]}=${pops[0]}&0xFFFF;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.I2L] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.gLong.fromInt(${pops[0]}), ${pushes[1]} = null;
+var ${pushes[0]}=util.gLong.fromInt(${pops[0]}),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1145,42 +1137,42 @@ ${onSuccess}`;
 
 table[OpCode.I2D] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = null;
+var ${pushes[0]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.F2I] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.float2int(${pops[0]});
+var ${pushes[0]}=util.float2int(${pops[0]});
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.F2D] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = null;
+var ${pushes[0]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.L2I] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.toInt();
+var ${pushes[0]}=${pops[1]}.toInt();
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.L2D] = {hasBranch: false, pops: 2, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.toNumber(), ${pushes[1]} = null;
+var ${pushes[0]}=${pops[1]}.toNumber(),${pushes[1]}=null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.D2I] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.float2int(${pops[1]});
+var ${pushes[0]}=util.float2int(${pops[1]});
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1188,28 +1180,28 @@ ${onSuccess}`;
 // TODO: update the DUPs when peeking is supported
 table[OpCode.DUP] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]}, ${pushes[1]} = ${pops[0]};
+var ${pushes[0]}=${pops[0]},${pushes[1]}=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DUP2] = {hasBranch: false, pops: 2, pushes: 4, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}, ${pushes[1]} = ${pops[0]}, ${pushes[2]} = ${pops[1]}, ${pushes[3]} = ${pops[0]};
+var ${pushes[0]}=${pops[1]},${pushes[1]}=${pops[0]},${pushes[2]}=${pops[1]},${pushes[3]}=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DUP_X1] = {hasBranch: false, pops: 2, pushes: 3, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]}, ${pushes[1]} = ${pops[1]}, ${pushes[2]} = ${pops[0]};
+var ${pushes[0]}=${pops[0]},${pushes[1]}=${pops[1]},${pushes[2]}=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DUP_X2] = {hasBranch: false, pops: 3, pushes: 4, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]}, ${pushes[1]} = ${pops[2]}, ${pushes[2]} = ${pops[1]}, ${pushes[3]} = ${pops[0]};
+var ${pushes[0]}=${pops[0]},${pushes[1]}=${pops[2]},${pushes[2]}=${pops[1]},${pushes[3]}=${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1217,9 +1209,9 @@ ${onSuccess}`;
 table[OpCode.NEW_FAST] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var classRef${suffix} = frame.method.cls.constantPool.get(${index}),
-${pushes[0]} = (new classRef${suffix}.clsConstructor(thread));
-frame.pc += 3;
+var classRef${suffix}=frame.method.cls.constantPool.get(${index}),
+${pushes[0]}=(new classRef${suffix}.clsConstructor(thread));
+frame.pc+=3;
 ${onSuccess}`;
 }};
 
@@ -1228,14 +1220,14 @@ table[OpCode.NEWARRAY] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pus
   const arrayType = "[" + opcodes.ArrayTypes[index];
   const onError = makeOnError(onErrorPushes);
   return `
-var cls${suffix} = frame.getLoader().getInitializedClass(thread, '${arrayType}');
-if (${pops[0]} >= 0) {
-  var ${pushes[0]} = new (cls${suffix}.getConstructor(thread))(thread, ${pops[0]});
-  frame.pc += 2;
-  ${onSuccess}
-} else {
-  ${onError}
-  util.throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ${arrayType} array with length ' + ${pops[0]});
+var cls${suffix}=frame.getLoader().getInitializedClass(thread,'${arrayType}');
+if(${pops[0]}>=0){
+var ${pushes[0]}=new (cls${suffix}.getConstructor(thread))(thread,${pops[0]});
+frame.pc+=2;
+${onSuccess}
+}else{
+${onError}
+util.throwException(thread,frame,'Ljava/lang/NegativeArraySizeException;','Tried to init ${arrayType} array with length '+${pops[0]});
 }`;
 }};
 
@@ -1244,14 +1236,14 @@ table[OpCode.ANEWARRAY_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pop
   const arrayType = "[" + opcodes.ArrayTypes[index];
   const onError = makeOnError(onErrorPushes);
   return `
-var classRef${suffix} = frame.method.cls.constantPool.get(${index});
-if (${pops[0]} >= 0) {
-  var ${pushes[0]} = new classRef${suffix}.arrayClassConstructor(thread, ${pops[0]});
-  frame.pc += 3;
-  ${onSuccess}
-} else {
-  ${onError}
-  util.throwException(thread, frame, 'Ljava/lang/NegativeArraySizeException;', 'Tried to init ' + classRef${suffix}.arrayClass.getInternalName() + ' array with length ' + ${pops[0]});
+var classRef${suffix}=frame.method.cls.constantPool.get(${index});
+if(${pops[0]}>=0){
+var ${pushes[0]}=new classRef${suffix}.arrayClassConstructor(thread,${pops[0]});
+frame.pc+=3;
+${onSuccess}
+}else{
+${onError}
+util.throwException(thread,frame,'Ljava/lang/NegativeArraySizeException;','Tried to init '+classRef${suffix}.arrayClass.getInternalName()+' array with length '+${pops[0]});
 }`;
 }};
 
