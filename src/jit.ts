@@ -92,32 +92,28 @@ table[OpCode.FLOAD_3] = load3_32;
 
 const load0_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[0];
-var ${pushes[1]} = null;
+var ${pushes[0]} = frame.locals[0], ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load1_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[1];
-var ${pushes[1]} = null;
+var ${pushes[0]} = frame.locals[1], ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load2_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[2];
-var ${pushes[1]} = null;
+var ${pushes[0]} = frame.locals[2], ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 const load3_64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = frame.locals[3];
-var ${pushes[1]} = null;
+var ${pushes[0]} = frame.locals[3], ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -285,32 +281,28 @@ ${onSuccess}`;
 
 table[OpCode.LCONST_0] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.gLong.ZERO;
-var ${pushes[1]} = null;
+var ${pushes[0]} = util.gLong.ZERO, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.LCONST_1] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.gLong.ONE;
-var ${pushes[1]} = null;
+var ${pushes[0]} = util.gLong.ONE, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.DCONST_0] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 0;
-var ${pushes[1]} = null;
+var ${pushes[0]} = 0, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }}
 
 table[OpCode.DCONST_1] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = 1;
-var ${pushes[1]} = null;
+var ${pushes[0]} = 1, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }}
@@ -354,8 +346,7 @@ if (!util.isNull(thread, frame, obj${suffix})) {
     ${onError}
     util.throwException(thread, frame, 'Ljava/lang/ArrayIndexOutOfBoundsException;', "" + idx${suffix} + " not in length " + len${suffix} + " array of type " + obj${suffix}.getClass().getInternalName());
   } else {
-    var ${pushes[0]} = obj${suffix}.array[idx${suffix}];
-    var ${pushes[1]} = null;
+    var ${pushes[0]} = obj${suffix}.array[idx${suffix}], ${pushes[1]} = null;
     frame.pc++;
     ${onSuccess}
   }
@@ -459,8 +450,7 @@ table[OpCode.LDC2_W] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushe
   const index = code.readUInt16BE(pc + 1);
   return `
 var constant${suffix} = frame.method.cls.constantPool.get(${index});
-var ${pushes[0]} = constant${suffix}.value;
-var ${pushes[1]} = null;
+var ${pushes[0]} = constant${suffix}.value, ${pushes[1]} = null;
 frame.pc += 3;
 ${onSuccess}`;
 }};
@@ -469,8 +459,8 @@ ${onSuccess}`;
 table[OpCode.GETSTATIC_FAST32] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index});
-var ${pushes[0]} = fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName];
+var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
+${pushes[0]} = fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName];
 frame.pc += 3;
 ${onSuccess}`;
 }};
@@ -479,9 +469,9 @@ ${onSuccess}`;
 table[OpCode.GETSTATIC_FAST64] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index});
-var ${pushes[0]} = fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName];
-var ${pushes[1]} = null;
+var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
+${pushes[0]} = fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName],
+${pushes[1]} = null;
 frame.pc += 3;
 ${onSuccess}`;
 }};
@@ -510,8 +500,7 @@ table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (po
 var fieldInfo${suffix} = frame.method.cls.constantPool.get(${index}),
     obj${suffix} = ${pops[0]};
 if (!util.isNull(thread, frame, obj${suffix})) {
-  var ${pushes[0]} = obj${suffix}[fieldInfo${suffix}.fullFieldName];
-  var ${pushes[1]} = null;
+  var ${pushes[0]} = obj${suffix}[fieldInfo${suffix}.fullFieldName], ${pushes[1]} = null;
   frame.pc += 3;
   ${onSuccess}
 } else {
@@ -556,8 +545,8 @@ table[OpCode.INSTANCEOF_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (po
   const index = code.readUInt16BE(pc + 1);
   return `
 var cls${suffix} = frame.method.cls.constantPool.get(${index}).cls,
-  o${suffix} = ${pops[0]};
-var ${pushes[0]} = o${suffix} !== null ? (o${suffix}.getClass().isCastable(cls${suffix}) ? 1 : 0) : 0;
+o${suffix} = ${pops[0]},
+${pushes[0]} = o${suffix} !== null ? (o${suffix}.getClass().isCastable(cls${suffix}) ? 1 : 0) : 0;
 frame.pc += 3;
 ${onSuccess}`;
 }};
@@ -590,8 +579,7 @@ table[OpCode.FLOAD] = load32;
 const load64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt8(pc + 1);
   return `
-var ${pushes[0]} = frame.locals[${index}];
-var ${pushes[1]} = null;
+var ${pushes[0]} = frame.locals[${index}], ${pushes[1]} = null;
 frame.pc += 2;
 ${onSuccess}`;
 }}
@@ -922,8 +910,7 @@ ${onSuccess}`;
 
 table[OpCode.LOR] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}.or(${pops[1]});
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[3]}.or(${pops[1]}), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -937,8 +924,7 @@ ${onSuccess}`;
 
 table[OpCode.LAND] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}.and(${pops[1]});
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[3]}.and(${pops[1]}), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -952,16 +938,14 @@ ${onSuccess}`;
 
 table[OpCode.LADD] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.add(${pops[3]});
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[1]}.add(${pops[3]}), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DADD] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]} + ${pops[3]};
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[1]} + ${pops[3]}, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -982,16 +966,14 @@ ${onSuccess}`;
 
 table[OpCode.LMUL] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}.multiply(${pops[1]});
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[3]}.multiply(${pops[1]}), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DMUL] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} * ${pops[1]};
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[3]} * ${pops[1]}, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1011,8 +993,7 @@ if (${pops[0]} === 0) {
 
 table[OpCode.DDIV] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} / ${pops[1]};
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[3]} / ${pops[1]}, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1026,16 +1007,14 @@ ${onSuccess}`;
 
 table[OpCode.LSUB] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.negate().add(${pops[3]});
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[1]}.negate().add(${pops[3]}), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DSUB] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]}-${pops[1]};
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[3]}-${pops[1]}, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1060,8 +1039,7 @@ if (${pops[1]}.isZero()) {
   ${onError}
   util.throwException(thread, frame, 'Ljava/lang/ArithmeticException;', '/ by zero');
 } else {
-  var ${pushes[0]} = ${pops[3]}.modulo(${pops[1]});
-  var ${pushes[1]} = null;
+  var ${pushes[0]} = ${pops[3]}.modulo(${pops[1]}), ${pushes[1]} = null;
   frame.pc++;
   ${onSuccess}
 }`;
@@ -1069,8 +1047,7 @@ if (${pops[1]}.isZero()) {
 
 table[OpCode.DREM] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[3]} % ${pops[1]};
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[3]} % ${pops[1]}, ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1084,8 +1061,7 @@ ${onSuccess}`;
 
 table[OpCode.LNEG] = {hasBranch: false, pops: 2, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.negate();
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[1]}.negate(), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1099,8 +1075,7 @@ ${onSuccess}`;
 
 table[OpCode.LSHL] = {hasBranch: false, pops: 3, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[2]}.shiftLeft(util.gLong.fromInt(${pops[0]}));
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[2]}.shiftLeft(util.gLong.fromInt(${pops[0]})), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1114,8 +1089,7 @@ ${onSuccess}`;
 
 table[OpCode.LSHR] = {hasBranch: false, pops: 3, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[2]}.shiftRight(util.gLong.fromInt(${pops[0]}));
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[2]}.shiftRight(util.gLong.fromInt(${pops[0]})), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1158,8 +1132,7 @@ ${onSuccess}`;
 
 table[OpCode.I2L] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = util.gLong.fromInt(${pops[0]});
-var ${pushes[1]} = null;
+var ${pushes[0]} = util.gLong.fromInt(${pops[0]}), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1179,14 +1152,14 @@ ${onSuccess}`;
 
 table[OpCode.F2I] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = util.float2int(${pops[0]});
+var ${pushes[0]} = util.float2int(${pops[0]});
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.F2D] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = null;
+var ${pushes[0]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1200,15 +1173,14 @@ ${onSuccess}`;
 
 table[OpCode.L2D] = {hasBranch: false, pops: 2, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]}.toNumber();
-var ${pushes[1]} = null;
+var ${pushes[0]} = ${pops[1]}.toNumber(), ${pushes[1]} = null;
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.D2I] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-${pushes[0]} = util.float2int(${pops[1]});
+var ${pushes[0]} = util.float2int(${pops[1]});
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1216,37 +1188,28 @@ ${onSuccess}`;
 // TODO: update the DUPs when peeking is supported
 table[OpCode.DUP] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]};
-var ${pushes[1]} = ${pops[0]};
+var ${pushes[0]} = ${pops[0]}, ${pushes[1]} = ${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DUP2] = {hasBranch: false, pops: 2, pushes: 4, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[1]};
-var ${pushes[1]} = ${pops[0]};
-var ${pushes[2]} = ${pops[1]};
-var ${pushes[3]} = ${pops[0]};
+var ${pushes[0]} = ${pops[1]}, ${pushes[1]} = ${pops[0]}, ${pushes[2]} = ${pops[1]}, ${pushes[3]} = ${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DUP_X1] = {hasBranch: false, pops: 2, pushes: 3, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]};
-var ${pushes[1]} = ${pops[1]};
-var ${pushes[2]} = ${pops[0]};
+var ${pushes[0]} = ${pops[0]}, ${pushes[1]} = ${pops[1]}, ${pushes[2]} = ${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
 
 table[OpCode.DUP_X2] = {hasBranch: false, pops: 3, pushes: 4, emit: (pops, pushes, suffix, onSuccess) => {
   return `
-var ${pushes[0]} = ${pops[0]};
-var ${pushes[1]} = ${pops[2]};
-var ${pushes[2]} = ${pops[1]};
-var ${pushes[3]} = ${pops[0]};
+var ${pushes[0]} = ${pops[0]}, ${pushes[1]} = ${pops[2]}, ${pushes[2]} = ${pops[1]}, ${pushes[3]} = ${pops[0]};
 frame.pc++;
 ${onSuccess}`;
 }};
@@ -1254,8 +1217,8 @@ ${onSuccess}`;
 table[OpCode.NEW_FAST] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var classRef${suffix} = frame.method.cls.constantPool.get(${index});
-var ${pushes[0]} = (new classRef${suffix}.clsConstructor(thread));
+var classRef${suffix} = frame.method.cls.constantPool.get(${index}),
+${pushes[0]} = (new classRef${suffix}.clsConstructor(thread));
 frame.pc += 3;
 ${onSuccess}`;
 }};
@@ -1267,7 +1230,7 @@ table[OpCode.NEWARRAY] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pus
   return `
 var cls${suffix} = frame.getLoader().getInitializedClass(thread, '${arrayType}');
 if (${pops[0]} >= 0) {
-  ${pushes[0]} = new (cls${suffix}.getConstructor(thread))(thread, ${pops[0]});
+  var ${pushes[0]} = new (cls${suffix}.getConstructor(thread))(thread, ${pops[0]});
   frame.pc += 2;
   ${onSuccess}
 } else {
@@ -1283,7 +1246,7 @@ table[OpCode.ANEWARRAY_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pop
   return `
 var classRef${suffix} = frame.method.cls.constantPool.get(${index});
 if (${pops[0]} >= 0) {
-  ${pushes[0]} = new classRef${suffix}.arrayClassConstructor(thread, ${pops[0]});
+  var ${pushes[0]} = new classRef${suffix}.arrayClassConstructor(thread, ${pops[0]});
   frame.pc += 3;
   ${onSuccess}
 } else {
