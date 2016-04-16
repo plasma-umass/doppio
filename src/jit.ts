@@ -428,80 +428,94 @@ table[OpCode.GOTO] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes, 
   return `f.pc+=${offset};${onSuccess}`;
 }};
 
-const cmpeq: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+const cmpeq: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}===${pops[1]}){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}===${pops[1]}){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
 table[OpCode.IF_ICMPEQ] = cmpeq;
 table[OpCode.IF_ACMPEQ] = cmpeq;
 
-const cmpne: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+const cmpne: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}!==${pops[1]}){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}!==${pops[1]}){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
 table[OpCode.IF_ICMPNE] = cmpne;
 table[OpCode.IF_ACMPNE] = cmpne;
 
-table[OpCode.IF_ICMPGE] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IF_ICMPGE] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[1]}>=${pops[0]}){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[1]}>=${pops[0]}){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IF_ICMPGT] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IF_ICMPGT] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[1]}>${pops[0]}){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[1]}>${pops[0]}){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IF_ICMPLE] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IF_ICMPLE] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[1]}<=${pops[0]}){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[1]}<=${pops[0]}){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IF_ICMPLT] = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IF_ICMPLT] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[1]}<${pops[0]}){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[1]}<${pops[0]}){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFNULL] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFNULL] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}==null){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}==null){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFNONNULL] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFNONNULL] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}!=null){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}!=null){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFEQ] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFEQ] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}===0){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}===0){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFNE] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFNE] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}!==0){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}!==0){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFGT] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFGT] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}>0){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}>0){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFLT] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFLT] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}<0){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}<0){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFGE] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFGE] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}>=0){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}>=0){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
-table[OpCode.IFLE] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.IFLE] = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
-  return `if(${pops[0]}<=0){f.pc+=${offset};}else{f.pc+=3;}${onSuccess}`;
+  const onError = makeOnError(onErrorPushes);
+  return `if(${pops[0]}<=0){f.pc+=${offset};${onError}}else{f.pc+=3;${onSuccess}}`;
 }};
 
 table[OpCode.LCMP] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
