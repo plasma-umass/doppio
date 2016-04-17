@@ -282,7 +282,7 @@ class Trace {
             pops.push(symbolicStack.pop());
           } else {
             const symbol = "s" + symbolCount++;
-            info.prefixEmit += `var ${symbol} = frame.opStack.pop();`;
+            info.prefixEmit += `var ${symbol} = f.opStack.pop();`;
             pops.push(symbol);
           }
         }
@@ -299,9 +299,9 @@ class Trace {
       }
 
       if (symbolicStack.length === 1) {
-        emitted += `frame.opStack.push(${symbolicStack[0]});`;
+        emitted += `f.opStack.push(${symbolicStack[0]});`;
       } else if (symbolicStack.length > 1) {
-        emitted += `frame.opStack.pushAll(${symbolicStack.join(',')});`;
+        emitted += `f.opStack.pushAll(${symbolicStack.join(',')});`;
       }
 
       for (let i = this.infos.length-1; i >= 0; i--) {
@@ -311,7 +311,8 @@ class Trace {
       }
 
       // console.log(`Emitted trace of ${this.infos.length} ops: ` + emitted);
-      return new Function("frame", "thread", "util", emitted);
+      // f = frame, t = thread, u = util
+      return new Function("f", "t", "u", emitted);
     } else {
       return null;
     }
@@ -479,15 +480,15 @@ export class Method extends AbstractMethodField {
     const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
     return {hasBranch: true, pops: -paramSize, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
-      const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.reduce((a,b) => b + ',' + a, '')}];`;
+      const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.reduce((a,b) => b + ',' + a, '')}];`;
       let argMaker = `var args${suffix}=` + argInitialiser;
       if ((paramSize > pops.length) && (pops.length > 0)) {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
       return argMaker + `
-var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
-methodReference${suffix}.jsConstructor[methodReference${suffix}.fullSignature](thread, args${suffix});
-frame.returnToThreadLoop = true;
+var methodReference${suffix} = f.method.cls.constantPool.get(${index});
+methodReference${suffix}.jsConstructor[methodReference${suffix}.fullSignature](t, args${suffix});
+f.returnToThreadLoop = true;
 ${onSuccess}`;
     }};
 
@@ -499,17 +500,17 @@ ${onSuccess}`;
     const paramSize = methodReference.paramWordSize;
     return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
       const onError = makeOnError(onErrorPushes);
-      const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
+      const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
       let argMaker = `var args${suffix}=` + argInitialiser;
       if ((paramSize > pops.length) && (pops.length > 0)) {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
       return argMaker + `
-var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "frame.opStack.pop();"}
-if (!util.isNull(thread, frame, obj${suffix})) {
-var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
-obj${suffix}[methodReference${suffix}.signature](thread, args${suffix});
-frame.returnToThreadLoop = true;
+var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "f.opStack.pop();"}
+if (!u.isNull(t, f, obj${suffix})) {
+var methodReference${suffix} = f.method.cls.constantPool.get(${index});
+obj${suffix}[methodReference${suffix}.signature](t, args${suffix});
+f.returnToThreadLoop = true;
 ${onSuccess}
 } else {
 ${onError}
@@ -524,17 +525,17 @@ ${onError}
     const paramSize = methodReference.paramWordSize;
     return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
       const onError = makeOnError(onErrorPushes);
-      const argInitialiser = paramSize > pops.length ? `frame.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
+      const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
       let argMaker = `var args${suffix}=` + argInitialiser;
       if ((paramSize > pops.length) && (pops.length > 0)) {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
       return argMaker + `
-var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "frame.opStack.pop();"}
-if (!util.isNull(thread, frame, obj${suffix})) {
-var methodReference${suffix} = frame.method.cls.constantPool.get(${index});
-obj${suffix}[methodReference${suffix}.fullSignature](thread, args${suffix});
-frame.returnToThreadLoop = true;
+var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "f.opStack.pop();"}
+if (!u.isNull(t, f, obj${suffix})) {
+var methodReference${suffix} = f.method.cls.constantPool.get(${index});
+obj${suffix}[methodReference${suffix}.fullSignature](t, args${suffix});
+f.returnToThreadLoop = true;
 ${onSuccess}
 } else {
 ${onError}
@@ -550,12 +551,12 @@ ${onError}
     return {hasBranch: false, pops: -1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
       // TODO: could replace oSuffix with pushes[0]
       return `
-var cls${suffix} = frame.method.cls.constantPool.get(${index}).cls,
-    o${suffix} = ${pops.length === 1 ? pops[0] : 'frame.opStack.top()'};
+var cls${suffix} = f.method.cls.constantPool.get(${index}).cls,
+    o${suffix} = ${pops.length === 1 ? pops[0] : 'f.opStack.top()'};
 if ((o${suffix} != null) && !o${suffix}.getClass().isCastable(cls${suffix})) {
-  util.throwException(thread, frame, 'Ljava/lang/ClassCastException;', o${suffix}.getClass().getExternalName() + ' cannot be cast to ${targetClass}');
+  u.throwException(t, f, 'Ljava/lang/ClassCastException;', o${suffix}.getClass().getExternalName() + ' cannot be cast to ${targetClass}');
 } else {
-  frame.pc += 3;
+  f.pc += 3;
   var ${pushes[0]} = o${suffix};
   ${onSuccess}
 }`
@@ -918,7 +919,7 @@ _create`);
 }
 
 function makeOnError(onErrorPushes: string[]) {
-  return onErrorPushes.length > 0 ? `frame.opStack.pushAll(${onErrorPushes.join(',')})` : '';
+  return onErrorPushes.length > 0 ? `f.opStack.pushAll(${onErrorPushes.join(',')});` : '';
 }
 
 const statCloser: number[] = new Array(256);
