@@ -218,13 +218,12 @@ table[OpCode.DCONST_1] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pus
 const aload32: JitInfo = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var idx${suffix}=${pops[0]},obj${suffix}=${pops[1]};
-if(!u.isNull(t,f,obj${suffix})){
-var len${suffix}=obj${suffix}.array.length;
-if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+if(!u.isNull(t,f,${pops[1]})){
+var len${suffix}=${pops[1]}.array.length;
+if(${pops[0]}<0||${pops[0]}>=len${suffix}){
 ${onError}
-u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
-}else{var ${pushes[0]}=obj${suffix}.array[idx${suffix}];f.pc++;${onSuccess}}
+u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+${pops[0]}+" not in length "+len${suffix}+" array of type "+${pops[1]}.getClass().getInternalName());
+}else{var ${pushes[0]}=${pops[1]}.array[${pops[0]}];f.pc++;${onSuccess}}
 }else{${onError}}`;
 }}
 
@@ -239,13 +238,12 @@ table[OpCode.SALOAD] = aload32;
 const aload64: JitInfo = {hasBranch: false, pops: 2, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var idx${suffix}=${pops[0]},obj${suffix}=${pops[1]};
-if(!u.isNull(t,f,obj${suffix})){
-var len${suffix}=obj${suffix}.array.length;
-if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+if(!u.isNull(t,f,${pops[1]})){
+var len${suffix}=${pops[1]}.array.length;
+if(${pops[0]}<0||${pops[0]}>=len${suffix}){
 ${onError}
-u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
-}else{var ${pushes[0]}=obj${suffix}.array[idx${suffix}],${pushes[1]}=null;f.pc++;${onSuccess}}
+u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+${pops[0]}+" not in length "+len${suffix}+" array of type "+${pops[1]}.getClass().getInternalName());
+}else{var ${pushes[0]}=${pops[1]}.array[${pops[0]}],${pushes[1]}=null;f.pc++;${onSuccess}}
 }else{${onError}}`;
 }}
 
@@ -256,13 +254,12 @@ table[OpCode.LALOAD] = aload64;
 const astore32: JitInfo = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var val${suffix}=${pops[0]},idx${suffix}=${pops[1]},obj${suffix}=${pops[2]};
-if(!u.isNull(t,f,obj${suffix})){
-var len${suffix}=obj${suffix}.array.length;
-if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+if(!u.isNull(t,f,${pops[2]})){
+var len${suffix}=${pops[2]}.array.length;
+if(${pops[1]}<0||${pops[1]}>=len${suffix}){
 ${onError}
-u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
-}else{obj${suffix}.array[idx${suffix}]=val${suffix};f.pc++;${onSuccess}}
+u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+${pops[1]}+" not in length "+len${suffix}+" array of type "+${pops[2]}.getClass().getInternalName());
+}else{${pops[2]}.array[${pops[1]}]=${pops[0]};f.pc++;${onSuccess}}
 }else{${onError}}`;
 }}
 
@@ -277,15 +274,12 @@ table[OpCode.SASTORE] = astore32;
 const astore64: JitInfo = {hasBranch: false, pops: 4, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var val${suffix}=${pops[1]},
-idx${suffix}=${pops[2]},
-obj${suffix}=${pops[3]};
-if(!u.isNull(t,f,obj${suffix})){
-var len${suffix}=obj${suffix}.array.length;
-if(idx${suffix}<0||idx${suffix}>=len${suffix}){
+if(!u.isNull(t,f,${pops[3]})){
+var len${suffix}=${pops[3]}.array.length;
+if(${pops[2]}<0||${pops[2]}>=len${suffix}){
 ${onError}
-u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+idx${suffix}+" not in length "+len${suffix}+" array of type "+obj${suffix}.getClass().getInternalName());
-}else{obj${suffix}.array[idx${suffix}]=val${suffix};f.pc++;${onSuccess}}
+u.throwException(t,f,'Ljava/lang/ArrayIndexOutOfBoundsException;',""+${pops[2]}+" not in length "+len${suffix}+" array of type "+${pops[3]}.getClass().getInternalName());
+}else{${pops[3]}.array[${pops[2]}]=${pops[1]};f.pc++;${onSuccess}}
 }else{${onError}}`;
 }}
 
@@ -298,9 +292,9 @@ table[OpCode.LDC] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, 
   const index = code.readUInt8(pc + 1);
   const onError = makeOnError(onErrorPushes);
   return `
-var constant${suffix}=f.method.cls.constantPool.get(${index});
-if(constant${suffix}.isResolved()){var ${pushes[0]}=constant${suffix}.getConstant(t);f.pc+=2;${onSuccess}
-}else{${onError}u.resolveCPItem(t,f,constant${suffix});}`;
+var cnst${suffix}=f.method.cls.constantPool.get(${index});
+if(cnst${suffix}.isResolved()){var ${pushes[0]}=cnst${suffix}.getConstant(t);f.pc+=2;${onSuccess}
+}else{${onError}u.resolveCPItem(t,f,cnst${suffix});}`;
 }};
 
 // TODO: get the constant at JIT time ?
@@ -308,9 +302,9 @@ table[OpCode.LDC_W] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes
   const index = code.readUInt16BE(pc + 1);
   const onError = makeOnError(onErrorPushes);
   return `
-var constant${suffix}=f.method.cls.constantPool.get(${index});
-if(constant${suffix}.isResolved()){var ${pushes[0]}=constant${suffix}.getConstant(t);f.pc+=3;${onSuccess}
-}else{${onError}u.resolveCPItem(t,f,constant${suffix});}`;
+var cnst${suffix}=f.method.cls.constantPool.get(${index});
+if(cnst${suffix}.isResolved()){var ${pushes[0]}=cnst${suffix}.getConstant(t);f.pc+=3;${onSuccess}
+}else{${onError}u.resolveCPItem(t,f,cnst${suffix});}`;
 }};
 
 // TODO: get the constant at JIT time ?
@@ -345,8 +339,8 @@ table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index}),obj${suffix}=${pops[0]};
-if(!u.isNull(t,f,obj${suffix})){var ${pushes[0]}=obj${suffix}[fieldInfo${suffix}.fullFieldName];f.pc+=3;${onSuccess}
+var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
+if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}[fieldInfo${suffix}.fullFieldName];f.pc+=3;${onSuccess}
 }else{${onError}}`;
 }};
 
@@ -355,8 +349,8 @@ table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index}),obj${suffix}=${pops[0]};
-if(!u.isNull(t,f,obj${suffix})){var ${pushes[0]}=obj${suffix}[fieldInfo${suffix}.fullFieldName],${pushes[1]}=null;f.pc+=3;${onSuccess}
+var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
+if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}[fieldInfo${suffix}.fullFieldName],${pushes[1]}=null;f.pc+=3;${onSuccess}
 }else{${onError}}`;
 }};
 
@@ -365,8 +359,8 @@ table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index}),obj${suffix}=${pops[1]};
-if(!u.isNull(t,f,obj${suffix})){obj${suffix}[fieldInfo${suffix}.fullFieldName]=${pops[0]};f.pc+=3;${onSuccess}
+var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
+if(!u.isNull(t,f,${pops[1]})){${pops[1]}[fieldInfo${suffix}.fullFieldName]=${pops[0]};f.pc+=3;${onSuccess}
 }else{${onError}}`;
 }};
 
@@ -375,8 +369,8 @@ table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (po
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index}),obj${suffix}=${pops[2]};
-if(!u.isNull(t,f,obj${suffix})){obj${suffix}[fieldInfo${suffix}.fullFieldName]=${pops[1]};f.pc+=3;${onSuccess}
+var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
+if(!u.isNull(t,f,${pops[2]})){${pops[2]}[fieldInfo${suffix}.fullFieldName]=${pops[1]};f.pc+=3;${onSuccess}
 }else{${onError}}`;
 }};
 
@@ -384,15 +378,14 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}[fieldInfo${suffix}.fullFieldName]=$
 table[OpCode.INSTANCEOF_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,o${suffix}=${pops[0]},${pushes[0]}=o${suffix}!==null?(o${suffix}.getClass().isCastable(cls${suffix})?1:0):0;
+var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,${pushes[0]}=${pops[0]}!==null?(${pops[0]}.getClass().isCastable(cls${suffix})?1:0):0;
 f.pc+=3;${onSuccess}`;
 }};
 
 table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var obj${suffix}=${pops[0]};
-if(!u.isNull(t,f,obj${suffix})){var ${pushes[0]}=obj${suffix}.array.length;f.pc++;${onSuccess}
+if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}.array.length;f.pc++;${onSuccess}
 }else{${onError}}`;
 }};
 
