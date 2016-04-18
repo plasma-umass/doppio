@@ -508,8 +508,7 @@ ${onSuccess}`;
       return argMaker + `
 var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "f.opStack.pop();"}
 if (!u.isNull(t, f, obj${suffix})) {
-var methodReference${suffix} = f.method.cls.constantPool.get(${index});
-obj${suffix}[methodReference${suffix}.signature](t, args${suffix});
+obj${suffix}[f.method.cls.constantPool.get(${index}).signature](t, args${suffix});
 f.returnToThreadLoop = true;
 ${onSuccess}
 } else {

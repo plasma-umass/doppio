@@ -256,9 +256,7 @@ table[OpCode.LALOAD] = aload64;
 const astore32: JitInfo = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
   return `
-var val${suffix}=${pops[0]},
-idx${suffix}=${pops[1]},
-obj${suffix}=${pops[2]};
+var val${suffix}=${pops[0]},idx${suffix}=${pops[1]},obj${suffix}=${pops[2]};
 if(!u.isNull(t,f,obj${suffix})){
 var len${suffix}=obj${suffix}.array.length;
 if(idx${suffix}<0||idx${suffix}>=len${suffix}){
