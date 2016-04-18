@@ -486,9 +486,9 @@ export class Method extends AbstractMethodField {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
       return argMaker + `
-var methodReference${suffix} = f.method.cls.constantPool.get(${index});
-methodReference${suffix}.jsConstructor[methodReference${suffix}.fullSignature](t, args${suffix});
-f.returnToThreadLoop = true;
+var methodReference${suffix}=f.method.cls.constantPool.get(${index});
+methodReference${suffix}.jsConstructor[methodReference${suffix}.fullSignature](t,args${suffix});
+f.returnToThreadLoop=true;
 ${onSuccess}`;
     }};
 
@@ -506,14 +506,12 @@ ${onSuccess}`;
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
       return argMaker + `
-var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "f.opStack.pop();"}
-if (!u.isNull(t, f, obj${suffix})) {
-obj${suffix}[f.method.cls.constantPool.get(${index}).signature](t, args${suffix});
-f.returnToThreadLoop = true;
+var obj${suffix}=${(paramSize+1)==pops.length?pops[paramSize]:"f.opStack.pop();"}
+if(!u.isNull(t,f,obj${suffix})){
+obj${suffix}[f.method.cls.constantPool.get(${index}).signature](t,args${suffix});
+f.returnToThreadLoop=true;
 ${onSuccess}
-} else {
-${onError}
-}`;
+}else{${onError}}`;
     }};
 
   }
@@ -530,15 +528,12 @@ ${onError}
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
       return argMaker + `
-var obj${suffix} = ${(paramSize + 1) == pops.length ? pops[paramSize] : "f.opStack.pop();"}
-if (!u.isNull(t, f, obj${suffix})) {
-var methodReference${suffix} = f.method.cls.constantPool.get(${index});
-obj${suffix}[methodReference${suffix}.fullSignature](t, args${suffix});
-f.returnToThreadLoop = true;
+var obj${suffix}=${(paramSize+1)==pops.length?pops[paramSize]:"f.opStack.pop();"}
+if(!u.isNull(t,f,obj${suffix})){
+obj${suffix}[f.method.cls.constantPool.get(${index}).fullSignature](t,args${suffix});
+f.returnToThreadLoop=true;
 ${onSuccess}
-} else {
-${onError}
-}`;
+}else{${onError}}`;
     }};
   }
 
@@ -550,15 +545,11 @@ ${onError}
     return {hasBranch: false, pops: -1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
       // TODO: could replace oSuffix with pushes[0]
       return `
-var cls${suffix} = f.method.cls.constantPool.get(${index}).cls,
-    o${suffix} = ${pops.length === 1 ? pops[0] : 'f.opStack.pop()'};
-if ((o${suffix} != null) && !o${suffix}.getClass().isCastable(cls${suffix})) {
-  u.throwException(t, f, 'Ljava/lang/ClassCastException;', o${suffix}.getClass().getExternalName() + ' cannot be cast to ${targetClass}');
-} else {
-  f.pc += 3;
-  var ${pushes[0]} = o${suffix};
-  ${onSuccess}
-}`
+var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,
+o${suffix}=${pops.length===1?pops[0]:'f.opStack.pop()'};
+if((o${suffix}!=null)&&!o${suffix}.getClass().isCastable(cls${suffix})){
+u.throwException(t,f,'Ljava/lang/ClassCastException;',o${suffix}.getClass().getExternalName()+' cannot be cast to ${targetClass}');
+}else{f.pc+=3;var ${pushes[0]}=o${suffix};${onSuccess}}`
      }};
 
   }
