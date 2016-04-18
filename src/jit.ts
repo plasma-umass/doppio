@@ -384,9 +384,7 @@ f.pc+=3;${onSuccess}`;
 
 table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
-  return `
-if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}.array.length;f.pc++;${onSuccess}
-}else{${onError}}`;
+  return `if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}.array.length;f.pc++;${onSuccess}}else{${onError}}`;
 }};
 
 const load32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
@@ -693,8 +691,7 @@ table[OpCode.IUSHR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes
 }};
 
 table[OpCode.LUSHR] = {hasBranch: false, pops: 3, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
-  return `
-var ${pushes[0]}=${pops[2]}.shiftRightUnsigned(u.gLong.fromInt(${pops[0]})),${pushes[1]}=null;f.pc++;${onSuccess}`;
+  return `var ${pushes[0]}=${pops[2]}.shiftRightUnsigned(u.gLong.fromInt(${pops[0]})),${pushes[1]}=null;f.pc++;${onSuccess}`;
 }};
 
 table[OpCode.I2B] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
