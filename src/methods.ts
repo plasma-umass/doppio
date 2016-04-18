@@ -551,7 +551,7 @@ ${onError}
       // TODO: could replace oSuffix with pushes[0]
       return `
 var cls${suffix} = f.method.cls.constantPool.get(${index}).cls,
-    o${suffix} = ${pops.length === 1 ? pops[0] : 'f.opStack.top()'};
+    o${suffix} = ${pops.length === 1 ? pops[0] : 'f.opStack.pop()'};
 if ((o${suffix} != null) && !o${suffix}.getClass().isCastable(cls${suffix})) {
   u.throwException(t, f, 'Ljava/lang/ClassCastException;', o${suffix}.getClass().getExternalName() + ' cannot be cast to ${targetClass}');
 } else {
