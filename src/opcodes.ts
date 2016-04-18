@@ -1554,8 +1554,8 @@ export class Opcodes {
 
   public static invokevirtual_fast(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
-    var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
-      count = methodReference.getParamWordSize(),
+    var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1));
+    var count = methodReference.paramWordSize,
       opStack = frame.opStack,
       obj: JVMTypes.java_lang_Object = opStack.fromTop(count);
     if (!isNull(thread, frame, obj)) {
