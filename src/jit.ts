@@ -321,22 +321,15 @@ table[OpCode.LDC2_W] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushe
 // TODO: get the field info at JIT time ?
 table[OpCode.GETSTATIC_FAST32] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
-  return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index}),
-${pushes[0]}=fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName];
-f.pc+=3;
-${onSuccess}`;
+  return `var fi${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=fi${suffix}.fieldOwnerConstructor[fi${suffix}.fullFieldName];f.pc+=3;${onSuccess}`;
 }};
 
 // TODO: get the field info at JIT time ?
 table[OpCode.GETSTATIC_FAST64] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
   return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index}),
-${pushes[0]}=fieldInfo${suffix}.fieldOwnerConstructor[fieldInfo${suffix}.fullFieldName],
-${pushes[1]}=null;
-f.pc+=3;
-${onSuccess}`;
+var fi${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=fi${suffix}.fieldOwnerConstructor[fi${suffix}.fullFieldName],
+${pushes[1]}=null;f.pc+=3;${onSuccess}`;
 }};
 
 table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
@@ -374,16 +367,12 @@ table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (po
 // TODO: get the constant at JIT time ?
 table[OpCode.INSTANCEOF_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
-  return `
-var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,${pushes[0]}=${pops[0]}!==null?(${pops[0]}.getClass().isCastable(cls${suffix})?1:0):0;
-f.pc+=3;${onSuccess}`;
+  return `var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,${pushes[0]}=${pops[0]}!==null?(${pops[0]}.getClass().isCastable(cls${suffix})?1:0):0;f.pc+=3;${onSuccess}`;
 }};
 
 table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
-  return `
-if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}.array.length;f.pc++;${onSuccess}
-}else{${onError}}`;
+  return `if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}.array.length;f.pc++;${onSuccess}}else{${onError}}`;
 }};
 
 const load32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
@@ -754,7 +743,7 @@ table[OpCode.DUP_X2] = {hasBranch: false, pops: 3, pushes: 4, emit: (pops, pushe
 
 table[OpCode.NEW_FAST] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
   const index = code.readUInt16BE(pc + 1);
-  return `var classRef${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=(new classRef${suffix}.clsConstructor(t));f.pc+=3;${onSuccess}`;
+  return `var cr${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=(new cr${suffix}.clsConstructor(t));f.pc+=3;${onSuccess}`;
 }};
 
 table[OpCode.NEWARRAY] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
@@ -772,9 +761,9 @@ table[OpCode.ANEWARRAY_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pop
   const arrayType = "[" + opcodes.ArrayTypes[index];
   const onError = makeOnError(onErrorPushes);
   return `
-var classRef${suffix}=f.method.cls.constantPool.get(${index});
-if(${pops[0]}>=0){var ${pushes[0]}=new classRef${suffix}.arrayClassConstructor(t,${pops[0]});f.pc+=3;${onSuccess}
-}else{${onError}u.throwException(t,f,'Ljava/lang/NegativeArraySizeException;','Tried to init '+classRef${suffix}.arrayClass.getInternalName()+' array with length '+${pops[0]});}`;
+var cr${suffix}=f.method.cls.constantPool.get(${index});
+if(${pops[0]}>=0){var ${pushes[0]}=new cr${suffix}.arrayClassConstructor(t,${pops[0]});f.pc+=3;${onSuccess}
+}else{${onError}u.throwException(t,f,'Ljava/lang/NegativeArraySizeException;','Tried to init '+cr${suffix}.arrayClass.getInternalName()+' array with length '+${pops[0]});}`;
 }};
 
 table[OpCode.NOP] = {hasBranch: false, pops: 0, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
