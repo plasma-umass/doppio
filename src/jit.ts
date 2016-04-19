@@ -2,17 +2,22 @@
 
 import enums = require('./enums');
 import opcodes = require('./opcodes');
+import {Method} from './methods';
+import ConstantPool = require('./ConstantPool');
+
 
 export interface JitInfo {
   pops: number,                 // If negative, then it is treated a request rather than a demand
   pushes: number,
   hasBranch: boolean,
-  emit: (pops: string[], pushes: string[], suffix: string, onSuccess: string, code: Buffer, pc: number, onErrorPushes: string[]) => string
+  emit: (pops: string[], pushes: string[], suffix: string, onSuccess: string, code: Buffer, pc: number, onErrorPushes: string[], method: Method) => string
 }
 
 function makeOnError(onErrorPushes: string[]) {
   return onErrorPushes.length > 0 ? `f.opStack.pushAll(${onErrorPushes.join(',')});` : '';
 }
+
+const escapeStringRegEx = /\\/g;
 
 export const opJitInfo: JitInfo[] = function() {
 
@@ -334,44 +339,36 @@ f.pc+=3;
 ${onSuccess}`;
 }};
 
-// TODO: get the field info at JIT time ?
-table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
-  return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
-if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}[fieldInfo${suffix}.fullFieldName];f.pc+=3;${onSuccess}
-}else{${onError}}`;
+  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
+  return `if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}['${name}'];f.pc+=3;${onSuccess}}else{${onError}}`;
 }};
 
-// TODO: get the field info at JIT time ?
-table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
-  return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
-if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}[fieldInfo${suffix}.fullFieldName],${pushes[1]}=null;f.pc+=3;${onSuccess}
-}else{${onError}}`;
+  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
+  return `if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}['${name}'],${pushes[1]}=null;f.pc+=3;${onSuccess}}else{${onError}}`;
 }};
 
-// TODO: get the field info at JIT time ?
-table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
-  return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
-if(!u.isNull(t,f,${pops[1]})){${pops[1]}[fieldInfo${suffix}.fullFieldName]=${pops[0]};f.pc+=3;${onSuccess}
-}else{${onError}}`;
+  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
+  return `if(!u.isNull(t,f,${pops[1]})){${pops[1]}['${name}']=${pops[0]};f.pc+=3;${onSuccess}}else{${onError}}`;
 }};
 
-// TODO: get the field info at JIT time ?
-table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes);
   const index = code.readUInt16BE(pc + 1);
-  return `
-var fieldInfo${suffix}=f.method.cls.constantPool.get(${index});
-if(!u.isNull(t,f,${pops[2]})){${pops[2]}[fieldInfo${suffix}.fullFieldName]=${pops[1]};f.pc+=3;${onSuccess}
-}else{${onError}}`;
+  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
+  return `if(!u.isNull(t,f,${pops[2]})){${pops[2]}['${name}']=${pops[1]};f.pc+=3;${onSuccess}}else{${onError}}`;
 }};
 
 // TODO: get the constant at JIT time ?
@@ -384,7 +381,9 @@ f.pc+=3;${onSuccess}`;
 
 table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const onError = makeOnError(onErrorPushes);
-  return `if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}.array.length;f.pc++;${onSuccess}}else{${onError}}`;
+  return `
+if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}.array.length;f.pc++;${onSuccess}
+}else{${onError}}`;
 }};
 
 const load32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
@@ -536,36 +535,34 @@ table[OpCode.DCMPG] = {hasBranch: false, pops: 4, pushes: 1, emit: (pops, pushes
   return `var ${pushes[0]}=${pops[3]}===${pops[1]}?0:(${pops[3]}<${pops[1]}?-1:1);f.pc++;${onSuccess}`;
 }};
 
-table[OpCode.RETURN] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes, suffix) => {
-  // TODO: check flags at JIT time
+table[OpCode.RETURN] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   // TODO: on error pushes
-  return `
-f.returnToThreadLoop=true;
-if(f.method.accessFlags.isSynchronized()){if(!f.method.methodLock(t,f).exit(t)){ return;}}
-t.asyncReturn();
-`;
+  if (method.accessFlags.isSynchronized()) {
+    return `f.returnToThreadLoop=true;if(!f.method.methodLock(t,f).exit(t)){return}t.asyncReturn();`;
+  } else {
+    return `f.returnToThreadLoop=true;t.asyncReturn();`;
+  }
 }};
 
-const return32: JitInfo = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix) => {
-  // TODO: check flags at JIT time
+const return32: JitInfo = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   // TODO: on error pushes
-  return `
-f.returnToThreadLoop=true;
-if(f.method.accessFlags.isSynchronized()){if(!f.method.methodLock(t,f).exit(t)){return;}}
-t.asyncReturn(${pops[0]});
-`;
+  if (method.accessFlags.isSynchronized()) {
+    return `f.returnToThreadLoop=true;if(!f.method.methodLock(t,f).exit(t)){return}t.asyncReturn(${pops[0]});`;
+  } else {
+    return `f.returnToThreadLoop=true;t.asyncReturn(${pops[0]});`;
+  }
 }};
 table[OpCode.IRETURN] = return32;
 table[OpCode.FRETURN] = return32;
 table[OpCode.ARETURN] = return32;
 
-const return64: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix) => {
-  // TODO: check flags at JIT time
-  return `
-f.returnToThreadLoop=true;
-if(f.method.accessFlags.isSynchronized()){if(!f.method.methodLock(t,f).exit(t)){return;}}
-t.asyncReturn(${pops[1]},null);
-`;
+const return64: JitInfo = {hasBranch: true, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
+  // TODO: on error pushes
+  if (method.accessFlags.isSynchronized()) {
+    return `f.returnToThreadLoop=true;if(!f.method.methodLock(t,f).exit(t)){return}t.asyncReturn(${pops[1]},null);`;
+  } else {
+    return `f.returnToThreadLoop=true;t.asyncReturn(${pops[1]},null);`;
+  }
 }};
 table[OpCode.LRETURN] = return64;
 table[OpCode.DRETURN] = return64;

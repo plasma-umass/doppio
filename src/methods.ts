@@ -259,7 +259,7 @@ class TraceInfo {
 class Trace {
   private infos: TraceInfo[] = [];
 
-  constructor(public startPC: number, private code: Buffer) {
+  constructor(public startPC: number, private code: Buffer, private method: Method) {
   }
 
   public addOp(pc: number, jitInfo: JitInfo) {
@@ -307,7 +307,7 @@ class Trace {
       for (let i = this.infos.length-1; i >= 0; i--) {
         const info = this.infos[i];
         const jitInfo = info.jitInfo;
-        emitted = info.prefixEmit + jitInfo.emit(info.pops, info.pushes, ""+i, emitted, this.code, info.pc, info.onErrorPushes);
+        emitted = info.prefixEmit + jitInfo.emit(info.pops, info.pushes, ""+i, emitted, this.code, info.pc, info.onErrorPushes, this.method);
       }
 
       // console.log(`Emitted trace of ${this.infos.length} ops: ` + emitted);
@@ -479,6 +479,8 @@ export class Method extends AbstractMethodField {
     const index = code.readUInt16BE(pc + 1);
     const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
+    const method = methodReference.jsConstructor[methodReference.fullSignature];
+
     return {hasBranch: true, pops: -paramSize, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
       const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.reduce((a,b) => b + ',' + a, '')}];`;
       let argMaker = `var args${suffix}=` + argInitialiser;
@@ -505,13 +507,8 @@ ${onSuccess}`;
       if ((paramSize > pops.length) && (pops.length > 0)) {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
-      return argMaker + `
-var obj${suffix}=${(paramSize+1)==pops.length?pops[paramSize]:"f.opStack.pop();"}
-if(!u.isNull(t,f,obj${suffix})){
-obj${suffix}[f.method.cls.constantPool.get(${index}).signature](t,args${suffix});
-f.returnToThreadLoop=true;
-${onSuccess}
-}else{${onError}}`;
+      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop();"}
+if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.signature}'](t,args${suffix});f.returnToThreadLoop=true;${onSuccess}}else{${onError}}`;
     }};
 
   }
@@ -527,13 +524,8 @@ ${onSuccess}
       if ((paramSize > pops.length) && (pops.length > 0)) {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
-      return argMaker + `
-var obj${suffix}=${(paramSize+1)==pops.length?pops[paramSize]:"f.opStack.pop();"}
-if(!u.isNull(t,f,obj${suffix})){
-obj${suffix}[f.method.cls.constantPool.get(${index}).fullSignature](t,args${suffix});
-f.returnToThreadLoop=true;
-${onSuccess}
-}else{${onError}}`;
+      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop();"}
+if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}'](t, args${suffix});f.returnToThreadLoop=true;${onSuccess}}else{${onError}}`;
     }};
   }
 
@@ -580,7 +572,7 @@ u.throwException(t,f,'Ljava/lang/ClassCastException;',o${suffix}.getClass().getE
       const jitInfo = opJitInfo[op];
       if (jitInfo) {
         if (trace === null) {
-          trace = new Trace(i, code);
+          trace = new Trace(i, code, _this);
         }
         trace.addOp(i, jitInfo);
         if (jitInfo.hasBranch) {
@@ -637,7 +629,7 @@ u.throwException(t,f,'Ljava/lang/ClassCastException;',o${suffix}.getClass().getE
 
     for (let i = 0; i < code.length;) {
       if (trace == null) {
-        trace = new Trace(i, code);
+        trace = new Trace(i, code, _this);
       }
       const op = code.readUInt8(i);
       // TODO: handle wide()
