@@ -602,7 +602,9 @@ u.throwException(t,f,'Ljava/lang/ClassCastException;',o${suffix}.getClass().getE
         const invokeJitInfo: JitInfo = this.makeCheckCastJitInfo(code, i);
         trace.addOp(i, invokeJitInfo);
       } else {
-        // statCloser[op]++;
+        if (trace !== null) {
+          // statCloser[op]++;
+        }
         this.failedCompile[i] = true;
         closeCurrentTrace();
       }
