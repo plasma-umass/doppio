@@ -579,6 +579,10 @@ table[OpCode.IXOR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes,
   return `var ${pushes[0]}=${pops[0]}^${pops[1]};f.pc++;${onSuccess}`;
 }};
 
+table[OpCode.LXOR] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
+  return `var ${pushes[0]}=${pops[1]}.xor(${pops[3]}),${pushes[1]}=null;f.pc++;${onSuccess}`;
+}};
+
 table[OpCode.IOR] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `var ${pushes[0]}=${pops[0]}|${pops[1]};f.pc++;${onSuccess}`;
 }};
@@ -628,6 +632,13 @@ table[OpCode.IDIV] = {hasBranch: false, pops: 2, pushes: 1, emit: (pops, pushes,
   return `
 if(${pops[0]}===0){${onError}u.throwException(t,f,'Ljava/lang/ArithmeticException;','/ by zero');
 }else{var ${pushes[0]}=(${pops[1]}===u.Constants.INT_MIN&&${pops[0]}===-1)?${pops[1]}:((${pops[1]}/${pops[0]})|0);f.pc++;${onSuccess}}`;
+}};
+
+table[OpCode.LDIV] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+  const onError = makeOnError(onErrorPushes);
+  return `
+if(${pops[1]}.isZero()){${onError}u.throwException(t,f,'Ljava/lang/ArithmeticException;','/ by zero');
+}else{var ${pushes[0]}=${pops[3]}.div(${pops[1]}),${pushes[1]}=null;f.pc++;${onSuccess}}`;
 }};
 
 table[OpCode.DDIV] = {hasBranch: false, pops: 4, pushes: 2, emit: (pops, pushes, suffix, onSuccess) => {
@@ -753,6 +764,10 @@ table[OpCode.DUP_X1] = {hasBranch: false, pops: 2, pushes: 3, emit: (pops, pushe
 
 table[OpCode.DUP_X2] = {hasBranch: false, pops: 3, pushes: 4, emit: (pops, pushes, suffix, onSuccess) => {
   return `var ${pushes[0]}=${pops[0]},${pushes[1]}=${pops[2]},${pushes[2]}=${pops[1]},${pushes[3]}=${pops[0]};f.pc++;${onSuccess}`;
+}};
+
+table[OpCode.DUP2_X1] = {hasBranch: false, pops: 3, pushes: 5, emit: (pops, pushes, suffix, onSuccess) => {
+  return `var ${pushes[0]}=${pops[1]},${pushes[1]}=${pops[0]},${pushes[2]}=${pops[2]},${pushes[3]}=${pops[1]},${pushes[4]}=${pops[0]};f.pc++;${onSuccess}`;
 }};
 
 table[OpCode.NEW_FAST] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
