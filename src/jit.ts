@@ -428,6 +428,15 @@ table[OpCode.GOTO] = {hasBranch: true, pops: 0, pushes: 0, emit: (pops, pushes, 
   return `f.pc+=${offset};${onSuccess}`;
 }};
 
+table[OpCode.TABLESWITCH] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+  // Ignore padding bytes. The +1 is to skip the opcode byte.
+  const alignedPC = pc + ((4 - (pc + 1) % 4) % 4) + 1;
+  const defaultOffset = code.readInt32BE(alignedPC),
+    low = code.readInt32BE(alignedPC + 4),
+    high = code.readInt32BE(alignedPC + 8);
+  return `if(${pops[0]}>=${low}&&${pops[0]}<=${high}){f.pc+=f.method.getCodeAttribute().getCode().readInt32BE(${alignedPC + 12}+((${pops[0]}-${low})*4))}else{f.pc+=defaultOffset}${onSuccess}`;
+}};
+
 const cmpeq: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
   const offset = code.readInt16BE(pc + 1);
   const onError = makeOnError(onErrorPushes);
