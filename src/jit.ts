@@ -370,14 +370,14 @@ table[OpCode.INSTANCEOF_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (po
   return `var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,${pushes[0]}=${pops[0]}!==null?(${pops[0]}.getClass().isCastable(cls${suffix})?1:0):0;f.pc+=3;${onSuccess}`;
 }};
 
-table[OpCode.CHECKCAST_FAST] = {hasBranch: false, pops: -1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
+table[OpCode.CHECKCAST_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const index = code.readUInt16BE(pc + 1);
   const classRef = <ConstantPool.ClassReference> method.cls.constantPool.get(index),
     targetClass = classRef.cls.getExternalName();
-  return `var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,o${suffix}=${pops.length===1?pops[0]:'f.opStack.pop()'};
-if((o${suffix}!=null)&&!o${suffix}.getClass().isCastable(cls${suffix})){
-u.throwException(t,f,'Ljava/lang/ClassCastException;',o${suffix}.getClass().getExternalName()+' cannot be cast to ${targetClass}');
-}else{f.pc+=3;var ${pushes[0]}=o${suffix};${onSuccess}}`
+  return `var cls${suffix}=f.method.cls.constantPool.get(${index}).cls;
+if((${pops[0]}!=null)&&!${pops[0]}.getClass().isCastable(cls${suffix})){
+u.throwException(t,f,'Ljava/lang/ClassCastException;',${pops[0]}.getClass().getExternalName()+' cannot be cast to ${targetClass}');
+}else{f.pc+=3;var ${pushes[0]}=${pops[0]};${onSuccess}}`
 }};
 
 table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
