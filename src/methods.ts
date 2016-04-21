@@ -529,23 +529,6 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     }};
   }
 
-  private makeCheckCastJitInfo(code: Buffer, pc: number) : JitInfo {
-    const index = code.readUInt16BE(pc + 1);
-    const classRef = <ConstantPool.ClassReference> this.cls.constantPool.get(index),
-      cls = classRef.cls,
-      targetClass = cls.getExternalName();
-    return {hasBranch: false, pops: -1, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
-      // TODO: could replace oSuffix with pushes[0]
-      return `
-var cls${suffix}=f.method.cls.constantPool.get(${index}).cls,
-o${suffix}=${pops.length===1?pops[0]:'f.opStack.pop()'};
-if((o${suffix}!=null)&&!o${suffix}.getClass().isCastable(cls${suffix})){
-u.throwException(t,f,'Ljava/lang/ClassCastException;',o${suffix}.getClass().getExternalName()+' cannot be cast to ${targetClass}');
-}else{f.pc+=3;var ${pushes[0]}=o${suffix};${onSuccess}}`
-     }};
-
-  }
-
   private jitCompileFrom(startPC: number) {
     // console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
     const code = this.code.code;
@@ -598,9 +581,6 @@ u.throwException(t,f,'Ljava/lang/ClassCastException;',o${suffix}.getClass().getE
 
         this.failedCompile[i] = true;
         closeCurrentTrace();
-      } else if ((op === enums.OpCode.CHECKCAST_FAST) && trace !== null) {
-        const invokeJitInfo: JitInfo = this.makeCheckCastJitInfo(code, i);
-        trace.addOp(i, invokeJitInfo);
       } else {
         if (trace !== null) {
           // statCloser[op]++;
