@@ -427,6 +427,11 @@ class JVM {
         assert(false, `Invariant failure: Thread pool cannot be emptied post-JVM termination.`);
         return false;
       case JVMStatus.TERMINATING:
+
+        if (!RELEASE) {
+          methods.dumpStats();
+        }
+
         this.status = JVMStatus.TERMINATED;
         if (this.terminationCb) {
           this.terminationCb(this.exitCode);
