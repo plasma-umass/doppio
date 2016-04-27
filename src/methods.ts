@@ -582,8 +582,10 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
         this.failedCompile[i] = true;
         closeCurrentTrace();
       } else {
-        if (trace !== null) {
-          // statCloser[op]++;
+        if (!RELEASE) {
+          if (trace !== null) {
+            statTraceCloser[op]++;
+          }
         }
         this.failedCompile[i] = true;
         closeCurrentTrace();
@@ -886,10 +888,12 @@ function makeOnError(onErrorPushes: string[]) {
   return onErrorPushes.length > 0 ? `f.opStack.pushAll(${onErrorPushes.join(',')});` : '';
 }
 
-const statCloser: number[] = new Array(256);
+const statTraceCloser: number[] = new Array(256);
 
-for (let i = 0; i < 256; i++) {
-  statCloser[i] = 0;
+if (!RELEASE) {
+  for (let i = 0; i < 256; i++) {
+    statTraceCloser[i] = 0;
+  }
 }
 
 export function dumpStats() {
@@ -897,12 +901,12 @@ export function dumpStats() {
   for (let i = 0; i < 256; i++) {
     range[i] = i;
   }
-  range.sort((x, y) => statCloser[y] - statCloser[x]);
+  range.sort((x, y) => statTraceCloser[y] - statTraceCloser[x]);
   const top = range.slice(0, 24);
   for (let i = 0; i < top.length; i++) {
     const op = top[i];
-    if (statCloser[op] > 0) {
-      console.log(enums.OpCode[op], statCloser[op]);
+    if (statTraceCloser[op] > 0) {
+      console.log(enums.OpCode[op], statTraceCloser[op]);
     }
   }
 }
