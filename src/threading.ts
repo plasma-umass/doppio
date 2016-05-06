@@ -76,6 +76,13 @@ export class PreAllocatedStack {
     this.store[this.curr++] = x;
   }
 
+  pushAll() {
+    const n = arguments.length;
+    for (let i = 0; i < n; i++) {
+      this.store[this.curr++] = arguments[i];
+    }
+  }
+
   pushWithNull(x: any) {
     this.store[this.curr] = x;
 
@@ -194,6 +201,16 @@ export class PreAllocatedStack {
   }
 }
 
+const jitUtil = {
+  isNull: opcodes.isNull,
+  resolveCPItem: opcodes.resolveCPItem,
+  throwException: opcodes.throwException,
+  gLong: gLong,
+  float2int: util.float2int,
+  wrapFloat: util.wrapFloat,
+  Constants: enums.Constants
+};
+
 /**
  * Represents a stack frame for a bytecode method.
  */
@@ -253,11 +270,18 @@ export class BytecodeStackFrame implements IStackFrame {
 
     // Run until we get the signal to return to the thread loop.
     while (!this.returnToThreadLoop) {
-      var op = code.readUInt8(this.pc);
-      if (!RELEASE && logging.log_level === logging.VTRACE) {
-        vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
+      var op = method.getOp(this.pc, code);
+      if (typeof op === 'function') {
+        if (!RELEASE && logging.log_level === logging.VTRACE) {
+          vtrace(`  ${this.pc} running JIT compiled function:\n${op.toString()}`);
+        }
+        op(this, thread, jitUtil);
+      } else {
+        if (!RELEASE && logging.log_level === logging.VTRACE) {
+          vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
+        }
+        opcodeTable[op](thread, this, code);
       }
-      opcodeTable[op](thread, this, code);
       if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
         vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
       }
