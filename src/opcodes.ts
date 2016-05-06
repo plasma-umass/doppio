@@ -1529,10 +1529,10 @@ export class Opcodes {
     const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, paramSize = methodReference.paramWordSize,
-      obj: JVMTypes.java_lang_Object = opStack.fromTop(paramSize),
-      args = opStack.sliceFromTop(paramSize);
+      obj: JVMTypes.java_lang_Object = opStack.fromTop(paramSize);
 
     if (!isNull(thread, frame, obj)) {
+      var args = opStack.sliceFromTop(paramSize);
       opStack.dropFromTop(paramSize + 1);
       assert(typeof (<any> obj)[methodReference.fullSignature] === 'function', `Resolved method ${methodReference.fullSignature} isn't defined?!`, thread);
       (<any> obj)[methodReference.fullSignature](thread, args);
@@ -1544,8 +1544,7 @@ export class Opcodes {
     const pc = frame.pc;
     var methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)),
       opStack = frame.opStack, paramSize = methodReference.paramWordSize,
-      args = opStack.sliceFromTop(paramSize);
-    opStack.dropFromTop(paramSize);
+      args = opStack.sliceAndDropFromTop(paramSize);
     assert(methodReference.jsConstructor != null, "jsConstructor is missing?!");
     assert(typeof(methodReference.jsConstructor[methodReference.fullSignature]) === 'function', "Resolved method isn't defined?!");
     methodReference.jsConstructor[methodReference.fullSignature](thread, args);
@@ -1577,9 +1576,8 @@ export class Opcodes {
       appendix = cso[1],
       fcn = cso[0].vmtarget,
       opStack = frame.opStack, paramSize = callSiteSpecifier.paramWordSize,
-      args = opStack.sliceFromTop(paramSize);
+      args = opStack.sliceAndDropFromTop(paramSize);
 
-    opStack.dropFromTop(paramSize);
     if (appendix !== null) {
       args.push(appendix);
     }
