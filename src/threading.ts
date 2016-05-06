@@ -255,7 +255,7 @@ export class BytecodeStackFrame implements IStackFrame {
     while (!this.returnToThreadLoop) {
       var op = code.readUInt8(this.pc);
       if (!RELEASE && logging.log_level === logging.VTRACE) {
-        vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)}`);
+        vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
       }
       opcodeTable[op](thread, this, code);
       if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
@@ -1328,19 +1328,19 @@ function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
 }
 
 // TODO: Prefix behind DEBUG, cache lowercase opcode names.
-export var OpcodeLayoutPrinters: {[layoutAtom: number]: (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => string} = {};
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.OPCODE_ONLY] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)));
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_UINT8] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constantPool.get(code.readUInt8(pc + 1)));
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1))) + " " + code.readUInt8(pc + 3);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1) + " " + code.readInt8(pc + 2);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt8(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt16BE(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+export var OpcodeLayoutPrinters: {[layoutAtom: number]: (method: methods.Method, code: NodeBuffer, pc: number) => string} = {};
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.OPCODE_ONLY] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1)));
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_UINT8] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt8(pc + 1)));
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1))) + " " + code.readUInt8(pc + 3);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1) + " " + code.readInt8(pc + 2);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt16BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
 
-function annotateOpcode(op: number, frame: BytecodeStackFrame, code: NodeBuffer, pc: number): string {
-  return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](frame, code, pc);
+export function annotateOpcode(op: number, method: methods.Method, code: NodeBuffer, pc: number): string {
+  return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](method, code, pc);
 }
