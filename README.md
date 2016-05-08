@@ -8,7 +8,7 @@ doppio: A JVM in TypeScript v0.3.1
 [![david-dm-status-badge](https://david-dm.org/plasma-umass/doppio/master/dev-status.svg)](https://david-dm.org/plasma-umass/doppio/master#info=devDependencies&view=table)
 
 _doppio_ is a double shot of espresso.
-In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.org/).
+In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.org/) and an active research project of the [PLASMA group at the University of Massachusetts](http://plasma.cs.umass.edu/).
 
 To try doppio now, head to the [live demo page](http://plasma-umass.github.io/doppio-demo/).
 
