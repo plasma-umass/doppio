@@ -49,7 +49,8 @@ export function getTests(cb: (tests: DoppioTest[]) => void) {
     doppioHomePath: '/sys',
     testClasses: null,
     enableSystemAssertions: true,
-    enableAssertions: true
+    enableAssertions: true,
+    intMode: false
   }, cb);
 }
 
