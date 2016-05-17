@@ -284,7 +284,7 @@ export class BytecodeStackFrame implements IStackFrame {
     } else {
       // Run until we get the signal to return to the thread loop.
       while (!this.returnToThreadLoop) {
-        var op = method.getOp(this.pc, code);
+        var op = method.getOp(this.pc, code, thread);
         if (typeof op === 'function') {
           if (!RELEASE && logging.log_level === logging.VTRACE) {
             vtrace(`  ${this.pc} running JIT compiled function:\n${op.toString()}`);

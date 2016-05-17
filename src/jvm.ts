@@ -82,6 +82,7 @@ class JVM {
   private enableSystemAssertions: boolean = false;
   private enabledAssertions: boolean | string[] = false;
   private disabledAssertions: string[] = [];
+  private printJITCompilation: boolean = false;
   private systemClassLoader: ClassLoader.ClassLoader = null;
   private nextRef: number = 0;
   // Set of all of the methods we want vtrace to be enabled on.
@@ -756,6 +757,14 @@ eval(mod);
    */
   public getDisabledAssertions(): string[] {
     return this.disabledAssertions;
+  }
+
+  public setPrintJITCompilation(enabledOrNot: boolean) {
+    this.printJITCompilation = enabledOrNot;
+  }
+
+  public shouldPrintJITCompilation(): boolean {
+    return this.printJITCompilation;
   }
 
   /**

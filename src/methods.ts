@@ -266,7 +266,7 @@ class Trace {
     this.infos.push(new TraceInfo(pc, jitInfo));
   }
 
-  public close(): Function {
+  public close(thread: threading.JVMThread): Function {
     if (this.infos.length > 1) {
       const symbolicStack: string[] = [];
       let symbolCount = 0;
@@ -310,10 +310,15 @@ class Trace {
         emitted = info.prefixEmit + jitInfo.emit(info.pops, info.pushes, ""+i, emitted, this.code, info.pc, info.onErrorPushes, this.method);
       }
 
-      // console.log(`Emitted trace of ${this.infos.length} ops: ` + emitted);
+      if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
+        console.log(`Emitted trace of ${this.infos.length} ops: ` + emitted);
+      }
       // f = frame, t = thread, u = util
       return new Function("f", "t", "u", emitted);
     } else {
+      if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
+        console.log(`Trace was cancelled`);
+      }
       return null;
     }
   }
@@ -457,12 +462,12 @@ export class Method extends AbstractMethodField {
     return this.code;
   }
 
-  public getOp(pc: number, codeBuffer: Buffer): any {
+  public getOp(pc: number, codeBuffer: Buffer, thread: threading.JVMThread): any {
     if (this.numBBEntries <= 0) {
       if (!this.failedCompile[pc]) {
         const cachedCompiledFunction = this.compiledFunctions[pc];
         if (!cachedCompiledFunction) {
-          const compiledFunction = this.jitCompileFrom(pc);
+          const compiledFunction = this.jitCompileFrom(pc, thread);
           if (compiledFunction) {
             return compiledFunction;
           } else {
@@ -530,8 +535,10 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     }};
   }
 
-  private jitCompileFrom(startPC: number) {
-    // console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
+  private jitCompileFrom(startPC: number, thread: threading.JVMThread) {
+    if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
+      console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
+    }
     const code = this.code.code;
     let trace: Trace = null;
     const _this = this;
@@ -540,7 +547,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     function closeCurrentTrace() {
       if (trace !== null) {
         // console.log("Tracing method: " + _this.fullSignature);
-        const compiledFunction = trace.close();
+        const compiledFunction = trace.close(thread);
         if (compiledFunction) {
           _this.compiledFunctions[trace.startPC] = compiledFunction;
         }
@@ -552,7 +559,9 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     for (let i = startPC; i < code.length && !done;) {
       const op = code.readUInt8(i);
       // TODO: handle wide()
-      // console.log(`${i}: ${threading.annotateOpcode(op, this, code, i)}`);
+      if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
+        console.log(`${i}: ${threading.annotateOpcode(op, this, code, i)}`);
+      }
       const jitInfo = opJitInfo[op];
       if (jitInfo) {
         if (trace === null) {
