@@ -39,6 +39,9 @@ let parser = new OptionParser({
     disablesystemassertions: { alias: 'dsa', desc: 'disable system assertions '}
   },
   X: {
+    'int': {
+      desc: 'interpreted mode execution only'
+    },
     log: {
       desc: 'log level, [0-10]|vtrace|trace|debug|error',
       type: ParseType.NORMAL_VALUE_SYNTAX
@@ -111,6 +114,8 @@ function java(args: string[], opts: JVMCLIOptions,
 
   // GLOBAL CONFIGURATION
   let logOption = nonStandard.stringOption('log', 'ERROR');
+
+  opts.intMode = nonStandard.flag('int', false);
 
   if (/^[0-9]+$/.test(logOption)) {
     logging.log_level = parseInt(logOption, 10);

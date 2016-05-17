@@ -38,6 +38,8 @@ export interface JVMOptions {
   tmpDir?: string;
   // Responsiveness of JVM (expressed in milliseconds before a thread yields co-operatively)
   responsiveness?: number | (() => number);
+  // Confine to Interpreted mode
+  intMode: boolean;
 }
 
 /**

@@ -96,6 +96,9 @@ class JVM {
   // The JVM's planned exit code.
   private exitCode: number = 0;
 
+  // is JIT disabled?
+  private jitDisabled: boolean = false;
+
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
@@ -104,6 +107,8 @@ class JVM {
       throw new TypeError("opts.doppioHomePath *must* be specified.");
     }
     opts = <interfaces.JVMOptions> util.merge(JVM.getDefaultOptions(opts.doppioHomePath), opts);
+
+    this.jitDisabled = opts.intMode;
 
     var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
       // JVM bootup tasks, from first to last task.
@@ -282,7 +287,8 @@ class JVM {
       disableAssertions: null,
       properties: {},
       tmpDir: '/tmp',
-      responsiveness: 1000
+      responsiveness: 1000,
+      intMode: false
     };
   }
 
@@ -376,6 +382,13 @@ class JVM {
         this.terminationCb(1);
       }
     });
+  }
+
+  /**
+   * Returns 'true' if confined to interpreter mode
+   */
+  public isJITDisabled(): boolean {
+    return this.jitDisabled;
   }
 
   /**

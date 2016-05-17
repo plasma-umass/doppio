@@ -269,22 +269,36 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    // Run until we get the signal to return to the thread loop.
-    while (!this.returnToThreadLoop) {
-      var op = method.getOp(this.pc, code);
-      if (typeof op === 'function') {
-        if (!RELEASE && logging.log_level === logging.VTRACE) {
-          vtrace(`  ${this.pc} running JIT compiled function:\n${op.toString()}`);
-        }
-        op(this, thread, jitUtil);
-      } else {
+    if (thread.getJVM().isJITDisabled()) {
+      // Interpret until we get the signal to return to the thread loop.
+      while (!this.returnToThreadLoop) {
+        var opCode = code.readUInt8(this.pc);
         if (!RELEASE && logging.log_level === logging.VTRACE) {
           vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
         }
-        opcodeTable[op](thread, this, code);
+        opcodeTable[opCode](thread, this, code);
+        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
+          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+        }
       }
-      if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-        vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+    } else {
+      // Run until we get the signal to return to the thread loop.
+      while (!this.returnToThreadLoop) {
+        var op = method.getOp(this.pc, code);
+        if (typeof op === 'function') {
+          if (!RELEASE && logging.log_level === logging.VTRACE) {
+            vtrace(`  ${this.pc} running JIT compiled function:\n${op.toString()}`);
+          }
+          op(this, thread, jitUtil);
+        } else {
+          if (!RELEASE && logging.log_level === logging.VTRACE) {
+            vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
+          }
+          opcodeTable[op](thread, this, code);
+        }
+        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
+          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+        }
       }
     }
   }

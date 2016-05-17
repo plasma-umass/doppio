@@ -45,6 +45,7 @@ javaCLI(process.argv.slice(2), {
   // Override default here; Node builds have different natives directory right now.
   nativeClasspath: [path.resolve(__dirname, '../src/natives')],
   launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
+  intMode: false,
   tmpDir: os.tmpdir()
 }, doneCb, function(jvm: JVM): void {
   jvmState = jvm;
