@@ -352,7 +352,6 @@ export class Method extends AbstractMethodField {
    */
   private numBBEntries = 0;
 
-  private jitThreshold = 0;
   private compiledFunctions: Function[] = [];
   private failedCompile: boolean[] = [];
 
@@ -402,12 +401,15 @@ export class Method extends AbstractMethodField {
     } else if (!this.accessFlags.isAbstract()) {
       this.code = this.getAttribute('Code');
       const codeLength = this.code.code.length;
-      this.jitThreshold = codeLength > 3 ? 200 : 1000 * codeLength;
+
+      // jit threshold. we countdown to zero from here.
+      this.numBBEntries = codeLength > 3 ? 200 : 1000 * codeLength;
     }
   }
 
   public incrBBEntries() {
-    this.numBBEntries++;
+    // Optimisiation: we countdown to zero, instead of storing a positive limit in a separate variable
+    this.numBBEntries--;
   }
 
   /**
@@ -456,7 +458,7 @@ export class Method extends AbstractMethodField {
   }
 
   public getOp(pc: number, codeBuffer: Buffer): any {
-    if (this.numBBEntries >= this.jitThreshold) {
+    if (this.numBBEntries <= 0) {
       if (!this.failedCompile[pc]) {
         const cachedCompiledFunction = this.compiledFunctions[pc];
         if (!cachedCompiledFunction) {
