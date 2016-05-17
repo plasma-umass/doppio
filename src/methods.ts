@@ -347,7 +347,11 @@ export class Method extends AbstractMethodField {
    */
   private code: any;
 
-  private numOpcodeExecs = 0;
+  /**
+   * number of basic block entries
+   */
+  private numBBEntries = 0;
+
   private jitThreshold = 0;
   private compiledFunctions: Function[] = [];
   private failedCompile: boolean[] = [];
@@ -398,8 +402,12 @@ export class Method extends AbstractMethodField {
     } else if (!this.accessFlags.isAbstract()) {
       this.code = this.getAttribute('Code');
       const codeLength = this.code.code.length;
-      this.jitThreshold = (codeLength > 4) ? 400 * codeLength : 80000 * codeLength;
+      this.jitThreshold = codeLength > 3 ? 200 : 1000 * codeLength;
     }
+  }
+
+  public incrBBEntries() {
+    this.numBBEntries++;
   }
 
   /**
@@ -448,7 +456,7 @@ export class Method extends AbstractMethodField {
   }
 
   public getOp(pc: number, codeBuffer: Buffer): any {
-    if (this.numOpcodeExecs === this.jitThreshold) {
+    if (this.numBBEntries >= this.jitThreshold) {
       if (!this.failedCompile[pc]) {
         const cachedCompiledFunction = this.compiledFunctions[pc];
         if (!cachedCompiledFunction) {
@@ -462,8 +470,6 @@ export class Method extends AbstractMethodField {
           return cachedCompiledFunction;
         }
       }
-    } else {
-      this.numOpcodeExecs++;
     }
     return codeBuffer.readUInt8(pc);
   }

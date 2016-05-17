@@ -959,7 +959,11 @@ export class Opcodes {
   public static ifeq(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() === 0) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -968,7 +972,11 @@ export class Opcodes {
   public static ifne(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() !== 0) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -977,7 +985,11 @@ export class Opcodes {
   public static iflt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() < 0) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -986,7 +998,11 @@ export class Opcodes {
   public static ifge(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() >= 0) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -995,7 +1011,11 @@ export class Opcodes {
   public static ifgt(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() > 0) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1004,7 +1024,11 @@ export class Opcodes {
   public static ifle(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() <= 0) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1016,7 +1040,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 === v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1027,7 +1055,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 !== v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1038,7 +1070,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 < v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1049,7 +1085,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 >= v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1060,7 +1100,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 > v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1071,7 +1115,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 <= v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1082,7 +1130,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 === v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1093,7 +1145,11 @@ export class Opcodes {
     var v2 = frame.opStack.pop();
     var v1 = frame.opStack.pop();
     if (v1 !== v2) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1102,13 +1158,21 @@ export class Opcodes {
   /* Jump opcodes */
   public static goto(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
-    frame.pc += code.readInt16BE(pc + 1);
+    const offset = code.readInt16BE(pc + 1);
+    frame.pc += offset;
+    if (offset < 0) {
+      frame.method.incrBBEntries();
+    }
   }
 
   public static jsr(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
-    frame.opStack.push(frame.pc + 3);
-    frame.pc += code.readInt16BE(pc + 1);
+    frame.opStack.push(pc + 3);
+    const offset = code.readInt16BE(pc + 1);
+    frame.pc += offset;
+    if (offset < 0) {
+      frame.method.incrBBEntries();
+    }
   }
 
   public static ret(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
@@ -1144,7 +1208,11 @@ export class Opcodes {
     pc += 8;
     for (i = 0; i < nPairs; i++) {
       if (code.readInt32BE(pc) === v) {
-        frame.pc += code.readInt32BE(pc + 4);
+        const offset = code.readInt32BE(pc + 4);
+        frame.pc += offset;
+        if (offset < 0) {
+          frame.method.incrBBEntries();
+        }
         return;
       }
       pc += 8;
@@ -1884,7 +1952,11 @@ export class Opcodes {
   public static ifnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() == null) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1893,7 +1965,11 @@ export class Opcodes {
   public static ifnonnull(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
     if (frame.opStack.pop() != null) {
-      frame.pc += code.readInt16BE(pc + 1);
+      const offset = code.readInt16BE(pc + 1);
+      frame.pc += offset;
+      if (offset < 0) {
+        frame.method.incrBBEntries();
+      }
     } else {
       frame.pc += 3;
     }
@@ -1901,7 +1977,11 @@ export class Opcodes {
 
   public static goto_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {
     const pc = frame.pc;
-    frame.pc += code.readInt32BE(pc + 1);
+    const offset = code.readInt32BE(pc + 1);
+    frame.pc += offset;
+    if (offset < 0) {
+      frame.method.incrBBEntries();
+    }
   }
 
   public static jsr_w(thread: threading.JVMThread, frame: threading.BytecodeStackFrame, code: Buffer) {

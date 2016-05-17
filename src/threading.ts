@@ -229,6 +229,7 @@ export class BytecodeStackFrame implements IStackFrame {
    */
   constructor(method: methods.Method, args: any[]) {
     this.method = method;
+    method.incrBBEntries();
     assert(!method.accessFlags.isNative(), 'Cannot run a native method using a BytecodeStackFrame.');
     // @todo This should be a runtime error, since reflection can cause you to
     // try to do this.
