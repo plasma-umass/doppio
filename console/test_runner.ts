@@ -18,6 +18,7 @@ var opts: testing.TestOptions = {
   enableSystemAssertions: true,
   enableAssertions: true,
   intMode: false,
+  dumpJITStats: false,
   tmpDir: os.tmpdir()
 }, passChar: string, failChar: string;
 

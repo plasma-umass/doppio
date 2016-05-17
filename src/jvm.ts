@@ -98,6 +98,7 @@ class JVM {
 
   // is JIT disabled?
   private jitDisabled: boolean = false;
+  private dumpJITStats: boolean = false;
 
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
@@ -109,6 +110,7 @@ class JVM {
     opts = <interfaces.JVMOptions> util.merge(JVM.getDefaultOptions(opts.doppioHomePath), opts);
 
     this.jitDisabled = opts.intMode;
+    this.dumpJITStats = opts.dumpJITStats;
 
     var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
       // JVM bootup tasks, from first to last task.
@@ -288,7 +290,8 @@ class JVM {
       properties: {},
       tmpDir: '/tmp',
       responsiveness: 1000,
-      intMode: false
+      intMode: false,
+      dumpJITStats: false
     };
   }
 
@@ -441,7 +444,7 @@ class JVM {
         return false;
       case JVMStatus.TERMINATING:
 
-        if (!RELEASE) {
+        if (!RELEASE && this.dumpJITStats) {
           methods.dumpStats();
         }
 

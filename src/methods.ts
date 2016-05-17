@@ -865,6 +865,7 @@ export function dumpStats() {
   }
   range.sort((x, y) => statTraceCloser[y] - statTraceCloser[x]);
   const top = range.slice(0, 24);
+  console.log("Opcodes that closed a trace (number of times encountered):");
   for (let i = 0; i < top.length; i++) {
     const op = top[i];
     if (statTraceCloser[op] > 0) {

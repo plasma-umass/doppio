@@ -50,7 +50,8 @@ export function getTests(cb: (tests: DoppioTest[]) => void) {
     testClasses: null,
     enableSystemAssertions: true,
     enableAssertions: true,
-    intMode: false
+    intMode: false,
+    dumpJITStats: false
   }, cb);
 }
 

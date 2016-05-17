@@ -40,6 +40,8 @@ export interface JVMOptions {
   responsiveness?: number | (() => number);
   // Confine to Interpreted mode
   intMode: boolean;
+  // Dump JIT Statistics
+  dumpJITStats: boolean;
 }
 
 /**
