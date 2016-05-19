@@ -1,8 +1,8 @@
 *.bat
 *.js
 *.js.map
-vendor/java_home
-includes
+/vendor/java_home
+/includes
 
 *.swp
 *.un~
@@ -11,19 +11,17 @@ includes
 *.result
 *.disasm
 *.tar.gz
-node_modules
-build
+/node_modules
+/build
 .DS_store
 # Command-line tools
-doppio
-doppioh
-doppio-dev
-doppio-fast-dev
+/doppio
+/doppioh
+/doppio-dev
+/doppio-fast-dev
 # Error log
 doppio.err
-# But we want to allow classes/doppio
-!classes/doppio
-classes/test/failures.txt
+/classes/test/failures.txt
 
 # IntelliJ metadata
 *.iml
@@ -41,7 +39,12 @@ tscommand-*.txt
 tasks/test/*.d.ts
 
 # Generated for browser builds.
-shims
+/shims
 
 # Generated for published modules.
-bin
+/bin
+
+/dist
+/docs/examples/doppio
+/docs/examples/listings.json
+

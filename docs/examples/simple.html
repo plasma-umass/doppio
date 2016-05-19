@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Simple DoppioJVM Example</title>
+    <script type="text/javascript" src="doppio/browserfs.min.js"></script>
+    <script type="text/javascript" src="doppio/doppio.js"></script>
+    <script type="text/javascript">
+      // Wrap in a closure; don't pollute the global namespace.
+      (function() {
+        var mfs = new BrowserFS.FileSystem.MountableFileSystem(),
+            fs = BrowserFS.BFSRequire('fs');
+        BrowserFS.initialize(mfs);
+        // Temporary storage.
+        mfs.mount('/tmp', new BrowserFS.FileSystem.InMemory());
+        // 10MB of writable storage
+        // Use BrowserFS's IndexedDB file system for more storage.
+        mfs.mount('/home', new BrowserFS.FileSystem.LocalStorage());
+        // The first argument is the filename of the listings file
+        // The second argument is the relative URL to the folder containing the listings file
+        mfs.mount('/sys', new BrowserFS.FileSystem.XmlHttpRequest('listings.json', '.'));
+
+        window.addEventListener('load', function() {
+          var textarea = document.getElementById('console');
+          var process = BrowserFS.BFSRequire('process');
+          process.initializeTTYs();
+          var stdoutBuffer = '';
+          process.stdout.on('data', function(data) {
+            stdoutBuffer += data.toString();
+            var newlineIdx;
+            while ((newlineIdx = stdoutBuffer.indexOf("\n")) > -1) {
+              textarea.value += stdoutBuffer.slice(0, newlineIdx + 1);
+              stdoutBuffer = stdoutBuffer.slice(newlineIdx + 1);
+            }
+          });
+          var stderrBuffer = '';
+          process.stderr.on('data', function(data) {
+            stderrBuffer += data.toString();
+            var newlineIdx;
+            while ((newlineIdx = stderrBuffer.indexOf("\n")) > -1) {
+              textarea.value += stderrBuffer.slice(0, newlineIdx + 1);
+              stderrBuffer = stderrBuffer.slice(newlineIdx + 1);
+            }
+          });
+
+          var stdin = document.getElementById('stdin');
+          document.getElementById('stdinButton').addEventListener('click', function(ev) {
+            ev.preventDefault();
+            process.stdin.write(stdin.value + "\n");
+            stdin.value = '';
+          });
+        });
+
+        setTimeout(function() {
+          Doppio.VM.CLI(
+            ['-classpath', '/sys', 'example.App'],
+          {
+            doppioHomePath: '/sys/doppio'
+          });
+        }, 5);
+      })();
+    </script>
+  </head>
+  <body>
+    <textarea id="console" cols="80" rows="30"></textarea><br />
+    <input id="stdin" /><button id="stdinButton">Send to App</button>
+  </body>
+</html>

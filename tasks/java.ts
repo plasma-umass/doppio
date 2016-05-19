@@ -19,7 +19,7 @@ function java(grunt: IGrunt) {
         inputFiles: string[] = [],
         done: (status?: boolean) => void = this.async();
     grunt.config.requires('build.javac');
-      files.forEach(function (e: { src: string[]; dest: string }) {
+    files.forEach(function (e: { src: string[]; dest: string }) {
       var dest = e.src[0].slice(0, -4) + 'class';
       if (fs.existsSync(dest) && fs.statSync(dest).mtime > fs.statSync(e.src[0]).mtime) {
         // No need to process file.

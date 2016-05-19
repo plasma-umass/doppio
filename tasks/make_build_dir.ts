@@ -7,8 +7,8 @@ import async = require('async');
  * - Symlinks in 'classes' and 'vendor'.
  */
 function makeBuildDir(grunt: IGrunt) {
-	grunt.registerMultiTask('make_build_dir', 'Creates the build directory, if not present.', function() {
-    var targetPath = this.options().build_dir;
+	grunt.registerTask('make_build_dir', 'Creates the build directory, if not present.', function(target: string) {
+    var targetPath = path.resolve(this.options().base, target);
     try {
       if (!fs.existsSync(targetPath)) {
         grunt.file.mkdir(targetPath);
@@ -23,12 +23,12 @@ function makeBuildDir(grunt: IGrunt) {
 
       if (asyncPairs.length > 0) {
         let done = this.async();
-        async.eachSeries(asyncPairs, (pair, done) => {
+        async.eachSeries(asyncPairs, (pair: string[], done: (err?: Error) => void) => {
           copy(grunt, pair[0], pair[1], done);
         }, done);
       }
     } catch (e) {
-      grunt.log.error('Could not create build folder build/' + this.target + ".");
+      grunt.log.error('Could not create build folder build/' + target + ".");
       return false;
     }
   });

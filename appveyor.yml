@@ -20,3 +20,4 @@ build: off
 
 cache:
   - node_modules
+  - vendor/java_home
