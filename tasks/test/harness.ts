@@ -1,4 +1,4 @@
-/// <reference path="../../typings/main.d.ts" />
+/// <reference path="../../typings/index.d.ts" />
 /**
  * Main entry point for Doppio unit tests in the browser.
  * Sets up the test environment, and launches everything.
@@ -11,9 +11,8 @@ import path = require('path');
 (<any> process).initializeTTYs();
 import DoppioJVM = require('../../src/doppiojvm');
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
-import {getTests as localGetTests, runTest as commonRunTest} from './harness_common';
+import {getTests as localGetTests, runTest as commonRunTest, getBuild} from './harness_common';
 import {Message, MessageType, RunTestMessage, SetupMessage, TestListingMessage, TestResultMessage} from './messages';
-let isRelease = DoppioJVM.VM.JVM.isReleaseBuild();
 
 // HACK: Delay test execution until backends load.
 // https://zerokspot.com/weblog/2013/07/12/delay-test-execution-in-karma/
@@ -86,7 +85,7 @@ var supportsWorkers = typeof Worker !== 'undefined',
  */
 export default function runTests() {
   if (supportsWorkers) {
-    worker = new Worker(`../build/test${isRelease ? '-release' : '-dev'}/harness_webworker.js`);
+    worker = new Worker(`../build/test-${getBuild()}/harness_webworker.js`);
     registerWorkerListener(worker);
   }
 

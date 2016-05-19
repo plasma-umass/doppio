@@ -1,4 +1,4 @@
-/// <reference path="../../typings/main.d.ts" />
+/// <reference path="../../typings/index.d.ts" />
 importScripts('/node_modules/browserfs/dist/browserfs.js');
 
 import {MessageType, Message, SetupMessage, TestListingMessage, RunTestMessage, TestResultMessage} from './messages';

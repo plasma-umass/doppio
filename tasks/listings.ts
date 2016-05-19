@@ -42,10 +42,8 @@ function generateListings(dir: string, ignore: string[]): any {
 }
 
 function listings(grunt: IGrunt) {
-	grunt.registerMultiTask('listings', 'Generates listings.json', function() {
-    var options = this.options(),
-      cwd = options.cwd;
-    fs.writeFileSync(options.output, JSON.stringify(generateListings(cwd, ['.git', 'node_modules'])));
+	grunt.registerTask('listings', 'Generates listings.json', function(target: string) {
+   grunt.file.write(`build/${target}/listings.json`, JSON.stringify(generateListings(`build/${target}`, ['.git', 'node_modules'])));
   });
 }
 

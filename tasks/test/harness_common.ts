@@ -1,4 +1,4 @@
-/// <reference path="../../typings/main.d.ts" />
+/// <reference path="../../typings/index.d.ts" />
 /**
  * Contains the test logic, used in WW and main thread tests.
  */
@@ -10,7 +10,18 @@ import path = require('path');
 import DoppioJVM = require('../../src/doppiojvm');
 import TestOptions = DoppioJVM.Testing.TestOptions;
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
-let isRelease = DoppioJVM.VM.JVM.isReleaseBuild();
+import * as logging from '../../src/logging';
+const vtrace = logging.vtrace;
+
+export function getBuild(): string {
+  if (DoppioJVM.VM.JVM.isReleaseBuild()) {
+    return 'release';
+  } else {
+    let build = 'fast-dev';
+    vtrace((build = 'dev'));
+    return build;
+  }
+}
 
 var globalErrorTrap: (err: Error) => void = null
 onerror = function(err) {
@@ -24,7 +35,7 @@ function registerGlobalErrorTrap(cb: (err: Error) => void): void {
 }
 
 function getBuildPath(): string {
-  return '/build/' + (isRelease ? 'release' : 'dev') + '/';
+  return '/build/test-' + getBuild() + '/';
 }
 
 /**

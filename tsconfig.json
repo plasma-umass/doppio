@@ -8,7 +8,7 @@
         "inlineSources": true
     },
     "files": [
-        "typings/main.d.ts",
+        "typings/index.d.ts",
         "src/assert.ts",
         "src/attributes.ts",
         "src/ByteStream.ts",

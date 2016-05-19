@@ -14,7 +14,6 @@ matrix:
 cache:
   directories:
     - node_modules
-    - typings
     - vendor/java_home
 
 install:

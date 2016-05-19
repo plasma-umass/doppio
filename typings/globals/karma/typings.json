@@ -1,0 +1,8 @@
+{
+  "resolution": "main",
+  "tree": {
+    "src": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/b13fb549b27f069cb40346a4a835dc7c229aba8b/karma/karma.d.ts",
+    "raw": "registry:dt/karma#0.13.9+20160501125529",
+    "typings": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/b13fb549b27f069cb40346a4a835dc7c229aba8b/karma/karma.d.ts"
+  }
+}
