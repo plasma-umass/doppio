@@ -45,3 +45,6 @@ tasks/test/*.d.ts
 /bin
 
 /dist
+/docs/examples/doppio
+/docs/examples/listings.json
+

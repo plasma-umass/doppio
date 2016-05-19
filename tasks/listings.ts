@@ -42,8 +42,15 @@ function generateListings(dir: string, ignore: string[]): any {
 }
 
 function listings(grunt: IGrunt) {
-	grunt.registerTask('listings', 'Generates listings.json', function(target: string) {
-   grunt.file.write(`build/${target}/listings.json`, JSON.stringify(generateListings(`build/${target}`, ['.git', 'node_modules'])));
+  grunt.registerTask('listings', 'Generates listings.json', function(target: string) {
+    let output = `build/${target}/listings.json`;
+    let folder = `build/${target}`;
+    // Dirty hack for now.
+    if (target === 'examples') {
+      output = "docs/examples/listings.json";
+      folder = "docs/examples";
+    }
+    grunt.file.write(output, JSON.stringify(generateListings(folder, ['.git', 'node_modules'])));
   });
 }
 

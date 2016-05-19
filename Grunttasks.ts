@@ -351,13 +351,34 @@ export function setup(grunt: IGrunt) {
       'release-natives': getCopyNativesConfig('release'),
       'test-dev-natives': getCopyNativesConfig('dev', true),
       'test-fast-dev-natives': getCopyNativesConfig('fast-dev', true),
-      'test-release-natives': getCopyNativesConfig('release', true)
+      'test-release-natives': getCopyNativesConfig('release', true),
+      'examples': {
+        files: [{
+          expand: true,
+          cwd: "build/release",
+          src: ["*.js", "*.js.map", "natives/**/*.js*", "vendor/**/*"],
+          dest: "docs/examples/doppio"
+        }, {
+          expand: true,
+          flatten: true,
+          cwd: ".",
+          src: "node_modules/browserfs/dist/browserfs.min.*",
+          dest: "docs/examples/doppio"
+        }]
+      }
     },
     javac: {
       default: {
         files: [{
           expand: true,
           src: 'classes/+(awt|demo|doppio|test|util)/*.java',
+          ext: '.class'
+        }]
+      },
+      examples: {
+        files: [{
+          expand: true,
+          src: 'docs/examples/example/**/*.java',
           ext: '.class'
         }]
       }
@@ -392,6 +413,12 @@ export function setup(grunt: IGrunt) {
       server: {
         options: {
           keepalive: false
+        }
+      },
+      examples: {
+        options: {
+          base: 'docs/examples',
+          keepalive: true
         }
       }
     },
@@ -635,6 +662,15 @@ export function setup(grunt: IGrunt) {
      'webpack:release',
      'copy:release-natives',
      'listings:release']);
+
+  grunt.registerTask('examples',
+    ['release',
+     'newer:javac:examples',
+     'copy:examples',
+     'listings:examples',
+     "connect:examples"
+    ]);
+
   grunt.registerTask('dist',
     [
       'clean', 'release', 'fast-dev', 'dev', 'clean_natives', 'copy:dist'
