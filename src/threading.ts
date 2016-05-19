@@ -76,6 +76,13 @@ export class PreAllocatedStack {
     this.store[this.curr++] = x;
   }
 
+  pushAll() {
+    const n = arguments.length;
+    for (let i = 0; i < n; i++) {
+      this.store[this.curr++] = arguments[i];
+    }
+  }
+
   pushWithNull(x: any) {
     this.store[this.curr] = x;
 
@@ -179,6 +186,12 @@ export class PreAllocatedStack {
     this.curr -= n;
   }
 
+  sliceAndDropFromTop(n: number): any {
+    const curr = this.curr;
+    this.curr -= n;
+    return this.store.slice(curr - n, curr);
+  }
+
   getRaw(): any[] {
     return this.store.slice(0, this.curr);
   }
@@ -187,6 +200,16 @@ export class PreAllocatedStack {
     this.curr = 0;
   }
 }
+
+const jitUtil = {
+  isNull: opcodes.isNull,
+  resolveCPItem: opcodes.resolveCPItem,
+  throwException: opcodes.throwException,
+  gLong: gLong,
+  float2int: util.float2int,
+  wrapFloat: util.wrapFloat,
+  Constants: enums.Constants
+};
 
 /**
  * Represents a stack frame for a bytecode method.
@@ -206,6 +229,7 @@ export class BytecodeStackFrame implements IStackFrame {
    */
   constructor(method: methods.Method, args: any[]) {
     this.method = method;
+    method.incrBBEntries();
     assert(!method.accessFlags.isNative(), 'Cannot run a native method using a BytecodeStackFrame.');
     // @todo This should be a runtime error, since reflection can cause you to
     // try to do this.
@@ -245,15 +269,36 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    // Run until we get the signal to return to the thread loop.
-    while (!this.returnToThreadLoop) {
-      var op = code.readUInt8(this.pc);
-      if (!RELEASE && logging.log_level === logging.VTRACE) {
-        vtrace(`  ${this.pc} ${annotateOpcode(op, this, code, this.pc)}`);
+    if (thread.getJVM().isJITDisabled()) {
+      // Interpret until we get the signal to return to the thread loop.
+      while (!this.returnToThreadLoop) {
+        var opCode = code.readUInt8(this.pc);
+        if (!RELEASE && logging.log_level === logging.VTRACE) {
+          vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
+        }
+        opcodeTable[opCode](thread, this, code);
+        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
+          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+        }
       }
-      opcodeTable[op](thread, this, code);
-      if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-        vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+    } else {
+      // Run until we get the signal to return to the thread loop.
+      while (!this.returnToThreadLoop) {
+        var op = method.getOp(this.pc, code, thread);
+        if (typeof op === 'function') {
+          if (!RELEASE && logging.log_level === logging.VTRACE) {
+            vtrace(`  ${this.pc} running JIT compiled function:\n${op.toString()}`);
+          }
+          op(this, thread, jitUtil);
+        } else {
+          if (!RELEASE && logging.log_level === logging.VTRACE) {
+            vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
+          }
+          opcodeTable[op](thread, this, code);
+        }
+        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
+          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+        }
       }
     }
   }
@@ -1322,19 +1367,19 @@ function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
 }
 
 // TODO: Prefix behind DEBUG, cache lowercase opcode names.
-export var OpcodeLayoutPrinters: {[layoutAtom: number]: (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => string} = {};
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.OPCODE_ONLY] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1)));
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_UINT8] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constantPool.get(code.readUInt8(pc + 1)));
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(frame.method.cls.constantPool.get(code.readUInt16BE(pc + 1))) + " " + code.readUInt8(pc + 3);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1) + " " + code.readInt8(pc + 2);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT8_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt8(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt16BE(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (frame: BytecodeStackFrame, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+export var OpcodeLayoutPrinters: {[layoutAtom: number]: (method: methods.Method, code: NodeBuffer, pc: number) => string} = {};
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.OPCODE_ONLY] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1)));
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_UINT8] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt8(pc + 1)));
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1))) + " " + code.readUInt8(pc + 3);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1) + " " + code.readInt8(pc + 2);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt8(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt16BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
+OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
 
-function annotateOpcode(op: number, frame: BytecodeStackFrame, code: NodeBuffer, pc: number): string {
-  return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](frame, code, pc);
+export function annotateOpcode(op: number, method: methods.Method, code: NodeBuffer, pc: number): string {
+  return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](method, code, pc);
 }

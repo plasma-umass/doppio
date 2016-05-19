@@ -39,6 +39,12 @@ let parser = new OptionParser({
     disablesystemassertions: { alias: 'dsa', desc: 'disable system assertions '}
   },
   X: {
+    'int': {
+      desc: 'interpreted mode execution only'
+    },
+    'dump-JIT-stats': {
+      desc: 'dump JIT statistics'
+    },
     log: {
       desc: 'log level, [0-10]|vtrace|trace|debug|error',
       type: ParseType.NORMAL_VALUE_SYNTAX
@@ -76,6 +82,9 @@ let parser = new OptionParser({
       type: ParseType.COLON_VALUE_SYNTAX,
       optDesc: ':<directories and zip/jar files separated by :>',
       desc: 'set search path for bootstrap classes and resources'
+    },
+    'PrintCompilation': {
+      desc: 'Print JIT compilation details'
     }
   }
 });
@@ -111,6 +120,9 @@ function java(args: string[], opts: JVMCLIOptions,
 
   // GLOBAL CONFIGURATION
   let logOption = nonStandard.stringOption('log', 'ERROR');
+
+  opts.intMode = nonStandard.flag('int', false);
+  opts.dumpJITStats = nonStandard.flag('dump-JIT-stats', false);
 
   if (/^[0-9]+$/.test(logOption)) {
     logging.log_level = parseInt(logOption, 10);
@@ -198,6 +210,8 @@ function java(args: string[], opts: JVMCLIOptions,
       launchJvm(standard, opts, jvmState, doneCb, jvmStarted);
     }
   });
+
+  jvmState.setPrintJITCompilation(nonStandard.flag('PrintCompilation', false));
 
   let vtraceMethods = nonStandard.stringOption('vtrace-methods', null);
   if (vtraceMethods) {

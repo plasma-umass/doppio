@@ -82,6 +82,7 @@ class JVM {
   private enableSystemAssertions: boolean = false;
   private enabledAssertions: boolean | string[] = false;
   private disabledAssertions: string[] = [];
+  private printJITCompilation: boolean = false;
   private systemClassLoader: ClassLoader.ClassLoader = null;
   private nextRef: number = 0;
   // Set of all of the methods we want vtrace to be enabled on.
@@ -96,6 +97,10 @@ class JVM {
   // The JVM's planned exit code.
   private exitCode: number = 0;
 
+  // is JIT disabled?
+  private jitDisabled: boolean = false;
+  private dumpJITStats: boolean = false;
+
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
@@ -104,6 +109,9 @@ class JVM {
       throw new TypeError("opts.doppioHomePath *must* be specified.");
     }
     opts = <interfaces.JVMOptions> util.merge(JVM.getDefaultOptions(opts.doppioHomePath), opts);
+
+    this.jitDisabled = opts.intMode;
+    this.dumpJITStats = opts.dumpJITStats;
 
     var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
       // JVM bootup tasks, from first to last task.
@@ -282,7 +290,9 @@ class JVM {
       disableAssertions: null,
       properties: {},
       tmpDir: '/tmp',
-      responsiveness: 1000
+      responsiveness: 1000,
+      intMode: false,
+      dumpJITStats: false
     };
   }
 
@@ -379,6 +389,13 @@ class JVM {
   }
 
   /**
+   * Returns 'true' if confined to interpreter mode
+   */
+  public isJITDisabled(): boolean {
+    return this.jitDisabled;
+  }
+
+  /**
    * [DEBUG] Returns 'true' if the specified method should be vtraced.
    */
   public shouldVtrace(sig: string): boolean {
@@ -427,6 +444,11 @@ class JVM {
         assert(false, `Invariant failure: Thread pool cannot be emptied post-JVM termination.`);
         return false;
       case JVMStatus.TERMINATING:
+
+        if (!RELEASE && this.dumpJITStats) {
+          methods.dumpStats();
+        }
+
         this.status = JVMStatus.TERMINATED;
         if (this.terminationCb) {
           this.terminationCb(this.exitCode);
@@ -735,6 +757,14 @@ eval(mod);
    */
   public getDisabledAssertions(): string[] {
     return this.disabledAssertions;
+  }
+
+  public setPrintJITCompilation(enabledOrNot: boolean) {
+    this.printJITCompilation = enabledOrNot;
+  }
+
+  public shouldPrintJITCompilation(): boolean {
+    return this.printJITCompilation;
   }
 
   /**
