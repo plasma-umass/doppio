@@ -12,7 +12,7 @@ In this case it's also a JVM written in [TypeScript](http://www.typescriptlang.o
 
 To try doppio now, head to the [live demo page](http://plasma-umass.github.io/doppio-demo/).
 
-To learn more, read some [documentation](tree/master/docs), or read our [academic paper](http://dl.acm.org/citation.cfm?id=2594293) [(alt. link w/ no paywall)](https://plasma-umass.github.io/doppio-demo/paper.pdf) published at [PLDI 2014](http://conferences.inf.ed.ac.uk/pldi2014/)!
+To learn more, read some [documentation](docs), or read our [academic paper](http://dl.acm.org/citation.cfm?id=2594293) [(alt. link w/ no paywall)](https://plasma-umass.github.io/doppio-demo/paper.pdf) published at [PLDI 2014](http://conferences.inf.ed.ac.uk/pldi2014/)!
 
 You can also get in touch via our [mailing list][mail] or via the IRC channel
 \#plasma-umass on Freenode.
@@ -68,7 +68,7 @@ Run doppio with node.js (after `grunt release-cli`):
 Integrating Into Your Site
 --------------------------
 
-Check out our [Developer Guide](tree/master/docs) for information on how you can integrate doppio into your website!
+Check out our [Developer Guide](docs) for information on how you can integrate doppio into your website!
 
 You can also build and interact with a simple example application with:
 
