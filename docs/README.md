@@ -1,3 +1,5 @@
+# Getting Started with DoppioJVM
+
 So you want to hack on DoppioJVM: maybe to integrate it into your project more closely, or to add support for JVM features that are currently busted, or whatever your heart desires. Start here to save yourself a lot of head-scratching.
 
 **Contents**:
