@@ -74,4 +74,4 @@ You can also build and interact with a simple example application with:
 
     grunt examples
 
-The code is in [`docs/examples`](tree/master/docs/examples).
+The code is in [`docs/examples`](docs/examples).
