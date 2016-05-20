@@ -21,6 +21,8 @@ var options = {
 child_process.spawn('node', [path.resolve(__dirname, "dist/dev-cli/console/download_jdk.js")], options)
   .on('close', function(code) {
     checkCode(code);
+    // Copy distributed doppio.jar into /vendor
+    fs.writeFileSync(path.resolve(__dirname, 'vendor/java_home/lib/doppio.jar'), fs.readFileSync(path.resolve(__dirname, 'dist', 'doppio.jar')));
     ['dev', 'release', 'fast-dev'].forEach(function(buildType) {
       ['-cli', ''].forEach(function(buildTarget) {
         fs.symlinkSync(path.resolve(__dirname, 'vendor'), path.resolve(__dirname, 'dist/' + buildType + buildTarget + '/vendor'), 'junction');

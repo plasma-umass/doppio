@@ -1,4 +1,4 @@
-package classes.doppio;
+package doppio;
 
 public class JavaScript {
   /*

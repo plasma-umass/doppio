@@ -29,6 +29,7 @@
     "express": "^4.13.4",
     "grunt": "^1.0",
     "grunt-cli": "^1.2",
+    "grunt-contrib-compress": "^1.2.0",
     "grunt-contrib-connect": "^1.0",
     "grunt-contrib-copy": "^1.0",
     "grunt-contrib-uglify": "^1.0",

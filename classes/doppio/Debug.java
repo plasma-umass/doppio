@@ -1,4 +1,4 @@
-package classes.doppio;
+package doppio;
 /*
  * Contains methods useful for debugging Doppio. Note that some methods may not
  * work in the release build.

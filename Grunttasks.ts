@@ -1,3 +1,4 @@
+/// <reference path="typings/index.d.ts" />
 /**
  * Contains all of doppio's grunt build tasks in TypeScript.
  */
@@ -10,6 +11,7 @@ import karma = require('karma');
 import async = require('async');
 import express = require('express');
 import bodyParser = require('body-parser');
+import glob = require('glob');
 
 /**
  * Returns a webpack configuration for testing a particular DoppioJVM build.
@@ -354,6 +356,11 @@ export function setup(grunt: IGrunt) {
           cwd: "build/dev-cli",
           src: "**/*.d.ts",
           dest: "dist/typings"
+        }, {
+          expand: true,
+          cwd: 'vendor/java_home/lib',
+          src: 'doppio.jar',
+          dest: 'dist'
         }]
       },
       'dev-natives': getCopyNativesConfig('dev'),
@@ -399,6 +406,18 @@ export function setup(grunt: IGrunt) {
         expand: true,
         src: 'classes/test/*.java',
         ext: '.runout'
+      }
+    },
+    compress: {
+      doppio: {
+        options: {
+          archive: 'vendor/java_home/lib/doppio.jar',
+          mode: 'zip',
+          level: 0
+        },
+        files: [
+          { expand: true, cwd: 'classes/', src: 'doppio/**/*.class', dest: ''}
+        ]
       }
     },
     lineending: {
@@ -524,6 +543,7 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-merge-source-maps');
   grunt.loadNpmTasks('grunt-webpack');
   grunt.loadNpmTasks('grunt-newer');
+  grunt.loadNpmTasks('grunt-contrib-compress');
   // Load our custom tasks.
   grunt.loadTasks('tasks');
 
@@ -594,10 +614,22 @@ export function setup(grunt: IGrunt) {
     grunt.config.set('ts.options.failOnTypeErrors', true);
     grunt.config.set('ts.options.fast', 'watch');
   });
+  grunt.registerTask('generate_doppio_jar', 'Only generates doppio.jar if input classes have changed.', function() {
+    if (!fs.existsSync('vendor/java_home/lib/doppio.jar')) {
+      grunt.task.run('compress:doppio');
+    } else {
+      const zipModified = fs.statSync('vendor/java_home/lib/doppio.jar').mtime;
+      const filesModified = glob.sync('classes/doppio/**/*.java').map((file) => fs.statSync(file).mtime).filter((modTime) => modTime > zipModified);
+      if (filesModified.length > 0) {
+        grunt.task.run('compress:doppio');
+      }
+    }
+  });
   // Convenience task that combines several Java-related tasks.
   grunt.registerTask('java',
     ['find_native_java',
      'newer:javac',
+     'generate_doppio_jar',
      'newer:run_java',
      // Windows: Convert CRLF to LF.
      'newer:lineending']);

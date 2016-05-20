@@ -112,8 +112,8 @@ let cache: {[desc: string]: ClassData} = {};
  */
 function getClasses(item: string): string[] {
   let rv: string[] = [];
-  // Find classpath items that contains this item.
-  let cpItems: IClasspathItem[] = [], isDir: boolean;
+  // Find classpath items that contains this item as a directory.
+  let cpItems: IClasspathItem[] = [];
   for (let i = 0; i < classpath.length; i++) {
     let stat = classpath[i].tryStatSync(item);
     if (!stat) {
@@ -122,15 +122,22 @@ function getClasses(item: string): string[] {
     if (!stat) {
       continue;
     } else {
-      isDir = stat.isDirectory();
-      cpItems.push(classpath[i]);
+      if (!stat.isDirectory()) {
+        // Files only counts if it is a class file.
+        // Prevents an issue with the `doppio` shortcut counting as the `doppio` executable.
+        if (path.extname(item) === '.class') {
+          rv.push(file2desc(item));
+        }
+      } else {
+        cpItems.push(classpath[i]);
+      }
     }
   }
-  if (cpItems.length === 0) {
+  if (rv.length === 0 && cpItems.length === 0) {
     throw new Error(`Unable to find resource ${item}.`);
   }
 
-  if (isDir) {
+  if (cpItems.length > 0) {
     // Recursively process.
     let dirStack: string[] = [item];
     while (dirStack.length > 0) {
@@ -152,8 +159,6 @@ function getClasses(item: string): string[] {
         }
       }
     }
-  } else {
-    rv.push(path.extname(item) === ".class" ? file2desc(item) : `L${item.replace(/\\/g, '/')};`);
   }
   return rv;
 }

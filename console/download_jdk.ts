@@ -122,6 +122,11 @@ function writeJdkJson(): void {
       // Convert Windows-style paths to Unix-style paths
       classpath: classpath.map((cpItem) => cpItem.replace(/\\/g, '/'))
     };
+    // Ensure our generated doppio.jar is added.
+    if (jdkJson.classpath.filter((cpItem) => path.basename(cpItem) === 'doppio.jar').length === 0) {
+      jdkJson.classpath.push('lib/doppio.jar');
+    }
+
     fs.writeFileSync(path.resolve(JDK_PATH, JDK_FOLDER, "jdk.json"),
       new Buffer(JSON.stringify(jdkJson), "utf8"));
     // TypeScript typings, so it can be used as a module. :)
