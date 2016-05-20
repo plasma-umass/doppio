@@ -83,7 +83,7 @@ let parser = new OptionParser({
       optDesc: ':<directories and zip/jar files separated by :>',
       desc: 'set search path for bootstrap classes and resources'
     },
-    'PrintCompilation': {
+    'X:+PrintCompilation': {
       desc: 'Print JIT compilation details'
     }
   }
@@ -211,7 +211,7 @@ function java(args: string[], opts: JVMCLIOptions,
     }
   });
 
-  jvmState.setPrintJITCompilation(nonStandard.flag('PrintCompilation', false));
+  jvmState.setPrintJITCompilation(nonStandard.flag('X:+PrintCompilation', false));
 
   let vtraceMethods = nonStandard.stringOption('vtrace-methods', null);
   if (vtraceMethods) {
