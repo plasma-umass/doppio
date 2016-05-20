@@ -1,5 +1,6 @@
 /// <reference path="globals/async/index.d.ts" />
 /// <reference path="globals/bluebird/index.d.ts" />
+/// <reference path="globals/body-parser/index.d.ts" />
 /// <reference path="globals/browserify/index.d.ts" />
 /// <reference path="globals/dropboxjs/index.d.ts" />
 /// <reference path="globals/esprima/index.d.ts" />

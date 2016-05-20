@@ -7,16 +7,23 @@ import os = require('os');
 import _ = require('underscore');
 import webpack = require('webpack');
 import karma = require('karma');
+import async = require('async');
+import express = require('express');
+import bodyParser = require('body-parser');
 
 /**
  * Returns a webpack configuration for testing a particular DoppioJVM build.
  */
-function getWebpackTestConfig(target: string, optimize = false): webpack.Configuration {
+function getWebpackTestConfig(target: string, optimize = false, benchmark = false): webpack.Configuration {
   const config = getWebpackConfig(target, optimize);
   const entries: {[name: string]: string} = {};
-  // Worker and non-worker entries.
-  entries[`test-${target}/harness`] = path.resolve(__dirname, `build/scratch/test/${target}/tasks/test/harness`);
-  entries[`test-${target}/harness_webworker`] = path.resolve(__dirname, `build/scratch/test/${target}/tasks/test/harness_webworker`);
+  if (!benchmark) {
+    // Worker and non-worker entries.
+    entries[`test-${target}/harness`] = path.resolve(__dirname, `build/scratch/test/${target}/tasks/test/harness`);
+    entries[`test-${target}/harness_webworker`] = path.resolve(__dirname, `build/scratch/test/${target}/tasks/test/harness_webworker`);
+  } else {
+    entries[`${target}/benchmark_harness`] = path.resolve(__dirname, `build/scratch/test/release/tasks/test/benchmark_harness`);
+  }
   // Change entries.
   config.entry = entries;
   // Test config should run immediately; it is not a library.
@@ -71,6 +78,9 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
             break;
           case 'package.json':
             requireReq.request = path.resolve(__dirname, 'package.json');
+            break;
+          case 'benchmarks.json':
+            requireReq.request = path.resolve(__dirname, 'vendor', 'benchmarks', 'benchmarks.json');
             break;
         }
       })
@@ -139,13 +149,13 @@ function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']
  * Returns a configuration that copies the natives from the appropriate
  * -cli build to the browser build.
  */
-function getCopyNativesConfig(buildType: string, test = false): any {
+function getCopyNativesConfig(buildType: string, test = false, benchmark = false): any {
   return {
     files: [{
       expand: true,
-      cwd: test ? `build/scratch/test/${buildType}/src` : `build/${buildType}-cli/src`,
+      cwd: test ? `build/scratch/test/${benchmark ? 'release' : buildType}/src` : `build/${buildType}-cli/src`,
       src: 'natives/*.js*',
-      dest: `build/${test ? 'test-' : ''}${buildType}`
+      dest: `build/${benchmark ? 'benchmark' : `${test ? 'test-' : ''}${buildType}`}`
     }]
   };
 }
@@ -352,6 +362,7 @@ export function setup(grunt: IGrunt) {
       'test-dev-natives': getCopyNativesConfig('dev', true),
       'test-fast-dev-natives': getCopyNativesConfig('fast-dev', true),
       'test-release-natives': getCopyNativesConfig('release', true),
+      'benchmark-natives': getCopyNativesConfig('benchmark', true, true),
       'examples': {
         files: [{
           expand: true,
@@ -445,7 +456,8 @@ export function setup(grunt: IGrunt) {
       release: getWebpackConfig('release', true),
       'test-dev': getWebpackTestConfig('dev'),
       'test-fast-dev': getWebpackTestConfig('fast-dev'),
-      'test-release': getWebpackTestConfig('release', true)
+      'test-release': getWebpackTestConfig('release', true),
+      'benchmark': getWebpackTestConfig('benchmark', true, true)
     },
     "merge-source-maps": {
       options: {
@@ -616,6 +628,104 @@ export function setup(grunt: IGrunt) {
       fs.writeFileSync(`shims/${mod}.js`, `var BrowserFS = require('browserfs');module.exports=BrowserFS.BFSRequire('${mod}');\n`, { encoding: 'utf8'});
     });
     fs.writeFileSync(`shims/BFSBuffer.js`, `var BrowserFS = require('browserfs');module.exports=BrowserFS.BFSRequire('buffer').Buffer;`, { encoding: 'utf8' });
+  });
+
+  function benchmarkLocally(command: string, intOnly: boolean, outFile: string, done: (e?: Error) => void): void {
+    const benchmarks = require('./vendor/benchmarks/benchmarks.json');
+    const benchmarkNames = Object.keys(benchmarks);
+    const curdir = process.cwd();
+    const bmDir = path.resolve('vendor/benchmarks');
+    const results: {[name: string]: number} = {};
+    async.eachSeries(benchmarkNames, (benchmarkName: string, done: (e?: Error) => void) => {
+      console.log(benchmarkName);
+      const bm = benchmarks[benchmarkName];
+      process.chdir(bmDir);
+      if (bm.cwd) {
+        process.chdir(bm.cwd);
+      }
+      const start = process.hrtime();
+      let args = bm.args;
+      if (intOnly) {
+        args = ["-Xint"].concat(args);
+      }
+      grunt.util.spawn({
+        cmd: command,
+        args: args
+        /*opts: {
+          stdio: "inherit"
+        }*/
+      }, (err, result, code) => {
+        if (err || code !== 0) {
+          done(new Error("Benchmark failed."));
+        } else {
+          const time = process.hrtime(start);
+          // Convert to ms.
+          const timeMs = ((time[0] * 1000) + (time[1]/1000000))|0;
+          results[benchmarkName] = timeMs;
+          console.log(`${timeMs} ms`);
+          done();
+        }
+      });
+    }, (err?: Error) => {
+      process.chdir(curdir);
+      if (!err) {
+        grunt.file.write(outFile, JSON.stringify(results));
+        grunt.log.ok(`Wrote benchmark results to ${outFile}.`);
+      }
+      done(err);
+    });
+  }
+
+  grunt.registerTask('run-benchmark-native-java', 'Runs benchmarks locally', function() {
+    benchmarkLocally(grunt.config.get<string>("build.java"), true, path.resolve(__dirname, 'native_java.json'), this.async());
+  });
+  grunt.registerTask('run-benchmark-node', 'Runs benchmarks in DoppioJVM in node.', function() {
+    const done = this.async();
+    grunt.log.writeln(">>> Running with JIT. <<<");
+    benchmarkLocally(path.resolve(__dirname, 'doppio'), false, path.join(__dirname, 'node.json'), (e) => {
+      if (e) {
+        return done(e);
+      }
+      grunt.log.writeln(">>> Running without JIT. <<<");
+      benchmarkLocally(path.resolve(__dirname, 'doppio'), true, path.join(__dirname, 'node-int.json'), done);
+    });
+  });
+  grunt.registerTask('benchmark-node', ['release-cli', 'run-benchmark-node']);
+  grunt.registerTask("benchmark-native", ["java", "run-benchmark-native-java"]);
+  grunt.registerTask("benchmark-browser",
+    ['build-test-release',
+     'make_build_dir:benchmark',
+     'webpack-shims',
+     'webpack:benchmark',
+     'copy:benchmark-natives',
+     'listings:benchmark',
+     'benchmark-browser-server']);
+  grunt.registerTask("benchmark-browser-server", 'Runs an HTTP server for serving up benchmarks.', function() {
+    const done = this.async();
+    const app = express();
+    app.use(bodyParser.json());
+    app.use(express.static('.'));
+    app.put('/results/:name', function(req, res) {
+      const data = req.body;
+      grunt.log.ok(`Creating ${req.params.name}...`);
+      fs.writeFileSync(req.params.name, JSON.stringify(data));
+      res.end();
+    });
+    app.put('/done', function(req, res) {
+      grunt.log.ok("Your browser has informed us that it has completed running benchmarks.");
+      res.end();
+    });
+    app.get('/', function(req, res) {
+      res.set('Content-Type', 'text/html');
+      res.send(`<!doctype html>
+<html>
+  <script type="text/javascript" src="node_modules/browserfs/dist/browserfs.min.js"></script>
+  <script type="text/javascript" src="build/benchmark/benchmark_harness.js"></script>
+</html>`);
+    });
+    app.listen(3000, 'localhost', function() {
+      console.log("Visit http://localhost:3000 to run benchmarks in your browser.")
+    })
   });
 
   /**
