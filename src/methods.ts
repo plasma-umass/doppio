@@ -258,8 +258,16 @@ class TraceInfo {
 
 class Trace {
   private infos: TraceInfo[] = [];
+  private endPc: number = -1;
 
   constructor(public startPC: number, private code: Buffer, private method: Method) {
+  }
+
+  /**
+   * Emits a PC update statement at the end of the trace.
+   */
+  public emitEndPC(pc: number): void {
+    this.endPc = pc;
   }
 
   public addOp(pc: number, jitInfo: JitInfo) {
@@ -270,7 +278,9 @@ class Trace {
     if (this.infos.length > 1) {
       const symbolicStack: string[] = [];
       let symbolCount = 0;
-      let emitted = "";
+      // Ensure that the last statement sets the PC if the
+      // last opcode doesn't.
+      let emitted = this.endPc > -1 ? `f.pc=${this.endPc};` : "";
       for (let i = 0; i < this.infos.length; i++) {
         const info = this.infos[i];
         const jitInfo = info.jitInfo;
@@ -495,6 +505,7 @@ export class Method extends AbstractMethodField {
       }
       return argMaker + `
 var methodReference${suffix}=f.method.cls.constantPool.get(${index});
+f.pc=${pc};
 methodReference${suffix}.jsConstructor[methodReference${suffix}.fullSignature](t,args${suffix});
 f.returnToThreadLoop=true;
 ${onSuccess}`;
@@ -513,7 +524,7 @@ ${onSuccess}`;
       if ((paramSize > pops.length) && (pops.length > 0)) {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
-      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop();"}
+      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop()"};f.pc=${pc};
 if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.signature}'](t,args${suffix});f.returnToThreadLoop=true;${onSuccess}}else{${onError}}`;
     }};
 
@@ -530,7 +541,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.signature}'](t,a
       if ((paramSize > pops.length) && (pops.length > 0)) {
         argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
       }
-      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop();"}
+      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop()"};f.pc=${pc};
 if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}'](t, args${suffix});f.returnToThreadLoop=true;${onSuccess}}else{${onError}}`;
     }};
   }
@@ -539,7 +550,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
       console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
     }
-    const code = this.code.code;
+    const code = this.getCodeAttribute().getCode();
     let trace: Trace = null;
     const _this = this;
     let done = false;
@@ -598,6 +609,9 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
           }
         }
         this.failedCompile[i] = true;
+        if (trace) {
+          trace.emitEndPC(i);
+        }
         closeCurrentTrace();
       }
       i += opcodeSize[enums.OpcodeLayouts[op]];
