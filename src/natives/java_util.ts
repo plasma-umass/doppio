@@ -20,6 +20,9 @@ import crc32 = require('pako/lib/zlib/crc32');
 import adler32 = require('pako/lib/zlib/adler32');
 import ZStreamCons = require('pako/lib/zlib/zstream');
 import GZHeader = require('pako/lib/zlib/gzheader');
+import i82u8 = util.i82u8;
+import isInt8Array = util.isInt8Array;
+import buff2i8 = util.buff2i8;
 
 import ZStream = Pako.ZStream;
 import ZlibReturnCode = Pako.ZlibReturnCode;
@@ -30,6 +33,14 @@ const MAX_WBITS = 15;
 // For type information only.
 import {default as TZipFS, CentralDirectory as TCentralDirectory} from 'browserfs/dist/node/backend/ZipFS';
 declare var registerNatives: (defs: any) => void;
+
+let CanUseCopyFastPath = false;
+if (typeof Int8Array !== "undefined") {
+  let i8arr = new Int8Array(1);
+  let b = new Buffer(<any> i8arr.buffer);
+  i8arr[0] = 100;
+  CanUseCopyFastPath = i8arr[0] == b.readInt8(0);
+}
 
 let ZipFiles: {[id: number]: TZipFS} = {};
 let ZipEntries: {[id: number]: TCentralDirectory} = {};
@@ -88,102 +99,6 @@ function CloseZStream(id: number): void {
 }
 function GetZStream(thread: JVMThread, id: number): ZStream {
   return GetItem(thread, id, ZStreams, `Inflater not found.`);
-}
-
-let CanUseCopyFastPath = false;
-if (typeof Int8Array !== "undefined") {
-  let i8arr = new Int8Array(1);
-  let b = new Buffer(<any> i8arr.buffer);
-  i8arr[0] = 100;
-  CanUseCopyFastPath = i8arr[0] == b.readInt8(0);
-}
-
-interface Arrayish {
-  [idx: number]: number;
-}
-
-function isUint8Array(arr: Arrayish): arr is Uint8Array {
-  if (arr && typeof(Uint8Array) !== "undefined" && arr instanceof Uint8Array) {
-    return true;
-  }
-  return false;
-}
-
-function isInt8Array(arr: Arrayish): arr is Int8Array {
-  if (arr && typeof(Int8Array) !== "undefined" && arr instanceof Int8Array) {
-    return true;
-  }
-  return false;
-}
-
-/**
- * Converts an Int8Array or an array of 8-bit signed ints into
- * a Uint8Array or an array of 8-bit unsigned ints.
- */
-function i82u8(arr: number[] | Int8Array, start: number, len: number): number[] | Uint8Array {
-  if (isInt8Array(arr)) {
-    return new Uint8Array(arr.buffer, arr.byteOffset + start, len);
-  } else if (Array.isArray(arr)) {
-    if (typeof(Uint8Array) !== "undefined") {
-      var i8arr = new Int8Array(len);
-      if (start === 0 && len === arr.length) {
-        i8arr.set(arr, 0);
-      } else {
-        i8arr.set(arr.slice(start, start + len), 0);
-      }
-      return new Uint8Array(i8arr.buffer);
-    } else {
-      // Slow way.
-      let rv = new Array<number>(len);
-      for (let i = 0; i < len; i++) {
-        rv[i] = arr[start + i] & 0xFF;
-      }
-      return rv;
-    }
-  } else {
-    throw new TypeError(`Invalid array.`);
-  }
-}
-
-/**
- * Converts an Uint8Array or an array of 8-bit unsigned ints into
- * an Int8Array or an array of 8-bit signed ints.
- */
-function u82i8(arr: number[] | Uint8Array, start: number, len: number): number[] | Int8Array {
-  if (isUint8Array(arr)) {
-    return new Int8Array(arr.buffer, arr.byteOffset + start, len);
-  } else if (Array.isArray(arr)) {
-    if (typeof(Int8Array) !== "undefined") {
-      var u8arr = new Uint8Array(len);
-      if (start === 0 && len === arr.length) {
-        u8arr.set(arr, 0);
-      } else {
-        u8arr.set(arr.slice(start, start + len), 0);
-      }
-      return new Int8Array(u8arr.buffer);
-    } else {
-      // Slow way.
-      let rv = new Array<number>(len);
-      for (let i = 0; i < len; i++) {
-        rv[i] = arr[start + i];
-        if (rv[i] > 127) {
-          // Sign extend.
-          rv[i] |= 0xFFFFFF80
-        }
-      }
-      return rv;
-    }
-  } else {
-    throw new TypeError(`Invalid array.`);
-  }
-}
-
-/**
- * Converts a buffer into either an Int8Array, or an array of signed 8-bit ints.
- */
-function buff2i8(buff: NodeBuffer): Int8Array | number[] {
-  let arrayish = BFSUtils.buffer2Arrayish(buff);
-  return u82i8(<any> arrayish, 0, arrayish.length);
 }
 
 /**
@@ -314,12 +229,12 @@ class java_util_zip_Deflater {
    */
   public static 'init(IIZ)J'(thread: JVMThread, level: number, strategy: number, nowrap: number): Long {
     let DEF_MEM_LEVEL = 8; // Zlib recommended default
-    let Z_DEFLATED = 8;    // This value is in the js version of pako under pako.Z_DEFLATED. 
+    let Z_DEFLATED = 8;    // This value is in the js version of pako under pako.Z_DEFLATED.
     // Possibly it is set to private in the Typescript version. The default value is 8, so this should work fine
 
     let strm = new ZStreamCons();
     let ret = deflate.deflateInit2(strm, level, Z_DEFLATED, nowrap ? -MAX_WBITS : MAX_WBITS, DEF_MEM_LEVEL, strategy);
-    
+
     if (ret != ZlibReturnCode.Z_OK) {
     let msg = ((strm.msg) ? strm.msg :
       (ret == ZlibReturnCode.Z_STREAM_ERROR) ?
@@ -363,7 +278,7 @@ class java_util_zip_Deflater {
       let level = javaThis['java/util/zip/Deflater/level'];
       let strategy = javaThis['java/util/zip/Deflater/level'];
       //deflateParams is not yet supported by pako. We'll open a new ZStream with the new parameters instead.
-      // res = deflate.deflateParams(strm, level, strategy); 
+      // res = deflate.deflateParams(strm, level, strategy);
       let newStream = new ZStreamCons();
       let res = deflate.deflateInit2(newStream, level, strm.state.method, strm.state.windowBits, strm.state.memLevel, strategy);
       ZStreams[addr.toNumber()] = newStream;

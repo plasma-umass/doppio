@@ -251,6 +251,15 @@ class JVM {
       });
     });
 
+    /**
+     * Task #7: Initialize DoppioJVM's security provider for things like cryptographically strong RNG.
+     */
+    bootupTasks.push((next: (err?: any) => void) => {
+      this.bsCl.initializeClass(firstThread, 'Ldoppio/security/DoppioProvider;', (cdata) => {
+        next(cdata ? null : new Error(`Failed to initialize DoppioProvider.`));
+      });
+    });
+
     // Perform bootup tasks, and then trigger the callback function.
     util.asyncSeries(bootupTasks, (err?: any): void => {
       // XXX: Without setImmediate, the firstThread won't clear out the stack
@@ -564,6 +573,8 @@ function require(name) {
       return crc32;
     case 'pako/lib/zlib/adler32':
       return adler32;
+    case 'crypto':
+      return util.are_in_browser() ? null : savedRequire('crypto');
     default:
       return savedRequire(name);
   }

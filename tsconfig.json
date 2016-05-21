@@ -33,6 +33,7 @@
         "src/parker.ts",
         "src/methods.ts",
         "src/Monitor.ts",
+        "src/natives/doppio.ts",
         "src/natives/classes_doppio.ts",
         "src/natives/java_io.ts",
         "src/natives/java_lang.ts",

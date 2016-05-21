@@ -3,10 +3,13 @@ import gLong = require('./gLong');
 import threading = require('./threading');
 import enums = require('./enums');
 import JVMTypes = require('../includes/JVMTypes');
+import BrowserFS = require('browserfs');
 
 // For type information
 import ClassLoader = require('./ClassLoader');
 import ClassData = require('./ClassData');
+
+let BFSUtils = BrowserFS.BFSRequire('bfs_utils');
 
 /**
  * util contains stateless utility functions that are used around Doppio's
@@ -258,6 +261,94 @@ export function byteArray2Buffer(bytes: number[] | Int8Array, offset: number = 0
     }
     return buff;
   }
+}
+
+export interface Arrayish {
+  [idx: number]: number;
+}
+
+export function isUint8Array(arr: Arrayish): arr is Uint8Array {
+  if (arr && typeof(Uint8Array) !== "undefined" && arr instanceof Uint8Array) {
+    return true;
+  }
+  return false;
+}
+
+export function isInt8Array(arr: Arrayish): arr is Int8Array {
+  if (arr && typeof(Int8Array) !== "undefined" && arr instanceof Int8Array) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Converts an Int8Array or an array of 8-bit signed ints into
+ * a Uint8Array or an array of 8-bit unsigned ints.
+ */
+export function i82u8(arr: number[] | Int8Array, start: number, len: number): number[] | Uint8Array {
+  if (isInt8Array(arr)) {
+    return new Uint8Array(arr.buffer, arr.byteOffset + start, len);
+  } else if (Array.isArray(arr)) {
+    if (typeof(Uint8Array) !== "undefined") {
+      var i8arr = new Int8Array(len);
+      if (start === 0 && len === arr.length) {
+        i8arr.set(arr, 0);
+      } else {
+        i8arr.set(arr.slice(start, start + len), 0);
+      }
+      return new Uint8Array(i8arr.buffer);
+    } else {
+      // Slow way.
+      let rv = new Array<number>(len);
+      for (let i = 0; i < len; i++) {
+        rv[i] = arr[start + i] & 0xFF;
+      }
+      return rv;
+    }
+  } else {
+    throw new TypeError(`Invalid array.`);
+  }
+}
+
+/**
+ * Converts an Uint8Array or an array of 8-bit unsigned ints into
+ * an Int8Array or an array of 8-bit signed ints.
+ */
+export function u82i8(arr: number[] | Uint8Array, start: number, len: number): number[] | Int8Array {
+  if (isUint8Array(arr)) {
+    return new Int8Array(arr.buffer, arr.byteOffset + start, len);
+  } else if (Array.isArray(arr)) {
+    if (typeof(Int8Array) !== "undefined") {
+      var u8arr = new Uint8Array(len);
+      if (start === 0 && len === arr.length) {
+        u8arr.set(arr, 0);
+      } else {
+        u8arr.set(arr.slice(start, start + len), 0);
+      }
+      return new Int8Array(u8arr.buffer);
+    } else {
+      // Slow way.
+      let rv = new Array<number>(len);
+      for (let i = 0; i < len; i++) {
+        rv[i] = arr[start + i];
+        if (rv[i] > 127) {
+          // Sign extend.
+          rv[i] |= 0xFFFFFF80
+        }
+      }
+      return rv;
+    }
+  } else {
+    throw new TypeError(`Invalid array.`);
+  }
+}
+
+/**
+ * Converts a buffer into either an Int8Array, or an array of signed 8-bit ints.
+ */
+export function buff2i8(buff: NodeBuffer): Int8Array | number[] {
+  let arrayish = BFSUtils.buffer2Arrayish(buff);
+  return u82i8(<any> arrayish, 0, arrayish.length);
 }
 
 // Call this ONLY on the result of two non-NaN numbers.

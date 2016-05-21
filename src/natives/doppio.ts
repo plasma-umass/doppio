@@ -1,10 +1,14 @@
 import JVMTypes = require('../../includes/JVMTypes');
 import * as Doppio from '../doppiojvm';
 import JVMThread = Doppio.VM.Threading.JVMThread;
+import ArrayClassData = Doppio.VM.ClassFile.ArrayClassData;
 import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
 import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
+import IJVMConstructor = Doppio.VM.ClassFile.IJVMConstructor;
+import * as NodeCrypto from 'crypto';
 declare var registerNatives: (defs: any) => void;
+declare var msCrypto: Crypto;
 
 class doppio_Debug {
 
@@ -46,7 +50,62 @@ class doppio_JavaScript {
 
 }
 
+class doppio_security_BrowserPRNG {
+  private static crypto = typeof(crypto) !== 'undefined' ? crypto : typeof(msCrypto) !== 'undefined' ? msCrypto : null;
+
+  public static 'isAvailable()Z'(thread: JVMThread): boolean {
+    // !! makes it a boolean.
+    const crypto = doppio_security_BrowserPRNG.crypto;
+    return !!(doppio_security_BrowserPRNG.crypto && doppio_security_BrowserPRNG.crypto.getRandomValues);
+  }
+
+  public static 'engineSetSeed([B)V'(thread: JVMThread, javaThis: JVMTypes.doppio_security_BrowserPRNG, seed: JVMTypes.JVMArray<number>): void {
+    thread.throwNewException('Ljava/security/ProviderException;', 'engineSetSeed() failed.');
+  }
+
+  public static 'engineNextBytes([B)V'(thread: JVMThread, javaThis: JVMTypes.doppio_security_BrowserPRNG, bytes: JVMTypes.JVMArray<number>): void {
+    const crypto = doppio_security_BrowserPRNG.crypto;
+    crypto.getRandomValues(<Int8Array> <any> bytes.array);
+  }
+
+  public static 'engineGenerateSeed(I)[B'(thread: JVMThread, javaThis: JVMTypes.doppio_security_BrowserPRNG, numBytes: number): JVMTypes.JVMArray<number> {
+    const crypto = doppio_security_BrowserPRNG.crypto;
+    const bytes = util.newArrayFromClass(thread, <ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B'), numBytes);
+    crypto.getRandomValues(<Int8Array> <any> bytes.array);
+    return bytes;
+  }
+
+}
+
+class doppio_security_NodePRNG {
+  public static 'isAvailable()Z'(thread: JVMThread): boolean {
+    return !util.are_in_browser();
+  }
+
+  public static 'engineSetSeed([B)V'(thread: JVMThread, javaThis: JVMTypes.doppio_security_NodePRNG, seed: JVMTypes.JVMArray<number>): void {
+    thread.throwNewException('Ljava/security/ProviderException;', 'engineSetSeed() failed.');
+  }
+
+  public static 'engineNextBytes([B)V'(thread: JVMThread, javaThis: JVMTypes.doppio_security_NodePRNG, bytes: JVMTypes.JVMArray<number>): void {
+    const array = bytes.array;
+    const len = array.length;
+    const data = NodeCrypto.randomBytes(len);
+    for (let i = 0; i < len; i++) {
+      array[i] = data.readInt8(i);
+    }
+  }
+
+  public static 'engineGenerateSeed(I)[B'(thread: JVMThread, javaThis: JVMTypes.doppio_security_NodePRNG, numBytes: number): JVMTypes.JVMArray<number> {
+    const data = NodeCrypto.randomBytes(numBytes);
+    const array = util.buff2i8(data);
+    return util.newArrayFromDataWithClass(thread, <ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B'), <any> array);
+  }
+
+}
+
 registerNatives({
   'doppio/Debug': doppio_Debug,
-  'doppio/JavaScript': doppio_JavaScript
+  'doppio/JavaScript': doppio_JavaScript,
+  "doppio/security/BrowserPRNG": doppio_security_BrowserPRNG,
+  "doppio/security/NodePRNG": doppio_security_NodePRNG
 });

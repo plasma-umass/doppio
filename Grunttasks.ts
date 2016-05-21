@@ -203,7 +203,9 @@ export function setup(grunt: IGrunt) {
           'java.lang.invoke.MethodHandleNatives$Constants',
           'java.lang.reflect.InvocationTargetException',
           'java.nio.DirectByteBuffer',
-          'java.security.PrivilegedActionException'],
+          'java.security.PrivilegedActionException',
+          'java.security.ProviderException',
+          'doppio.security.DoppioProvider'],
         headersOnly: true
       },
       default: {}
@@ -389,7 +391,7 @@ export function setup(grunt: IGrunt) {
       default: {
         files: [{
           expand: true,
-          src: 'classes/+(awt|demo|doppio|test|util)/*.java',
+          src: ['classes/+(awt|demo|test|util)/*.java', 'classes/doppio/**/*.java'],
           ext: '.class'
         }]
       },
