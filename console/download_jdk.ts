@@ -154,6 +154,12 @@ if (!doesJDKExist()) {
         console.error(`Failed to download JDK: ${err}.`)
         process.exit(1);
       } else {
+        // Remove doppio.jar from older version of JCL;
+        // we build it in-repo now.
+        const DOPPIO_JAR_PATH = path.resolve(JDK_PATH, JDK_FOLDER, 'lib', 'doppio.jar');
+        if (fs.existsSync(DOPPIO_JAR_PATH)) {
+          fs.unlinkSync(DOPPIO_JAR_PATH);
+        }
         console.log(`Successfully downloaded JDK.`);
         writeJdkJson();
       }
