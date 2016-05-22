@@ -17,6 +17,8 @@ import Parker = require('./parker');
 import ThreadPool from './threadpool';
 import logging = require('./logging');
 import JDKInfo = require('../vendor/java_home/jdk.json');
+import {default as JIT, dumpStats} from './jit';
+
 declare var RELEASE: boolean;
 
 // Do not import, otherwise TypeScript will prune it.
@@ -82,7 +84,6 @@ class JVM {
   private enableSystemAssertions: boolean = false;
   private enabledAssertions: boolean | string[] = false;
   private disabledAssertions: string[] = [];
-  private printJITCompilation: boolean = false;
   private systemClassLoader: ClassLoader.ClassLoader = null;
   private nextRef: number = 0;
   // Set of all of the methods we want vtrace to be enabled on.
@@ -99,6 +100,7 @@ class JVM {
 
   // is JIT disabled?
   private jitDisabled: boolean = false;
+  private jit: JIT;
   private dumpJITStats: boolean = false;
 
   /**
@@ -111,6 +113,7 @@ class JVM {
     opts = <interfaces.JVMOptions> util.merge(JVM.getDefaultOptions(opts.doppioHomePath), opts);
 
     this.jitDisabled = opts.intMode;
+    this.jit = new JIT(opts.printCompilation);
     this.dumpJITStats = opts.dumpJITStats;
 
     var bootstrapClasspath: string[] = opts.bootstrapClasspath.map((p: string): string => path.resolve(p)),
@@ -301,7 +304,8 @@ class JVM {
       tmpDir: '/tmp',
       responsiveness: 1000,
       intMode: false,
-      dumpJITStats: false
+      dumpJITStats: false,
+      printCompilation: false
     };
   }
 
@@ -455,7 +459,7 @@ class JVM {
       case JVMStatus.TERMINATING:
 
         if (!RELEASE && this.dumpJITStats) {
-          methods.dumpStats();
+          dumpStats();
         }
 
         this.status = JVMStatus.TERMINATED;
@@ -770,14 +774,6 @@ eval(mod);
     return this.disabledAssertions;
   }
 
-  public setPrintJITCompilation(enabledOrNot: boolean) {
-    this.printJITCompilation = enabledOrNot;
-  }
-
-  public shouldPrintJITCompilation(): boolean {
-    return this.printJITCompilation;
-  }
-
   /**
    * Specifies a directory to dump compiled code to.
    */
@@ -807,6 +803,15 @@ eval(mod);
    */
   public dumpState(filename: string, cb: (er: any) => void): void {
     fs.appendFile(filename, this.threadPool.getThreads().map((t: JVMThread) => `Thread ${t.getRef()}:\n` + t.getPrintableStackTrace()).join("\n\n"), cb);
+  }
+
+  public jitMethod(thread: JVMThread, method: methods.Method): boolean {
+    if (!this.jitDisabled) {
+      this.jit.jit(thread, method);
+      return true;
+    } else {
+      return false;
+    }
   }
 }
 

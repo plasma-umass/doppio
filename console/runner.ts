@@ -16,6 +16,12 @@ function doneCb(status: number): void {
 
 var jvmState: JVM;
 
+// Node v6 shenanigans.
+[process.stdout, process.stderr].forEach((s: any) => {
+  s && s.isTTY && s._handle && s._handle.setBlocking &&
+    s._handle.setBlocking(true)
+})
+
 process.on('SIGINT', function () {
   console.error('Doppio caught SIGINT');
   process.exit(0);

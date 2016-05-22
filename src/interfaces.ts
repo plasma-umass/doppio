@@ -42,6 +42,8 @@ export interface JVMOptions {
   intMode?: boolean;
   // Dump JIT Statistics
   dumpJITStats?: boolean;
+  // -XX:+PrintCompilation equivalent: Prints JIT-compiled functions.
+  printCompilation?: boolean;
 }
 
 /**

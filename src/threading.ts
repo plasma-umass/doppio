@@ -201,16 +201,6 @@ export class PreAllocatedStack {
   }
 }
 
-const jitUtil = {
-  isNull: opcodes.isNull,
-  resolveCPItem: opcodes.resolveCPItem,
-  throwException: opcodes.throwException,
-  gLong: gLong,
-  float2int: util.float2int,
-  wrapFloat: util.wrapFloat,
-  Constants: enums.Constants
-};
-
 /**
  * Represents a stack frame for a bytecode method.
  */
@@ -229,7 +219,6 @@ export class BytecodeStackFrame implements IStackFrame {
    */
   constructor(method: methods.Method, args: any[]) {
     this.method = method;
-    method.incrBBEntries();
     assert(!method.accessFlags.isNative(), 'Cannot run a native method using a BytecodeStackFrame.');
     // @todo This should be a runtime error, since reflection can cause you to
     // try to do this.
@@ -269,38 +258,30 @@ export class BytecodeStackFrame implements IStackFrame {
     // from the previous time this method was run, and is meaningless.
     this.returnToThreadLoop = false;
 
-    if (thread.getJVM().isJITDisabled()) {
-      // Interpret until we get the signal to return to the thread loop.
-      while (!this.returnToThreadLoop) {
-        var opCode = code.readUInt8(this.pc);
-        if (!RELEASE && logging.log_level === logging.VTRACE) {
-          vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
-        }
-        opcodeTable[opCode](thread, this, code);
-        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
-        }
+    // Interpret until we get the signal to return to the thread loop.
+    while (!this.returnToThreadLoop) {
+      var opCode = code.readUInt8(this.pc);
+      if (!RELEASE && logging.log_level === logging.VTRACE) {
+        vtrace(`  ${this.pc} ${annotateOpcode(opCode, method, code, this.pc)}`);
       }
-    } else {
-      // Run until we get the signal to return to the thread loop.
-      while (!this.returnToThreadLoop) {
-        var op = method.getOp(this.pc, code, thread);
-        if (typeof op === 'function') {
-          if (!RELEASE && logging.log_level === logging.VTRACE) {
-            vtrace(`  ${this.pc} running JIT compiled function:\n${op.toString()}`);
-          }
-          op(this, thread, jitUtil);
-        } else {
-          if (!RELEASE && logging.log_level === logging.VTRACE) {
-            vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
-          }
-          opcodeTable[op](thread, this, code);
-        }
-        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
-        }
+      opcodeTable[opCode](thread, this, code);
+      if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
+        vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
       }
     }
+  }
+
+  public replaceAsJitFrame(thread: JVMThread): void {
+    // Transfer state over to the JIT stack frame.
+    const frame = new JITStackFrame(this.method, this.locals);
+    frame.opStack = this.opStack;
+    frame.lockedMethodLock = this.lockedMethodLock;
+    frame.pc = this.pc;
+    // Replace my frame on the call stack with the new frame.
+    thread.framePop();
+    thread.framePush(frame);
+    // Force exit the bytecode loop to segue into JIT execution.
+    this.returnToThreadLoop = true;
   }
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
@@ -437,6 +418,54 @@ export class BytecodeStackFrame implements IStackFrame {
       stack: this.opStack.sliceFromBottom(0),
       locals: this.locals.slice(0)
     };
+  }
+}
+
+
+const jitUtil = {
+  isNull: opcodes.isNull,
+  resolveCPItem: opcodes.resolveCPItem,
+  throwException: opcodes.throwException,
+  gLong: gLong,
+  float2int: util.float2int,
+  wrapFloat: util.wrapFloat,
+  Constants: enums.Constants
+};
+
+/**
+ * Stack frame for a JITted method.
+ */
+export class JITStackFrame extends BytecodeStackFrame implements IStackFrame {
+  public run(thread: JVMThread): void {
+    var method = this.method, code = this.method.getCodeAttribute().getCode();
+    if (!RELEASE && logging.log_level >= logging.TRACE) {
+      if (this.pc === 0) {
+        trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [JIT]:`);
+      } else {
+        trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [JIT]:`);
+      }
+      vtrace(`  S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+    }
+
+    if (method.accessFlags.isSynchronized() && !this.lockedMethodLock) {
+      // We are starting a synchronized method! These must implicitly enter
+      // their respective locks.
+      this.lockedMethodLock = method.methodLock(thread, this).enter(thread, () => {
+        // Lock succeeded. Set the flag so we don't attempt to reacquire it
+        // when this method reruns.
+        this.lockedMethodLock = true;
+      });
+      if (!this.lockedMethodLock) {
+        // Failed. Thread is automatically blocked. Return.
+        assert(thread.getStatus() === ThreadStatus.BLOCKED, "Failed to enter a monitor. Thread must be BLOCKED.");
+        return;
+      }
+    }
+
+    // Reset the returnToThreadLoop switch. The current value is leftover
+    // from the previous time this method was run, and is meaningless.
+    this.returnToThreadLoop = false;
+    method.runFcn(thread, this, code, jitUtil, opcodes.LookupTable);
   }
 }
 
@@ -1099,6 +1128,14 @@ export class JVMThread implements Thread {
    */
   public framePop(): void {
     this.stack.pop();
+  }
+
+  /**
+   * Pushes a new stack frame on to the callstack.
+   * WARNING: SHOULD ONLY BE CALLED FOR ON STACK REPLACEMENT (e.g. JIT).
+   */
+  public framePush(frame: IStackFrame): void {
+    this.stack.push(frame);
   }
 
   /**

@@ -200,6 +200,8 @@ function java(args: string[], opts: JVMCLIOptions,
     opts.nativeClasspath = opts.nativeClasspath.concat(nativeClasspath.split(':'));
   }
 
+  opts.printCompilation = nonStandard.flag('X:+PrintCompilation', false);
+
   // Construct the JVM.
   jvmState = new JVM(opts, (err?: any): void => {
     if (err) {
@@ -210,8 +212,6 @@ function java(args: string[], opts: JVMCLIOptions,
       launchJvm(standard, opts, jvmState, doneCb, jvmStarted);
     }
   });
-
-  jvmState.setPrintJITCompilation(nonStandard.flag('X:+PrintCompilation', false));
 
   let vtraceMethods = nonStandard.stringOption('vtrace-methods', null);
   if (vtraceMethods) {

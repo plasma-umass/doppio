@@ -27,6 +27,8 @@
         "src/heap.ts",
         "src/interfaces.ts",
         "src/jar.ts",
+        "src/jit.ts",
+        "src/jit_info.ts",
         "src/java_cli.ts",
         "src/jvm.ts",
         "src/logging.ts",

@@ -962,7 +962,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -975,7 +975,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -988,7 +988,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1001,7 +1001,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1014,7 +1014,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1027,7 +1027,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1043,7 +1043,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1058,7 +1058,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1073,7 +1073,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1088,7 +1088,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1103,7 +1103,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1118,7 +1118,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1133,7 +1133,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1148,7 +1148,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1161,7 +1161,7 @@ export class Opcodes {
     const offset = code.readInt16BE(pc + 1);
     frame.pc += offset;
     if (offset < 0) {
-      frame.method.incrBBEntries();
+      frame.method.jitCheck(thread, frame);
     }
   }
 
@@ -1171,7 +1171,7 @@ export class Opcodes {
     const offset = code.readInt16BE(pc + 1);
     frame.pc += offset;
     if (offset < 0) {
-      frame.method.incrBBEntries();
+      frame.method.jitCheck(thread, frame);
     }
   }
 
@@ -1211,7 +1211,7 @@ export class Opcodes {
         const offset = code.readInt32BE(pc + 4);
         frame.pc += offset;
         if (offset < 0) {
-          frame.method.incrBBEntries();
+          frame.method.jitCheck(thread, frame);
         }
         return;
       }
@@ -1230,6 +1230,7 @@ export class Opcodes {
         return;
       }
     }
+    frame.method.jitCheck(thread, frame);
     thread.asyncReturn();
   }
 
@@ -1244,6 +1245,7 @@ export class Opcodes {
         return;
       }
     }
+    frame.method.jitCheck(thread, frame);
     thread.asyncReturn(frame.opStack.bottom());
   }
 
@@ -1262,6 +1264,7 @@ export class Opcodes {
         return;
       }
     }
+    frame.method.jitCheck(thread, frame);
     thread.asyncReturn(frame.opStack.bottom(), null);
   }
 
@@ -1955,7 +1958,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1968,7 +1971,7 @@ export class Opcodes {
       const offset = code.readInt16BE(pc + 1);
       frame.pc += offset;
       if (offset < 0) {
-        frame.method.incrBBEntries();
+        frame.method.jitCheck(thread, frame);
       }
     } else {
       frame.pc += 3;
@@ -1980,7 +1983,7 @@ export class Opcodes {
     const offset = code.readInt32BE(pc + 1);
     frame.pc += offset;
     if (offset < 0) {
-      frame.method.incrBBEntries();
+      frame.method.jitCheck(thread, frame);
     }
   }
 

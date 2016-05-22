@@ -14,7 +14,6 @@ import Monitor = require('./Monitor');
 import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
 import global = require('./global');
-import {JitInfo, opJitInfo} from './jit';
 
 declare var RELEASE: boolean;
 if (typeof RELEASE === 'undefined') global.RELEASE = false;
@@ -227,113 +226,6 @@ export class Field extends AbstractMethodField {
   }
 }
 
-const opcodeSize: number[] = function() {
-  const table:number[] = [];
-  const layoutType = enums.OpcodeLayoutType;
-
-  table[layoutType.OPCODE_ONLY] = 1;
-  table[layoutType.CONSTANT_POOL_UINT8] = 2;
-  table[layoutType.CONSTANT_POOL] = 3;
-  table[layoutType.CONSTANT_POOL_AND_UINT8_VALUE] = 4;
-  table[layoutType.UINT8_VALUE] = 2;
-  table[layoutType.UINT8_AND_INT8_VALUE] = 3;
-  table[layoutType.INT8_VALUE] = 2;
-  table[layoutType.INT16_VALUE] = 3;
-  table[layoutType.INT32_VALUE] = 5;
-  table[layoutType.ARRAY_TYPE] = 2;
-  table[layoutType.WIDE] = 1;
-
-  return table;
-}();
-
-class TraceInfo {
-  pops: string[] = [];
-  pushes: string[] = [];
-  prefixEmit: string = "";
-  onErrorPushes: string[];
-
-  constructor(public pc: number, public jitInfo: JitInfo) {
-  }
-}
-
-class Trace {
-  private infos: TraceInfo[] = [];
-  private endPc: number = -1;
-
-  constructor(public startPC: number, private code: Buffer, private method: Method) {
-  }
-
-  /**
-   * Emits a PC update statement at the end of the trace.
-   */
-  public emitEndPC(pc: number): void {
-    this.endPc = pc;
-  }
-
-  public addOp(pc: number, jitInfo: JitInfo) {
-    this.infos.push(new TraceInfo(pc, jitInfo));
-  }
-
-  public close(thread: threading.JVMThread): Function {
-    if (this.infos.length > 1) {
-      const symbolicStack: string[] = [];
-      let symbolCount = 0;
-      // Ensure that the last statement sets the PC if the
-      // last opcode doesn't.
-      let emitted = this.endPc > -1 ? `f.pc=${this.endPc};` : "";
-      for (let i = 0; i < this.infos.length; i++) {
-        const info = this.infos[i];
-        const jitInfo = info.jitInfo;
-
-        const pops = info.pops;
-        const normalizedPops = jitInfo.pops < 0 ? Math.min(-jitInfo.pops, symbolicStack.length) : jitInfo.pops;
-        for (let j = 0; j < normalizedPops; j++) {
-          if (symbolicStack.length > 0) {
-            pops.push(symbolicStack.pop());
-          } else {
-            const symbol = "s" + symbolCount++;
-            info.prefixEmit += `var ${symbol} = f.opStack.pop();`;
-            pops.push(symbol);
-          }
-        }
-
-        info.onErrorPushes = symbolicStack.slice();
-
-        const pushes = info.pushes;
-        for (let j = 0; j < jitInfo.pushes; j++) {
-          const symbol = "s" + symbolCount++;
-          symbolicStack.push(symbol);
-          pushes.push(symbol);
-        }
-
-      }
-
-      if (symbolicStack.length === 1) {
-        emitted += `f.opStack.push(${symbolicStack[0]});`;
-      } else if (symbolicStack.length > 1) {
-        emitted += `f.opStack.pushAll(${symbolicStack.join(',')});`;
-      }
-
-      for (let i = this.infos.length-1; i >= 0; i--) {
-        const info = this.infos[i];
-        const jitInfo = info.jitInfo;
-        emitted = info.prefixEmit + jitInfo.emit(info.pops, info.pushes, ""+i, emitted, this.code, info.pc, info.onErrorPushes, this.method);
-      }
-
-      if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
-        console.log(`Emitted trace of ${this.infos.length} ops: ` + emitted);
-      }
-      // f = frame, t = thread, u = util
-      return new Function("f", "t", "u", emitted);
-    } else {
-      if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
-        console.log(`Trace was cancelled`);
-      }
-      return null;
-    }
-  }
-}
-
 export class Method extends AbstractMethodField {
   /**
    * The method's parameters, if any, in descriptor form.
@@ -357,18 +249,18 @@ export class Method extends AbstractMethodField {
    */
   private parameterWords: number;
   /**
-   * Code is either a function, or a CodeAttribute.
-   * TODO: Differentiate between NativeMethod objects and BytecodeMethod objects.
+   * The CodeAttribute associated with this function.
    */
-  private code: any;
+  private code: attributes.Code = null;
+  /**
+   * The run function associated with this function, if native or JITed.
+   */
+  public runFcn: Function = null;
 
   /**
    * number of basic block entries
    */
   private numBBEntries = 0;
-
-  private compiledFunctions: Function[] = [];
-  private failedCompile: boolean[] = [];
 
   constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
     super(cls, constantPool, slot, byteStream);
@@ -391,40 +283,54 @@ export class Method extends AbstractMethodField {
     // Initialize 'code' property.
     var clsName = this.cls.getInternalName();
     if (getTrappedMethod(clsName, this.signature) !== null) {
-      this.code = getTrappedMethod(clsName, this.signature);
+      this.runFcn = getTrappedMethod(clsName, this.signature);
       this.accessFlags.setNative(true);
     } else if (this.accessFlags.isNative()) {
       if (this.signature.indexOf('registerNatives()V', 0) < 0 && this.signature.indexOf('initIDs()V', 0) < 0) {
         // The first version of the native method attempts to fetch itself and
         // rewrite itself.
         var self = this;
-        this.code = function(thread: threading.JVMThread) {
+        this.runFcn = function(thread: threading.JVMThread) {
           // Try to fetch the native method.
           var jvm = thread.getJVM(),
             c = jvm.getNative(clsName, self.signature);
           if (c == null) {
             thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', `Native method '${self.getFullSignature()}' not implemented.\nPlease fix or file a bug at https://github.com/plasma-umass/doppio/issues`);
           } else {
-            self.code = c;
+            self.runFcn = c;
             return c.apply(self, arguments);
           }
         };
       } else {
         // Stub out initIDs and registerNatives.
-        this.code = () => { };
+        this.runFcn = () => { };
       }
     } else if (!this.accessFlags.isAbstract()) {
-      this.code = this.getAttribute('Code');
-      const codeLength = this.code.code.length;
-
+      this.code = <attributes.Code> this.getAttribute('Code');
+      const codeLength = this.code.getCode().length;
       // jit threshold. we countdown to zero from here.
       this.numBBEntries = codeLength > 3 ? 200 : 1000 * codeLength;
     }
   }
 
-  public incrBBEntries() {
-    // Optimisiation: we countdown to zero, instead of storing a positive limit in a separate variable
-    this.numBBEntries--;
+  /**
+   * Must be called:
+   * - When method is still running (pre-asyncReturn)
+   * - After a bytecode has finished manipulating frame state.
+   */
+  public jitCheck(thread: threading.JVMThread, frame: threading.IStackFrame): void {
+    // Optimization: we countdown to zero, instead of storing a positive limit in a separate variable
+    if (this.numBBEntries-- <= 0) {
+      const isJitted = this.runFcn !== null;
+      const hasBeenJitted = thread.getJVM().jitMethod(thread, this)
+      if (hasBeenJitted && !isJitted) {
+        // Switch over to JIT stack frame.
+        // TODO: Could replace multiple frames on stack?
+        (<threading.BytecodeStackFrame> frame).replaceAsJitFrame(thread);
+      }
+      // Avoids future JITting.
+      this.numBBEntries = NaN;
+    }
   }
 
   /**
@@ -472,157 +378,9 @@ export class Method extends AbstractMethodField {
     return this.code;
   }
 
-  public getOp(pc: number, codeBuffer: Buffer, thread: threading.JVMThread): any {
-    if (this.numBBEntries <= 0) {
-      if (!this.failedCompile[pc]) {
-        const cachedCompiledFunction = this.compiledFunctions[pc];
-        if (!cachedCompiledFunction) {
-          const compiledFunction = this.jitCompileFrom(pc, thread);
-          if (compiledFunction) {
-            return compiledFunction;
-          } else {
-            this.failedCompile[pc] = true;
-          }
-        } else {
-          return cachedCompiledFunction;
-        }
-      }
-    }
-    return codeBuffer.readUInt8(pc);
-  }
-
-  private makeInvokeStaticJitInfo(code: Buffer, pc: number) : JitInfo {
-    const index = code.readUInt16BE(pc + 1);
-    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
-    const paramSize = methodReference.paramWordSize;
-    const method = methodReference.jsConstructor[methodReference.fullSignature];
-
-    return {hasBranch: true, pops: -paramSize, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
-      const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.reduce((a,b) => b + ',' + a, '')}];`;
-      let argMaker = `var args${suffix}=` + argInitialiser;
-      if ((paramSize > pops.length) && (pops.length > 0)) {
-        argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
-      }
-      return argMaker + `
-var methodReference${suffix}=f.method.cls.constantPool.get(${index});
-f.pc=${pc};
-methodReference${suffix}.jsConstructor[methodReference${suffix}.fullSignature](t,args${suffix});
-f.returnToThreadLoop=true;
-${onSuccess}`;
-    }};
-
-  }
-
-  private makeInvokeVirtualJitInfo(code: Buffer, pc: number) : JitInfo {
-    const index = code.readUInt16BE(pc + 1);
-    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
-    const paramSize = methodReference.paramWordSize;
-    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
-      const onError = makeOnError(onErrorPushes);
-      const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
-      let argMaker = `var args${suffix}=` + argInitialiser;
-      if ((paramSize > pops.length) && (pops.length > 0)) {
-        argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
-      }
-      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop()"};f.pc=${pc};
-if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.signature}'](t,args${suffix});f.returnToThreadLoop=true;${onSuccess}}else{${onError}}`;
-    }};
-
-  }
-
-  private makeInvokeNonVirtualJitInfo(code: Buffer, pc: number) : JitInfo {
-    const index = code.readUInt16BE(pc + 1);
-    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
-    const paramSize = methodReference.paramWordSize;
-    return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
-      const onError = makeOnError(onErrorPushes);
-      const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.slice(0, paramSize).reduce((a,b) => b + ',' + a, '')}];`;
-      let argMaker = `var args${suffix}=` + argInitialiser;
-      if ((paramSize > pops.length) && (pops.length > 0)) {
-        argMaker += `args${suffix}.push(${pops.slice().reverse().join(',')});`;
-      }
-      return argMaker + `var obj${suffix}=${(paramSize+1)===pops.length?pops[paramSize]:"f.opStack.pop()"};f.pc=${pc};
-if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}'](t, args${suffix});f.returnToThreadLoop=true;${onSuccess}}else{${onError}}`;
-    }};
-  }
-
-  private jitCompileFrom(startPC: number, thread: threading.JVMThread) {
-    if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
-      console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
-    }
-    const code = this.getCodeAttribute().getCode();
-    let trace: Trace = null;
-    const _this = this;
-    let done = false;
-
-    function closeCurrentTrace() {
-      if (trace !== null) {
-        // console.log("Tracing method: " + _this.fullSignature);
-        const compiledFunction = trace.close(thread);
-        if (compiledFunction) {
-          _this.compiledFunctions[trace.startPC] = compiledFunction;
-        }
-        trace = null;
-      }
-      done = true;
-    }
-
-    for (let i = startPC; i < code.length && !done;) {
-      const op = code.readUInt8(i);
-      // TODO: handle wide()
-      if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
-        console.log(`${i}: ${threading.annotateOpcode(op, this, code, i)}`);
-      }
-      const jitInfo = opJitInfo[op];
-      if (jitInfo) {
-        if (trace === null) {
-          trace = new Trace(i, code, _this);
-        }
-        trace.addOp(i, jitInfo);
-        if (jitInfo.hasBranch) {
-          this.failedCompile[i] = true;
-          closeCurrentTrace();
-        }
-      } else if (op === enums.OpCode.INVOKESTATIC_FAST && trace !== null) {
-        const invokeJitInfo: JitInfo = this.makeInvokeStaticJitInfo(code, i);
-        trace.addOp(i, invokeJitInfo);
-
-        this.failedCompile[i] = true;
-        closeCurrentTrace();
-
-      } else if (((op === enums.OpCode.INVOKEVIRTUAL_FAST) || (op === enums.OpCode.INVOKEINTERFACE_FAST)) && trace !== null) {
-        const invokeJitInfo: JitInfo = this.makeInvokeVirtualJitInfo(code, i);
-        trace.addOp(i, invokeJitInfo);
-
-        this.failedCompile[i] = true;
-        closeCurrentTrace();
-      } else if ((op === enums.OpCode.INVOKENONVIRTUAL_FAST) && trace !== null) {
-        const invokeJitInfo: JitInfo = this.makeInvokeNonVirtualJitInfo(code, i);
-        trace.addOp(i, invokeJitInfo);
-
-        this.failedCompile[i] = true;
-        closeCurrentTrace();
-      } else {
-        if (!RELEASE) {
-          if (trace !== null) {
-            statTraceCloser[op]++;
-          }
-        }
-        this.failedCompile[i] = true;
-        if (trace) {
-          trace.emitEndPC(i);
-        }
-        closeCurrentTrace();
-      }
-      i += opcodeSize[enums.OpcodeLayouts[op]];
-    }
-
-    return _this.compiledFunctions[startPC];
-  }
-
   public getNativeFunction(): Function {
-    assert(this.accessFlags.isNative() && typeof (this.code) === 'function');
-    return this.code;
+    assert(this.accessFlags.isNative() && typeof(this.runFcn) === 'function');
+    return this.runFcn;
   }
 
   /**
@@ -823,6 +581,24 @@ _create`);
   }
 
   /**
+   * Install the new JIT function.
+   */
+  public installJITFunction(fcn: Function): void {
+    let isAlreadyJITed = this.runFcn !== null;
+    this.runFcn = fcn;
+    if (!isAlreadyJITed) {
+      // Need to switch class method stub to construct a JIT stack frame instead of a bytecode stack frame.
+      // Regen method stub for class.
+      let cons = this.cls.getConstructor(null);
+      let outStream = new StringOutputStream();
+      outStream.write(`function _create(clsCons, cls, JITStackFrame, BytecodeStackFrame, InternalStackFrame) {\n`)
+      this.outputJavaScriptFunction("clsCons", outStream);
+      outStream.write(`}\n_create`);
+      eval(outStream.flush())(cons, this.cls, threading.JITStackFrame, threading.BytecodeStackFrame, threading.InternalStackFrame);
+    }
+  }
+
+  /**
    * Generates JavaScript code for this particular method.
    * TODO: Move lock logic and such into this function! And other specialization.
    * TODO: Signature polymorphic functions...?
@@ -843,7 +619,7 @@ _create`);
     if (typeof cb === 'function') {
       thread.stack.push(new InternalStackFrame(cb));
     }
-    thread.stack.push(new ${this.accessFlags.isNative() ? "NativeStackFrame" : "BytecodeStackFrame"}(method, `);
+    thread.stack.push(new ${this.getStackFrameClass()}(method, `);
     if (!this.accessFlags.isStatic()) {
       // Non-static functions need to add the implicit 'this' variable to the
       // local variables.
@@ -867,32 +643,15 @@ _create`);
   };
 })(cls.getSpecificMethod("${util.reescapeJVMName(this.cls.getInternalName())}", "${util.reescapeJVMName(this.signature)}"));\n`);
   }
-}
 
-function makeOnError(onErrorPushes: string[]) {
-  return onErrorPushes.length > 0 ? `f.opStack.pushAll(${onErrorPushes.join(',')});` : '';
-}
-
-const statTraceCloser: number[] = new Array(256);
-
-if (!RELEASE) {
-  for (let i = 0; i < 256; i++) {
-    statTraceCloser[i] = 0;
-  }
-}
-
-export function dumpStats() {
-  const range = new Array(256);
-  for (let i = 0; i < 256; i++) {
-    range[i] = i;
-  }
-  range.sort((x, y) => statTraceCloser[y] - statTraceCloser[x]);
-  const top = range.slice(0, 24);
-  console.log("Opcodes that closed a trace (number of times encountered):");
-  for (let i = 0; i < top.length; i++) {
-    const op = top[i];
-    if (statTraceCloser[op] > 0) {
-      console.log(enums.OpCode[op], statTraceCloser[op]);
+  public getStackFrameClass(): string {
+    if (this.accessFlags.isNative()) {
+      return "NativeStackFrame";
+    } else if (this.runFcn) {
+      return "JITStackFrame";
+    } else {
+      return "BytecodeStackFrame";
     }
   }
 }
+

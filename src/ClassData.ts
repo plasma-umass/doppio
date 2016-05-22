@@ -3,7 +3,7 @@ import util = require('./util');
 import ByteStream = require('./ByteStream');
 import ConstantPool = require('./ConstantPool');
 import attributes = require('./attributes');
-import {JVMThread, InternalStackFrame, NativeStackFrame, BytecodeStackFrame} from './threading';
+import {JVMThread, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, JITStackFrame} from './threading';
 import logging = require('./logging');
 import methods = require('./methods');
 import ClassLoader = require('./ClassLoader');
@@ -1495,7 +1495,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     var jsClassName = util.jvmName2JSName(this.getInternalName()),
       outputStream = new StringOutputStream();
 
-    outputStream.write(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, Monitor, thread) {
+    outputStream.write(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, JITStackFrame, gLongZero, ClassLoader, Monitor, thread) {
   if (cls.superClass !== null) {
     extendClass(${jsClassName}, cls.superClass.getConstructor(thread));
   }
@@ -1532,7 +1532,7 @@ _create`);
     if (typeof RELEASE === 'undefined' && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
       thread.getJVM().dumpObjectDefinition(this, evalText);
     }
-    return eval(evalText)(extendClass, this, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
+    return eval(evalText)(extendClass, this, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, JITStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
   }
 
   public getConstructor(thread: JVMThread): IJVMConstructor<T> {
