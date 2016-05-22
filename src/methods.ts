@@ -586,16 +586,6 @@ _create`);
   public installJITFunction(fcn: Function): void {
     let isAlreadyJITed = this.runFcn !== null;
     this.runFcn = fcn;
-    if (!isAlreadyJITed) {
-      // Need to switch class method stub to construct a JIT stack frame instead of a bytecode stack frame.
-      // Regen method stub for class.
-      let cons = this.cls.getConstructor(null);
-      let outStream = new StringOutputStream();
-      outStream.write(`function _create(clsCons, cls, JITStackFrame, BytecodeStackFrame, InternalStackFrame) {\n`)
-      this.outputJavaScriptFunction("clsCons", outStream);
-      outStream.write(`}\n_create`);
-      eval(outStream.flush())(cons, this.cls, threading.JITStackFrame, threading.BytecodeStackFrame, threading.InternalStackFrame);
-    }
   }
 
   /**
@@ -647,11 +637,14 @@ _create`);
   public getStackFrameClass(): string {
     if (this.accessFlags.isNative()) {
       return "NativeStackFrame";
-    } else if (this.runFcn) {
+    } else {
+      return `(method.runFcn ? JITStackFrame : BytecodeStackFrame)`
+    }
+/*    } if (this.runFcn) {
       return "JITStackFrame";
     } else {
       return "BytecodeStackFrame";
-    }
+    }*/
   }
 }
 
