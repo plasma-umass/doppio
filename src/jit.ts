@@ -25,7 +25,9 @@ export default class JIT {
     Object.keys(blocks).forEach((pc: string): void => {
       output += `case ${pc}:${blocks[<any> pc]};break;`;
     });
-    output += `default:o[c.readUInt8(f.pc)](t, f, c);break;}}`;
+    // Trigger a re-JIT on executing non-JITTed opcodes.
+    // Most of these will be JITable once run.
+    output += `default:f.method.jitCheck(t,f);o[c.readUInt8(f.pc)](t, f, c);break;}}`;
     if (this._printMethods) {
       console.log(`Final method:\n${output}`);
     }
@@ -42,7 +44,7 @@ export default class JIT {
     }
     const code = method.getCodeAttribute().getCode();
     const compiledBlocks: {[startPC: number]: string} = {};
-    let trace: Trace = null;
+    let trace: BasicBlock = null;
     let this_ = this;
 
     function closeCurrentTrace() {
@@ -72,7 +74,7 @@ export default class JIT {
 
       if (jitInfo) {
         if (trace === null) {
-          trace = new Trace(i, code, method);
+          trace = new BasicBlock(i, code, method);
         }
         trace.addOp(i, jitInfo);
         if (jitInfo.hasBranch) {
@@ -102,7 +104,7 @@ export default class JIT {
   }
 }
 
-class TraceInfo {
+class BlockInfo {
   pops: string[] = [];
   pushes: string[] = [];
   prefixEmit: string = "";
@@ -112,8 +114,8 @@ class TraceInfo {
   constructor(public pc: number, public jitInfo: JitInfo) {}
 }
 
-class Trace {
-  private infos: TraceInfo[] = [];
+class BasicBlock {
+  private infos: BlockInfo[] = [];
   private endPc: number = -1;
 
   constructor(public startPC: number, private code: Buffer, private method: Method) {
@@ -127,11 +129,11 @@ class Trace {
   }
 
   public addOp(pc: number, jitInfo: JitInfo) {
-    this.infos.push(new TraceInfo(pc, jitInfo));
+    this.infos.push(new BlockInfo(pc, jitInfo));
   }
 
   /**
-   * Returns a string with code associated with this trace.
+   * Returns a string with code associated with this basic block.
    *
    * The code expects three in-scope variables:
    * f = frame, t = thread, u = util

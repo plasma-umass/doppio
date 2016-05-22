@@ -256,11 +256,14 @@ export class Method extends AbstractMethodField {
    * The run function associated with this function, if native or JITed.
    */
   public runFcn: Function = null;
-
   /**
    * number of basic block entries
    */
   private numBBEntries = 0;
+  /**
+   * Number of times jitted.
+   */
+  private timesJitted = 0;
 
   constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
     super(cls, constantPool, slot, byteStream);
@@ -328,8 +331,14 @@ export class Method extends AbstractMethodField {
         // TODO: Could replace multiple frames on stack?
         (<threading.BytecodeStackFrame> frame).replaceAsJitFrame(thread);
       }
-      // Avoids future JITting.
-      this.numBBEntries = NaN;
+      this.timesJitted++;
+      if (this.timesJitted === 1) {
+        // Re-JIT again if it hits non-compiled paths a sufficient number of times.
+        this.numBBEntries = 200;
+      } else {
+        // JIT no more.
+        this.numBBEntries = NaN;
+      }
     }
   }
 
