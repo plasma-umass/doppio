@@ -18,7 +18,7 @@ function shouldRecompile(file) {
   var jsFile = file.slice(0, file.length - 2) + 'js';
   // Recompile if a JS version doesn't exist, OR if the TS version has a
   // greater modification time.
-  return !fs.existsSync(jsFile) || fs.statSync(file).mtime.getTime() > fs.statSync(jsFile).mtime.getTime();
+  return !fs.existsSync(jsFile) || fs.statSync(file).mtime > fs.statSync(jsFile).mtime;
 }
 
 ts_files = glob.sync('tasks/*.ts');

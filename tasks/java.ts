@@ -58,6 +58,7 @@ function java(grunt: IGrunt) {
         // Trim '.java' from filename to get the class name.
         var className = file.src[0].slice(0, -5);
         // NOTE: -ea is to enable assert() statements, which are used in some test cases.
+        grunt.log.writeln(className);
         child_process.exec(shellEscape(grunt.config('build.java')) + ' -Dfile.encoding=UTF8 -ea -Xbootclasspath/a:' + grunt.config('build.bootclasspath') + ' ' + className, function(err?: any, stdout?: NodeBuffer, stderr?: NodeBuffer) {
           fs.writeFileSync(file.dest, stdout.toString() + stderr.toString());
           cb();
