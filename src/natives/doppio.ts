@@ -56,7 +56,7 @@ class doppio_security_BrowserPRNG {
   public static 'isAvailable()Z'(thread: JVMThread): boolean {
     // !! makes it a boolean.
     const crypto = doppio_security_BrowserPRNG.crypto;
-    return !!(doppio_security_BrowserPRNG.crypto && doppio_security_BrowserPRNG.crypto.getRandomValues);
+    return !!(crypto && crypto.getRandomValues);
   }
 
   public static 'engineSetSeed([B)V'(thread: JVMThread, javaThis: JVMTypes.doppio_security_BrowserPRNG, seed: JVMTypes.JVMArray<number>): void {

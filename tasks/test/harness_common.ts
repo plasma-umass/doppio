@@ -58,7 +58,7 @@ export function getTests(cb: (tests: DoppioTest[]) => void) {
   process.chdir('/sys');
   DoppioJVM.Testing.getTests({
     doppioHomePath: '/sys',
-    testClasses: ['classes.test.SecureRandomTest'],
+    testClasses: null,
     enableSystemAssertions: true,
     enableAssertions: true,
     intMode: false,
