@@ -360,6 +360,10 @@ export function setup(grunt: IGrunt) {
           dest: "dist/typings"
         }, {
           expand: true,
+          src: "includes/**/*.d.ts",
+          dest: "dist/typings"
+        }, {
+          expand: true,
           cwd: 'vendor/java_home/lib',
           src: 'doppio.jar',
           dest: 'dist'
