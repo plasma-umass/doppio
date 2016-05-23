@@ -435,42 +435,73 @@ table[OpCode.DASTORE] = astore64;
 table[OpCode.LASTORE] = astore64;
 
 // TODO: get the constant at JIT time ?
-table[OpCode.LDC] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+table[OpCode.LDC] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const index = code.readUInt8(pc + 1);
   const onError = makeOnError(onErrorPushes, pc);
+  const item = method.cls.constantPool.get(index);
+  if (item.isResolved()) {
+    // Thread argument is not technically needed for this function.
+    const data = item.getConstant(null);
+    // Short circuit when a simple number.
+    if (typeof(data) === 'number') {
+      return `var ${pushes[0]}=${data};${onSuccess}`;
+    }
+  }
+  // Skip resolution check if resolved.
   return `
 var cnst${suffix}=f.method.cls.constantPool.get(${index});
-if(cnst${suffix}.isResolved()){var ${pushes[0]}=cnst${suffix}.getConstant(t);${onSuccess}
-}else{${onError}u.resolveCPItem(t,f,cnst${suffix});}`;
+${!item.isResolved() ? `if(cnst${suffix}.isResolved()){` : ''}var ${pushes[0]}=cnst${suffix}.getConstant(t);${onSuccess}
+${!item.isResolved() ? `}else{${onError}u.resolveCPItem(t,f,cnst${suffix});}`: ''}`;
 }};
 
 // TODO: get the constant at JIT time ?
-table[OpCode.LDC_W] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
+table[OpCode.LDC_W] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const index = code.readUInt16BE(pc + 1);
   const onError = makeOnError(onErrorPushes, pc);
+  const item = method.cls.constantPool.get(index);
+  if (item.isResolved()) {
+    // Thread argument is not technically needed for this function.
+    const data = item.getConstant(null);
+    // Short circuit when a simple number.
+    if (typeof(data) === 'number') {
+      return `var ${pushes[0]}=${data};${onSuccess}`;
+    }
+  }
+  // Skip resolution check if resolved.
   return `
 var cnst${suffix}=f.method.cls.constantPool.get(${index});
-if(cnst${suffix}.isResolved()){var ${pushes[0]}=cnst${suffix}.getConstant(t);${onSuccess}
-}else{${onError}u.resolveCPItem(t,f,cnst${suffix});}`;
+${!item.isResolved() ? `if(cnst${suffix}.isResolved()){` : ''}var ${pushes[0]}=cnst${suffix}.getConstant(t);${onSuccess}
+${!item.isResolved() ? `}else{${onError}u.resolveCPItem(t,f,cnst${suffix});}`: ''}`;
 }};
 
-// TODO: get the constant at JIT time ?
-table[OpCode.LDC2_W] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.LDC2_W] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const index = code.readUInt16BE(pc + 1);
+  const data = (<ConstantPool.ConstLong | ConstantPool.ConstDouble> method.cls.constantPool.get(index)).value;
+  if (typeof(data) === 'number') {
+    // Double
+    return `var ${pushes[0]}=${data},${pushes[1]}=null;${onSuccess}`
+  }
+  // Long
   return `var ${pushes[0]}=f.method.cls.constantPool.get(${index}).value,${pushes[1]}=null;${onSuccess}`;
 }};
 
 // TODO: get the field info at JIT time ?
-table[OpCode.GETSTATIC_FAST32] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.GETSTATIC_FAST32] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const index = code.readUInt16BE(pc + 1);
-  return `var fi${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=fi${suffix}.fieldOwnerConstructor[fi${suffix}.fullFieldName];${onSuccess}`;
+  const fieldRef = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  // Inline field name.
+  const fieldName = fieldRef.fullFieldName.replace(escapeStringRegEx, "\\\\");
+  return `var fi${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=fi${suffix}.fieldOwnerConstructor['${fieldName}'];${onSuccess}`;
 }};
 
 // TODO: get the field info at JIT time ?
-table[OpCode.GETSTATIC_FAST64] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
+table[OpCode.GETSTATIC_FAST64] = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const index = code.readUInt16BE(pc + 1);
+  const fieldRef = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  // Inline field name.
+  const fieldName = fieldRef.fullFieldName.replace(escapeStringRegEx, "\\\\");
   return `
-var fi${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=fi${suffix}.fieldOwnerConstructor[fi${suffix}.fullFieldName],
+var fi${suffix}=f.method.cls.constantPool.get(${index}),${pushes[0]}=fi${suffix}.fieldOwnerConstructor['${fieldName}'],
 ${pushes[1]}=null;${onSuccess}`;
 }};
 
