@@ -794,32 +794,30 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     // TODO: Could cache these in the Method object if desired.
     var outStream = new StringOutputStream(),
       virtualDispatch = !(refKind === enums.MethodHandleReferenceKind.INVOKESTATIC || refKind === enums.MethodHandleReferenceKind.INVOKESPECIAL);
-    outStream.write(`function _create(thread, cls, util) {\n`);
+    // Args: thread, cls, util
     if (this.accessFlags.isStatic()) {
       assert(!virtualDispatch, "Can't have static virtual dispatch.");
-      outStream.write(`  var jsCons = cls.getConstructor(thread);\n`);
+      outStream.write(`var jsCons = cls.getConstructor(thread);\n`);
     }
-    outStream.write(`  function bridgeMethod(thread, descriptor, args, cb) {\n`);
+    outStream.write(`function bridgeMethod(thread, descriptor, args, cb) {\n`);
     if (!this.accessFlags.isStatic()) {
-      outStream.write(`    var obj = args.shift();\n`);
-      outStream.write(`    if (obj === null) { return thread.throwNewException('Ljava/lang/NullPointerException;', ''); }\n`);
-      outStream.write(`    obj["${util.reescapeJVMName(virtualDispatch ? this.signature : this.fullSignature)}"](thread, `);
+      outStream.write(`  var obj = args.shift();\n`);
+      outStream.write(`  if (obj === null) { return thread.throwNewException('Ljava/lang/NullPointerException;', ''); }\n`);
+      outStream.write(`  obj["${util.reescapeJVMName(virtualDispatch ? this.signature : this.fullSignature)}"](thread, `);
     } else {
-      outStream.write(`    jsCons["${util.reescapeJVMName(this.fullSignature)}"](thread, `);
+      outStream.write(`  jsCons["${util.reescapeJVMName(this.fullSignature)}"](thread, `);
     }
     // TODO: Is it ever appropriate to box arguments for varargs functions? It appears not.
     outStream.write(`args`);
     outStream.write(`, cb);
   }
-  return bridgeMethod;
-}
-_create`);
+  return bridgeMethod;`);
 
     var evalText = outStream.flush();
     if (typeof RELEASE === 'undefined' && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
       thread.getJVM().dumpBridgeMethod(this.fullSignature, evalText);
     }
-    return eval(evalText)(thread, this.cls, util);
+    return new Function("thread", "cls", "util", evalText)(thread, this.cls, util);
   }
 
   /**
