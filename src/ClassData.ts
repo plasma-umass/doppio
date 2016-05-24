@@ -29,6 +29,9 @@ if (typeof RELEASE === 'undefined') global.RELEASE = false;
  * by the JVM. Started at 1 because we use 0 to identify NULL.
  */
 var ref: number = 1;
+function getRef() {
+  return ref++;
+}
 
 /**
  * Defines special JVM-injected fields. The map stores the TypeScript type of
@@ -41,7 +44,7 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     vmindex: ["number", "-1"]
   },
   'Ljava/lang/Object;': {
-    'ref': ["number", "ref++"],
+    'ref': ["number", "getRef()"],
     '$monitor': ["Monitor", "null"]
   },
   'Ljava/net/PlainSocketImpl;': {
@@ -695,8 +698,8 @@ export class ArrayClassData<T> extends ClassData {
     assert(this._constructor === null, `Tried to construct constructor twice for ${this.getExternalName()}!`);
     var outputStream = new StringOutputStream(),
       jsClassName = util.jvmName2JSName(this.getInternalName());
-    outputStream.write(`function _create(extendClass, cls, superCls, gLongZero, thread) {
-  extendClass(${jsClassName}, superCls.getConstructor(thread));
+      // Arguments: extendClass, cls, superCls, gLongZero, thread
+    outputStream.write(`extendClass(${jsClassName}, superCls.getConstructor(thread));
   function ${jsClassName}(thread, lengths) {\n`);
     this.superClass.outputInjectedFields(outputStream);
     // Initialize array.
@@ -731,12 +734,11 @@ export class ArrayClassData<T> extends ClassData {
   ${jsClassName}.cls = cls;\n`);
     this.outputInjectedMethods(jsClassName, outputStream);
     outputStream.write(`
-  return ${jsClassName};
-}
-// Last statement is return value of eval.
-_create`);
+  return ${jsClassName};`);
     // All arrays extend java/lang/Object
-    return eval(outputStream.flush())(extendClass, this, this.superClass, gLong.ZERO, thread);
+    // function _create(extendClass, cls, superCls, gLongZero, thread) {
+    const fcn = new Function("extendClass", "cls", "superCls", "gLongZero", "thread", "getRef", "util", outputStream.flush());
+    return fcn(extendClass, this, this.superClass, gLong.ZERO, thread, getRef, util);
   }
 
   public getConstructor(thread: JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
@@ -1495,8 +1497,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     var jsClassName = util.jvmName2JSName(this.getInternalName()),
       outputStream = new StringOutputStream();
 
-    outputStream.write(`function _create(extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, Monitor, thread) {
-  if (cls.superClass !== null) {
+    // Expects args: extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, Monitor, thread
+    outputStream.write(`if (cls.superClass !== null) {
     extendClass(${jsClassName}, cls.superClass.getConstructor(thread));
   }
   function ${jsClassName}(thread) {\n`);
@@ -1523,16 +1525,15 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     // Uninherited default methods.
     this.getUninheritedDefaultMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream, true));
 
-    outputStream.write(`  return ${jsClassName};
-}
-_create`);
+    outputStream.write(`  return ${jsClassName};`);
 
     var evalText = outputStream.flush();
     // NOTE: Thread will be null during system bootstrapping.
     if (typeof RELEASE === 'undefined' && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
       thread.getJVM().dumpObjectDefinition(this, evalText);
     }
-    return eval(evalText)(extendClass, this, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread);
+    const fcn = new Function("extendClass", "cls", "InternalStackFrame", "NativeStackFrame", "BytecodeStackFrame", "gLongZero", "ClassLoader", "Monitor", "thread", "getRef", "util", evalText);
+    return fcn(extendClass, this, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread, getRef, util);
   }
 
   public getConstructor(thread: JVMThread): IJVMConstructor<T> {
