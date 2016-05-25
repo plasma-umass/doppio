@@ -1,5 +1,6 @@
 build
 vendor/java_home
+/classes
 ./typings
 tools
 tasks
@@ -14,3 +15,10 @@ doppio.err
 tasks
 ./Grunt*
 shims
+*.yml
+Grunttasks*
+Gruntfile.js
+/jsconfig.json
+/tsconfig.json
+/typings
+/typings.json
