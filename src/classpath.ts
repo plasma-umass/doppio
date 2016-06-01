@@ -1,8 +1,9 @@
 import {TriState} from './enums';
 import assert = require('./assert');
 import fs = require('fs');
-import path = require('path');
 import BrowserFS = require('browserfs');
+const bfsPath = BrowserFS.BFSRequire('path');
+import nodePath = require('path');
 import util = require('./util');
 // Type information only.
 import TBFSFS from 'browserfs/dist/node/core/FS';
@@ -96,7 +97,7 @@ export abstract class AbstractClasspathJar {
           try {
             ZipFS.computeIndex(data, (index) => {
               try {
-                this._fs.initialize(new ZipFS(index, path.basename(this._path)));
+                this._fs.initialize(new ZipFS(index, bfsPath.basename(this._path)));
                 this._jarRead = TriState.TRUE;
                 cb();
               } catch (e) {
@@ -261,9 +262,9 @@ export class UnindexedClasspathJar extends AbstractClasspathJar implements IClas
             if (stat.isDirectory()) {
               let listing = fs.readdirSync(p);
               for (let i = 0; i < listing.length; i++) {
-                pathStack.push(path.join(p, listing[i]));
+                pathStack.push(bfsPath.join(p, listing[i]));
               }
-            } else if (path.extname(p) === '.class') {
+            } else if (bfsPath.extname(p) === '.class') {
               // Cut off initial / from absolute path.
               classlist.push(p.slice(1, p.length - 6));
             }
@@ -288,7 +289,7 @@ export class IndexedClasspathJar extends AbstractClasspathJar implements IClassp
   constructor(metaIndex: MetaIndex, p: string) {
     super(p);
     this._metaIndex = metaIndex;
-    this._metaName = path.basename(p);
+    this._metaName = bfsPath.basename(p);
   }
 
   public initialize(cb: (e?: Error) => void): void {
@@ -343,27 +344,27 @@ export class ClasspathFolder implements IClasspathItem {
 
   public tryLoadClassSync(type: string): Buffer {
     try {
-      return fs.readFileSync(path.resolve(this._path, `${type}.class`));
+      return fs.readFileSync(nodePath.resolve(this._path, `${type}.class`));
     } catch (e) {
       return null;
     }
   }
 
   public loadClass(type: string, cb: (err: Error, data?: Buffer) => void): void {
-    fs.readFile(path.resolve(this._path, `${type}.class`), cb);
+    fs.readFile(nodePath.resolve(this._path, `${type}.class`), cb);
   }
 
   public statResource(p: string, cb: (err: Error, stats?: fs.Stats) => void): void {
-    fs.stat(path.resolve(this._path, p), cb);
+    fs.stat(nodePath.resolve(this._path, p), cb);
   }
 
   public readdir(p: string, cb: (e: Error, list?: string[]) => void): void {
-    fs.readdir(path.resolve(this._path, p), cb);
+    fs.readdir(nodePath.resolve(this._path, p), cb);
   }
 
   public tryReaddirSync(p: string): string[] {
     try {
-      return fs.readdirSync(path.resolve(this._path, p));
+      return fs.readdirSync(nodePath.resolve(this._path, p));
     } catch (e) {
       return null;
     }
@@ -371,7 +372,7 @@ export class ClasspathFolder implements IClasspathItem {
 
   public tryStatSync(p: string): fs.Stats {
     try {
-      return fs.statSync(path.resolve(this._path, p));
+      return fs.statSync(nodePath.resolve(this._path, p));
     } catch (e) {
       return null;
     }
@@ -470,13 +471,13 @@ export function ClasspathFactory(javaHomePath: string, paths: string[], cb: (ite
   let classpathItems: IClasspathItem[] = new Array<IClasspathItem>(paths.length),
     i: number = 0;
 
-  fs.readFile(path.join(javaHomePath, 'lib', 'meta-index'), (err, data) => {
+  fs.readFile(nodePath.join(javaHomePath, 'lib', 'meta-index'), (err, data) => {
     let metaIndex: {[jarName: string]: MetaIndex} = {};
     if (!err) {
       metaIndex = parseMetaIndex(data.toString());
     }
     util.asyncForEach(paths, (p, nextItem) => {
-      let pRelToHome = path.relative(`${javaHomePath}/lib`, p);
+      let pRelToHome = nodePath.relative(`${javaHomePath}/lib`, p);
       fs.stat(p, (err, stats) => {
         let cpItem: IClasspathItem;
         if (err) {
