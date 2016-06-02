@@ -23,7 +23,7 @@ function throwNodeError(thread: JVMThread, err: NodeJS.ErrnoException): void {
  * Provide buffering for the underlying input function, returning at most
  * n_bytes of data.
  */
-function async_input(n_bytes: number, resume: (data: Buffer) => void): void {
+function asyncInput(n_bytes: number, resume: (data: Buffer) => void): void {
   // Try to read n_bytes from stdin's buffer.
   var read = function (nBytes: number): NodeBuffer {
     // XXX: Returns a Buffer, but DefinitelyTyped says string|Buffer.
@@ -136,7 +136,7 @@ class java_io_FileInputStream {
     } else {
       // reading from System.in, do it async
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      async_input(1, (byte: NodeBuffer) => {
+      asyncInput(1, (byte: NodeBuffer) => {
         thread.asyncReturn(0 === byte.length ? -1 : byte.readUInt8(0));
       });
     }
@@ -177,7 +177,7 @@ class java_io_FileInputStream {
     } else {
       // reading from System.in, do it async
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      async_input(nBytes, (bytes: NodeBuffer) => {
+      asyncInput(nBytes, (bytes: NodeBuffer) => {
         var b: number, idx: number;
         for (idx = 0; idx < bytes.length; idx++) {
           b = bytes.readUInt8(idx);
@@ -207,7 +207,7 @@ class java_io_FileInputStream {
     } else {
       // reading from System.in, do it async
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      async_input(nBytes.toNumber(), (bytes) => {
+      asyncInput(nBytes.toNumber(), (bytes) => {
         // we don't care about what the input actually was
         thread.asyncReturn(Long.fromNumber(bytes.length), null);
       });

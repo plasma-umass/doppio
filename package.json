@@ -33,7 +33,7 @@
     "grunt-contrib-connect": "^1.0",
     "grunt-contrib-copy": "^1.0",
     "grunt-contrib-uglify": "^1.0",
-    "grunt-karma": "^1.0",
+    "grunt-karma": "^2.0",
     "grunt-lineending": "^0.2.4",
     "grunt-merge-source-maps": "^0.1.0",
     "grunt-newer": "^1.2.0",
@@ -55,8 +55,10 @@
     "typescript": "^1.8.10",
     "uglify-js": "^2.6.2",
     "underscore": "^1.8.3",
+    "wait-for-port": "0.0.2",
     "webpack": "^1.13.1",
-    "webpack-dev-server": "^1.14.1"
+    "webpack-dev-server": "^1.14.1",
+    "websockify": "^0.7.1"
   },
   "scripts": {
     "test": "grunt test",

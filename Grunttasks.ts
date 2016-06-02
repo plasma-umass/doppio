@@ -12,6 +12,9 @@ import async = require('async');
 import express = require('express');
 import bodyParser = require('body-parser');
 import glob = require('glob');
+const waitForPort: {
+  (host: string, port: number, cb: (e?: Error) => void): void;
+} = require('wait-for-port');
 
 /**
  * Returns a webpack configuration for testing a particular DoppioJVM build.
@@ -60,7 +63,10 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
         'fs': path.resolve(__dirname, 'shims/fs'),
         'path': path.resolve(__dirname, 'shims/path'),
         'BFSBuffer': path.resolve(__dirname, 'shims/BFSBuffer'),
-        'process': path.resolve(__dirname, 'shims/process')
+        'process': path.resolve(__dirname, 'shims/process'),
+        // Webpack doesn't have an easy way to 'NOP' out modules, so we just hook
+        // net up to a random module.
+        'net': path.resolve(__dirname, 'shims/process')
       }
     },
     externals: {
@@ -136,6 +142,9 @@ function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']
     },
     files: [
       'node_modules/browserfs/dist/browserfs.js',
+      'vendor/websockify/base64.js',
+      'vendor/websockify/util.js',
+      'vendor/websockify/websock.js',
       {pattern: 'node_modules/browserfs/dist/browserfs.js.map', included: false},
       {pattern: `build/test-${target}/**/*.js*`, included: false},
       `build/test-${target}/harness.js`
@@ -553,6 +562,51 @@ export function setup(grunt: IGrunt) {
   // Load our custom tasks.
   grunt.loadTasks('tasks');
 
+  let websockify: grunt.util.ISpawnedChild = null;
+  grunt.registerTask('start-websockify', 'Starts the websockify server', function() {
+    if (websockify) return;
+    const done = this.async();
+    websockify = grunt.util.spawn({
+      cmd: process.argv[0],
+      args: [path.resolve("node_modules/websockify/websockify.js"), "localhost:6789", "localhost:6790"]
+    }, () => {});
+    waitForPort('localhost', 6789, (e) => {
+      if (e) {
+        grunt.fatal(`Websockify did not listen on port 6789. Unable to run networking tests.`);
+      } else {
+        done();
+      }
+    });
+  });
+
+  grunt.registerTask('stop-websockify', 'Stops the websockify server', function() {
+    websockify.kill();
+    websockify = null;
+  });
+
+  let testServer: grunt.util.ISpawnedChild = null;
+  grunt.registerTask('start-test-server', 'Starts a test server', function(target: string) {
+    if (testServer) return;
+    const javaPath = grunt.config('build.java');
+    const done = this.async();
+    testServer = grunt.util.spawn({
+      cmd: javaPath,
+      args: ["classes.util.TCPServer", target]
+    }, () => {});
+    waitForPort('localhost', target === 'doppio' ? 6790 : 6789, (e) => {
+      if (e) {
+        grunt.fatal(`Test server did not listen on port 6790. Unable to run networking tests.`);
+      } else {
+        done();
+      }
+    });
+  });
+
+  grunt.registerTask('stop-test-server', 'Stops the test server', function() {
+    testServer.kill();
+    testServer = null;
+  });
+
   grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function() {
     var launcherPath: string, exePath: string, options = this.options();
     launcherPath = options.dest;
@@ -636,7 +690,9 @@ export function setup(grunt: IGrunt) {
     ['find_native_java',
      'newer:javac',
      'generate_doppio_jar',
+     'start-test-server:native',
      'newer:run_java',
+     'stop-test-server',
      // Windows: Convert CRLF to LF.
      'newer:lineending']);
   grunt.registerTask('clean_natives', "Deletes already-inlined sourcemaps from natives.", function() {
@@ -825,7 +881,11 @@ export function setup(grunt: IGrunt) {
     ]);
   grunt.registerTask('test',
     ['release-cli',
-     'unit_test']);
+     'start-test-server:doppio',
+     'start-websockify',
+     'unit_test',
+     'stop-websockify',
+     'stop-test-server']);
   grunt.registerTask('build-test-dev',
     [
       'make_build_dir:dev-cli',
@@ -853,7 +913,11 @@ export function setup(grunt: IGrunt) {
      'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
-     'karma:release']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:release',
+     'stop-test-server',
+     'stop-websockify']);
   grunt.registerTask('test-browser-fast-dev',
     ['build-test-fast-dev',
      'make_build_dir:test-fast-dev',
@@ -862,7 +926,11 @@ export function setup(grunt: IGrunt) {
      'copy:test-fast-dev-natives',
      'listings:test-fast-dev',
      'connect:server',
-     'karma:fast-dev']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:fast-dev',
+     'stop-test-server',
+     'stop-websockify']);
  grunt.registerTask('test-browser-dev',
      ['build-test-dev',
       'make_build_dir:test-dev',
@@ -871,7 +939,11 @@ export function setup(grunt: IGrunt) {
       'copy:test-dev-natives',
       'listings:test-dev',
       'connect:server',
-      'karma:dev']);
+      'start-websockify',
+      'start-test-server:doppio',
+      'karma:dev',
+      'stop-test-server',
+      'stop-websockify']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
     ['bin', 'includes', 'dist', 'shims', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
@@ -888,7 +960,11 @@ export function setup(grunt: IGrunt) {
      'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
-     'karma:travis']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:travis',
+     'stop-test-server',
+     'stop-websockify']);
   grunt.registerTask('test-browser-appveyor',
     ['build-test-release',
      'make_build_dir:test-release',
@@ -897,5 +973,9 @@ export function setup(grunt: IGrunt) {
      'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
-     'karma:appveyor']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:appveyor',
+     'stop-test-server',
+     'stop-websockify']);
 };

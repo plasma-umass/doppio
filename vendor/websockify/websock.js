@@ -25,21 +25,22 @@
 // To enable WebSocket emulator debug:
 //window.WEB_SOCKET_DEBUG=1;
 
-if (window.WebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
+var global = self;
+if (global.WebSocket && !global.WEB_SOCKET_FORCE_FLASH) {
     Websock_native = true;
-} else if (window.MozWebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
+} else if (global.MozWebSocket && !global.WEB_SOCKET_FORCE_FLASH) {
     Websock_native = true;
-    window.WebSocket = window.MozWebSocket;
+    global.WebSocket = global.MozWebSocket;
 } else {
     /* no builtin WebSocket so load web_socket.js */
 
     Websock_native = false;
     (function () {
-        window.WEB_SOCKET_SWF_LOCATION = Util.get_include_uri() +
+        global.WEB_SOCKET_SWF_LOCATION = Util.get_include_uri() +
                     "web-socket-js/WebSocketMain.swf";
         if (Util.Engine.trident) {
             Util.Debug("Forcing uncached load of WebSocketMain.swf");
-            window.WEB_SOCKET_SWF_LOCATION += "?" + Math.random();
+            global.WEB_SOCKET_SWF_LOCATION += "?" + Math.random();
         }
         Util.load_scripts(["web-socket-js/swfobject.js",
                            "web-socket-js/web_socket.js"]);
@@ -258,11 +259,11 @@ function recv_message(e) {
 
 
 // Set event handlers
-function on(evt, handler) { 
+function on(evt, handler) {
     eventHandlers[evt] = handler;
 }
 
-function init(protocols) {
+function init(protocols, ws_schema) {
     rQ         = [];
     rQi        = 0;
     sQ         = [];
@@ -273,16 +274,17 @@ function init(protocols) {
         try_binary = false;
 
     // Check for full typed array support
-    if (('Uint8Array' in window) &&
+    if (('Uint8Array' in global) &&
         ('set' in Uint8Array.prototype)) {
         bt = true;
     }
-
-    // Check for full binary type support in WebSockets
-    // TODO: this sucks, the property should exist on the prototype
-    // but it does not.
+    // Check for full binary type support in WebSocket
+    // Inspired by:
+    // https://github.com/Modernizr/Modernizr/issues/370
+    // https://github.com/Modernizr/Modernizr/blob/master/feature-detects/websockets/binary.js
     try {
-        if (bt && ('binaryType' in (new WebSocket("ws://localhost:17523")))) {
+        if (bt && ('binaryType' in WebSocket.prototype ||
+                   !!(new WebSocket(ws_schema + '://.').binaryType))) {
             Util.Info("Detected binaryType support in WebSockets");
             wsbt = true;
         }
@@ -325,7 +327,8 @@ function init(protocols) {
 }
 
 function open(uri, protocols) {
-    protocols = init(protocols);
+    var ws_schema = uri.match(/^([a-z]+):\/\//)[1];
+    protocols = init(protocols, ws_schema);
 
     if (test_mode) {
         websocket = {};

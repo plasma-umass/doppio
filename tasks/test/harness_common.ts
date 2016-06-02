@@ -58,7 +58,7 @@ export function getTests(cb: (tests: DoppioTest[]) => void) {
   process.chdir('/sys');
   DoppioJVM.Testing.getTests({
     doppioHomePath: '/sys',
-    testClasses: null,
+    testClasses: ['classes.test.TCPTest', 'classes.test.NioFilesPaths'],
     enableSystemAssertions: true,
     enableAssertions: true,
     intMode: false,

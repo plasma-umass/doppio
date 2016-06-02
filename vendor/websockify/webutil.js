@@ -12,12 +12,13 @@
 
 // Globals defined here
 var WebUtil = {}, $D;
+var global = self;
 
 /*
  * Simple DOM selector by ID
  */
-if (!window.$D) {
-    window.$D = function (id) {
+if (!global.$D) {
+    global.$D = function (id) {
         if (document.getElementById) {
             return document.getElementById(id);
         } else if (document.all) {
@@ -30,7 +31,7 @@ if (!window.$D) {
 }
 
 
-/* 
+/*
  * ------------------------------------------------------
  * Namespaced in WebUtil
  * ------------------------------------------------------
@@ -54,9 +55,9 @@ WebUtil.dirObj = function (obj, depth, parent) {
     if (! depth) { depth=2; }
     if (! parent) { parent= ""; }
 
-    // Print the properties of the passed-in object 
+    // Print the properties of the passed-in object
     for (i in obj) {
-        if ((depth > 1) && (typeof obj[i] === "object")) { 
+        if ((depth > 1) && (typeof obj[i] === "object")) {
             // Recurse attributes that are objects
             msg += WebUtil.dirObj(obj[i], depth-1, parent + "." + i);
         } else {
@@ -68,7 +69,7 @@ WebUtil.dirObj = function (obj, depth, parent) {
             }
             if (val.length > 30) {
                 val = val.substr(0,30) + "...";
-            } 
+            }
             msg += parent + "." + i + ": " + val + "\n";
         }
     }
@@ -126,8 +127,8 @@ WebUtil.eraseCookie = function(name) {
 
 WebUtil.initSettings = function(callback) {
     var callbackArgs = Array.prototype.slice.call(arguments, 1);
-    if (window.chrome && window.chrome.storage) {
-        window.chrome.storage.sync.get(function (cfg) {
+    if (global.chrome && global.chrome.storage) {
+        global.chrome.storage.sync.get(function (cfg) {
             WebUtil.settings = cfg;
             console.log(WebUtil.settings);
             if (callback) {
@@ -204,7 +205,7 @@ WebUtil.selectStylesheet = function(sheet) {
     }
     for (i=0; i < sheets.length; i += 1) {
         link = sheets[i];
-        if (link.title === sheet) {    
+        if (link.title === sheet) {
             Util.Debug("Using stylesheet " + sheet);
             link.disabled = false;
         } else {

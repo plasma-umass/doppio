@@ -15,6 +15,7 @@ import JVM = require('./jvm');
 import StringOutputStream = require('./StringOutputStream');
 import JVMTypes = require('../includes/JVMTypes');
 import ClassState = enums.ClassState;
+import {DoppioSocket} from './socket';
 
 import trace = logging.trace;
 import debug = logging.debug;
@@ -48,8 +49,7 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     '$monitor': ["Monitor", "null"]
   },
   'Ljava/net/PlainSocketImpl;': {
-    '$is_shutdown': ['boolean', 'false'],
-    '$ws': ['Interfaces.IWebsock', 'null']
+    '$sock': ['DoppioSocket', 'null']
   },
   'Ljava/io/FileDescriptor;': {
     '$pos': ['number', '-1']

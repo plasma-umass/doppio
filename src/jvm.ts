@@ -574,7 +574,9 @@ function require(name) {
     case 'pako/lib/zlib/adler32':
       return adler32;
     case 'crypto':
-      return util.are_in_browser() ? null : savedRequire('crypto');
+    case 'net':
+    case 'dns':
+      return util.are_in_browser() ? null : savedRequire(name);
     default:
       return savedRequire(name);
   }
