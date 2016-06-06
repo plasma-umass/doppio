@@ -21,8 +21,10 @@ class TCPTest {
     String sentence = "Hello World!";
     outToServer.writeBytes(sentence + '\n');
     String modifiedSentence = inFromServer.readLine();
-    clientSocket.close();
     System.out.println(modifiedSentence);
+    outToServer.writeBytes("Second packet\n");
+    System.out.println(inFromServer.readLine());
+    clientSocket.close();
   }
 }
 

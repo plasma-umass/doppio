@@ -600,6 +600,15 @@ export function setup(grunt: IGrunt) {
         done();
       }
     });
+
+    function killServer() {
+      if (testServer) {
+        grunt.log.writeln("Killing server prior to exit.");
+        testServer.kill();
+      }
+    }
+    process.on('exit', killServer);
+
   });
 
   grunt.registerTask('stop-test-server', 'Stops the test server', function() {
@@ -881,10 +890,8 @@ export function setup(grunt: IGrunt) {
     ]);
   grunt.registerTask('test',
     ['release-cli',
-     'start-test-server:doppio',
-     'start-websockify',
+     'start-test-server:native',
      'unit_test',
-     'stop-websockify',
      'stop-test-server']);
   grunt.registerTask('build-test-dev',
     [
