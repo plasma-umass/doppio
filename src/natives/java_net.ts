@@ -40,6 +40,9 @@ let hostLookup: {[addr: number]: string} = {},
   // 240.0.0.0 .. 250.0.0.0 is currently unused address space
   nextHostAddress = 0xF0000000;
 
+// localhost: hardcode
+hostLookup[hostReverseLookup['localhost'] = addressFromString('127.0.0.1')] = 'localhost';
+console.log(hostReverseLookup['localhost']);
 // See RFC 6455 section 7.4
 function websocketStatusToMessage(status: number): string {
   switch (status) {
@@ -74,6 +77,10 @@ function packAddress(address: number[]): number {
 }
 
 function hostAllocateAddress(address: string): number {
+  if (hostReverseLookup[address]) {
+    return hostReverseLookup[address];
+  }
+
   let ret = nextAddress();
   hostLookup[ret] = address;
   hostReverseLookup[address] = ret;
@@ -87,6 +94,7 @@ function addressFromString(address: string): number {
     let shift = (3-i) * 8;
     rv |= portions[i] << shift;
   }
+  console.log(`${address} => ${rv | 0}`)
   return rv | 0;
 }
 
@@ -101,6 +109,7 @@ function addressToString(address: number[]): string {
 }
 
 function addressNumberToString(address: number): string {
+  console.log(address);
   let data = new Buffer(4);
   data.writeInt32BE(address, 0);
   let ip = new Array<number>(4);

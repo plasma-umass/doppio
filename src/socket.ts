@@ -288,9 +288,10 @@ export class WebsockifySocket implements DoppioSocket {
 
   public readAsync(buffer: number[], offset: number, length: number, timeout: number, cb: (len: number) => void): void {
     const sock = this._websock;
+    const self = this;
     function end() {
       sock.on('message', () => {});
-      cb(this.readSync(buffer, offset, length));
+      cb(self.readSync(buffer, offset, length));
     }
 
     // Wait for timeout or `length` bytes to become available.
