@@ -23,7 +23,8 @@ class TCPServer  {
     while(true) {
       try {
         final Socket connectionSocket = welcomeSocket.accept();
-        connectionSocket.setSoTimeout(100);
+        // wait 3 minutes before timeout.
+        connectionSocket.setSoTimeout(180*1000);
         final BufferedReader inFromClient =
             new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
         final DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
@@ -34,10 +35,14 @@ class TCPServer  {
               String capitalizedSentence = clientSentence.toUpperCase() + '\n';
               outToClient.writeBytes(capitalizedSentence);
             }
-          } catch (Throwable t) {}
+          } catch (Throwable t) {
+            System.out.println(t);
+          }
         };
         new Thread(task).start();
-      } catch (Throwable t) {}
+      } catch (Throwable t) {
+        System.out.println(t);
+      }
     }
   }
 }
