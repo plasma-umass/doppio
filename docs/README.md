@@ -3,8 +3,8 @@
 So you want to hack on DoppioJVM: maybe to integrate it into your project more closely, or to add support for JVM features that are currently busted, or whatever your heart desires. Start here to save yourself a lot of head-scratching.
 
 **Contents**:
- * [Plugging DoppioJVM into a Frontend](https://github.com/plasma-umass/doppio/wiki/Doppio-Developer-Guide#plugging-doppiojvm-into-a-frontend)
- * [Adding Native Methods Using doppioh](https://github.com/plasma-umass/doppio/wiki/Doppio-Developer-Guide#adding-native-methods-using-doppioh)
+ * [Plugging DoppioJVM into a Frontend](https://github.com/plasma-umass/doppio/tree/master/docs#plugging-doppiojvm-into-a-frontend)
+ * [Adding Native Methods Using doppioh](https://github.com/plasma-umass/doppio/tree/master/docs#adding-native-methods-using-doppioh)
 
 ## Plugging DoppioJVM into a Frontend
 
