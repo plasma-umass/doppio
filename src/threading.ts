@@ -1153,7 +1153,7 @@ export class JVMThread implements Thread {
    * @param msg The message to include with the exception.
    */
   public throwNewException<T extends JVMTypes.java_lang_Throwable>(clsName: string, msg: string) {
-    var cls = <ClassData.ReferenceClassData<T>> this.bsCl.getInitializedClass(this, clsName),
+    var cls = <ClassData.ReferenceClassData<T>> this.getLoader().getInitializedClass(this, clsName),
       throwException = () => {
         var eCons = cls.getConstructor(this),
           e = new eCons(this);
@@ -1173,7 +1173,7 @@ export class JVMThread implements Thread {
     } else {
       // Initialization required.
       this.setStatus(ThreadStatus.ASYNC_WAITING);
-      this.bsCl.initializeClass(this, clsName, (cdata: ClassData.ReferenceClassData<T>) => {
+      this.getLoader().initializeClass(this, clsName, (cdata: ClassData.ReferenceClassData<T>) => {
         if (cdata != null) {
           cls = cdata;
           throwException();
