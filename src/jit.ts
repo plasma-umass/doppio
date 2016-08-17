@@ -442,7 +442,7 @@ table[OpCode.TABLESWITCH] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, p
     emitted += `default:f.pc=${pc + defaultOffset}}${onSuccess}`
     return emitted;
   } else {
-    return `if(${pops[0]}>=${low}&&${pops[0]}<=${high}){f.pc=${pc}+f.method.getCodeAttribute().getCode().readInt32BE(${alignedPC + 12}+((${pops[0]}-${low})*4))}else{f.pc=${pc + defaultOffset}}${onSuccess}`;
+    return `if(${pops[0]}>=${low}&&${pops[0]}<=${high}){f.pc=${pc}+f.method.getCodeAttribute().getCode().readInt32BE(${alignedPC + 12}+((${pops[0]} - ${low})*4))}else{f.pc=${pc + defaultOffset}}${onSuccess}`;
   }
 }};
 
