@@ -5,7 +5,8 @@
         "target": "ES3",
         "noImplicitAny": true,
         "inlineSourceMap": true,
-        "inlineSources": true
+        "inlineSources": true,
+        "outDir": "build/tsc"
     },
     "files": [
         "typings/index.d.ts",
@@ -22,6 +23,7 @@
         "src/difflib.ts",
         "src/doppiojvm.ts",
         "src/enums.ts",
+        "src/fd_state.ts",
         "src/gLong.ts",
         "src/global.ts",
         "src/heap.ts",
@@ -34,7 +36,6 @@
         "src/methods.ts",
         "src/Monitor.ts",
         "src/natives/doppio.ts",
-        "src/natives/classes_doppio.ts",
         "src/natives/java_io.ts",
         "src/natives/java_lang.ts",
         "src/natives/java_net.ts",

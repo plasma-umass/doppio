@@ -10,5 +10,6 @@ import * as Util from './util';
 import * as Enums from './enums';
 import * as Interfaces from './interfaces';
 import Monitor = require('./Monitor');
+import FDState from './fd_state';
 
-export {JVM, CLI, ClassFile, Threading, Long, Util, Enums, Interfaces, Monitor};
+export {JVM, CLI, ClassFile, Threading, Long, Util, Enums, Interfaces, Monitor, FDState};

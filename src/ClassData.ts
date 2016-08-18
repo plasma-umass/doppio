@@ -51,9 +51,6 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     '$is_shutdown': ['boolean', 'false'],
     '$ws': ['Interfaces.IWebsock', 'null']
   },
-  'Ljava/io/FileDescriptor;': {
-    '$pos': ['number', '-1']
-  },
   'Ljava/lang/Class;': {
     '$cls': ['ClassData', 'null']
   },

@@ -103,6 +103,10 @@ class JVM {
   private jitDisabled: boolean = false;
   private dumpJITStats: boolean = false;
 
+  public static isReleaseBuild(): boolean {
+    return typeof(RELEASE) !== 'undefined' && RELEASE;
+  }
+
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
@@ -524,83 +528,75 @@ class JVM {
    */
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
-    var rv: any,
-      // Provide the natives with the Doppio API, if needed.
-      DoppioJVM = require('./doppiojvm'),
-      Buffer = (<any> buffer).Buffer,
-      process2 = process,
-      savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
+    var rv: any;
+    /**
+     * Called by the native method file. Registers the package's native
+     * methods with the JVM.
+     */
+    function registerNatives(defs: any): void {
+      rv = defs;
+    }
+    // Provide the natives with the Doppio API, if needed.
+    const DoppioJVM = require('./doppiojvm'),
+      savedRequire = typeof(require) !== 'undefined' ? require : function(moduleName: string): any {
         throw new Error(`Cannot find module ${moduleName}`);
       };
-    (() => {
-      /* tslint:disable:no-unused-variable */
-      /**
-       * Called by the native method file. Registers the package's native
-       * methods with the JVM.
-       */
-      function registerNatives(defs: any): void {
-        rv = defs;
+
+    /**
+     * An emulation of CommonJS require() for the modules.
+     */
+    function moduleRequire(name: string): any {
+      switch(name) {
+        case 'doppiojvm':
+        case '../doppiojvm':
+          return DoppioJVM;
+        case 'fs':
+          return fs;
+        case 'path':
+          return path;
+        case 'buffer':
+          return buffer;
+        case 'browserfs':
+          return BrowserFS;
+        case 'pako/lib/zlib/zstream':
+          return zstream;
+        case 'pako/lib/zlib/inflate':
+          return inflate;
+        case 'pako/lib/zlib/deflate':
+          return deflate;
+        case 'pako/lib/zlib/crc32':
+          return crc32;
+        case 'pako/lib/zlib/adler32':
+          return adler32;
+        case 'crypto':
+          return util.are_in_browser() ? null : savedRequire('crypto');
+        default:
+          return savedRequire(name);
       }
-      /**
-       * Emulates CommonJS require().
-       * Placed into an eval() call to avoid browserify-dereq from
-       * fucking renaming the goddamn thing to _dereq_.
-       */
-      eval(`
-var process = process2;
-function require(name) {
-  switch(name) {
-    case 'doppiojvm':
-    case '../doppiojvm':
-      return DoppioJVM;
-    case 'fs':
-      return fs;
-    case 'path':
-      return path;
-    case 'buffer':
-      return buffer;
-    case 'browserfs':
-      return BrowserFS;
-    case 'pako/lib/zlib/zstream':
-      return zstream;
-    case 'pako/lib/zlib/inflate':
-      return inflate;
-    case 'pako/lib/zlib/deflate':
-      return deflate;
-    case 'pako/lib/zlib/crc32':
-      return crc32;
-    case 'pako/lib/zlib/adler32':
-      return adler32;
-    case 'crypto':
-      return util.are_in_browser() ? null : savedRequire('crypto');
-    default:
-      return savedRequire(name);
-  }
-}
-/**
- * Emulate AMD module 'define' function for natives compiled as AMD modules.
- */
-function define(resources, module) {
-  var args = [];
-  resources.forEach(function(resource) {
-    switch (resource) {
-      case 'require':
-        args.push(require);
-        break;
-      case 'exports':
-        args.push({});
-        break;
-      default:
-        args.push(require(resource));
-        break;
     }
-  });
-  module.apply(null, args);
-}
-eval(mod);
-`);
-      /* tslint:enable:no-unused-variable */
-    })();
+    /**
+     * Emulate AMD module 'define' function for natives compiled as AMD modules.
+     */
+    function moduleDefine(resources: string[], module: Function): void {
+      let args: any[] = [];
+      resources.forEach(function(resource) {
+        switch (resource) {
+          case 'require':
+            args.push(moduleRequire);
+            break;
+          case 'exports':
+            args.push({});
+            break;
+          default:
+            args.push(moduleRequire(resource));
+            break;
+        }
+      });
+      module.apply(null, args);
+    }
+
+    const modFcn = new Function("require", "define", "registerNatives", "process", "DoppioJVM", "Buffer", mod);
+    modFcn(moduleRequire, moduleDefine, registerNatives, process, DoppioJVM, Buffer);
     return rv;
   }
 

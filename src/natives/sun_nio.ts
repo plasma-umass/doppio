@@ -8,6 +8,7 @@ import Long = Doppio.VM.Long;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
 import fs = require('fs');
 import BrowserFS = require('browserfs');
+import FDState = Doppio.VM.FDState;
 declare var registerNatives: (defs: any) => void;
 let BFSUtils = BrowserFS.BFSRequire('bfs_utils');
 
@@ -25,8 +26,18 @@ class sun_nio_ch_FileChannelImpl {
     return 0;
   }
 
-  public static 'position0(Ljava/io/FileDescriptor;J)J'(thread: JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, fd: JVMTypes.java_io_FileDescriptor, offset: Long): Long {
-    return Long.fromNumber(offset.equals(Long.NEG_ONE) ? fd.$pos : fd.$pos = offset.toNumber());
+  public static 'position0(Ljava/io/FileDescriptor;J)J'(thread: JVMThread, javaThis: JVMTypes.sun_nio_ch_FileChannelImpl, fdObj: JVMTypes.java_io_FileDescriptor, offset: Long): Long {
+    const fd = fdObj['java/io/FileDescriptor/fd'];
+    let rv: number;
+    if (offset.equals(Long.NEG_ONE)) {
+      // Get current FD offset.
+      rv = FDState.getPos(fd);
+    } else {
+      // Set FD offset.
+      rv = offset.toNumber();
+      FDState.setPos(fd, rv);
+    }
+    return Long.fromNumber(rv);
   }
 
   /**
@@ -75,16 +86,16 @@ class sun_nio_ch_FileDispatcherImpl {
   }
 
   public static 'read0(Ljava/io/FileDescriptor;JI)I'(thread: JVMThread, fdObj: JVMTypes.java_io_FileDescriptor, address: Long, len: number): void {
-    var fd = fdObj["java/io/FileDescriptor/fd"],
+    const fd = fdObj["java/io/FileDescriptor/fd"],
       // read upto len bytes and store into mmap'd buffer at address
       addr = address.toNumber(),
       buf = thread.getJVM().getHeap().get_buffer(addr, len);
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    fs.read(fd, buf, 0, len, fdObj.$pos, (err, bytesRead) => {
+    fs.read(fd, buf, 0, len, FDState.getPos(fd), (err, bytesRead) => {
       if (err) {
         thread.throwNewException("Ljava/io/IOException;", 'Error reading file: ' + err);
       } else {
-        fdObj.$pos += bytesRead;
+        FDState.incrementPos(fd, bytesRead);
         // Return -1 if we reached the end of the file.
         thread.asyncReturn(bytesRead === 0 ? -1 : bytesRead);
       }
@@ -96,7 +107,9 @@ class sun_nio_ch_FileDispatcherImpl {
   }
 
   public static 'close0(Ljava/io/FileDescriptor;)V'(thread: JVMThread, fdObj: JVMTypes.java_io_FileDescriptor): void {
-    sun_nio_ch_FileDispatcherImpl['closeIntFD(I)V'](thread, fdObj["java/io/FileDescriptor/fd"]);
+    const fd = fdObj["java/io/FileDescriptor/fd"];
+    sun_nio_ch_FileDispatcherImpl['closeIntFD(I)V'](thread, fd);
+    FDState.close(fd);
     fdObj["java/io/FileDescriptor/fd"] = -1;
   }
 
@@ -132,6 +145,7 @@ class sun_nio_ch_FileDispatcherImpl {
       if (err) {
         throwNodeError(thread, err);
       } else {
+        FDState.close(fd);
         thread.asyncReturn();
       }
     });
@@ -142,11 +156,11 @@ class sun_nio_ch_FileDispatcherImpl {
     const heap = thread.getJVM().getHeap();
     const data = heap.get_buffer(addr.toNumber(), len);
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    fs.write(fd, data, 0, len, fdObj.$pos, (err, numBytes) => {
+    fs.write(fd, data, 0, len, FDState.getPos(fd), (err, numBytes) => {
       if (err) {
         throwNodeError(thread, err);
       } else {
-        fdObj.$pos += numBytes;
+        FDState.incrementPos(fd, numBytes);
         thread.asyncReturn(numBytes);
       }
     });
@@ -212,14 +226,15 @@ function getStringFromHeap(thread: JVMThread, ptrLong: Long): string {
 }
 
 /**
- * Converts a string into a NULL-terminated C string.
+ * Converts a string into a C string stored in a JVM array.
+ * No NULL terminator needed, since arrays have length.
  */
 function stringToByteArray(thread: JVMThread, str: string): JVMTypes.JVMArray<number> {
   if (!str) {
     return null;
   }
   // NULL terminate the string.
-  const buff = new Buffer(`${str}\0`, 'utf8');
+  const buff = new Buffer(str, 'utf8');
   const len = buff.length;
   const i8 = new Int8Array(len);
   for (let i = 0; i < len; i++) {
@@ -367,7 +382,7 @@ class sun_nio_fs_UnixNativeDispatcher {
     return 0;
   }
 
-  public static 'open0(JII)I'(thread: JVMThread, pathAddress: Long, flags: number, mode: number): void {
+  public static 'open0(JII)I'(thread: JVMThread, pathAddress: Long, flags: number, mode: number): number | void {
     // Essentially, convert open() args to fopen() args.
     let flagStr = flag2nodeflag(thread, flags);
     if (flagStr !== null) {
@@ -377,9 +392,24 @@ class sun_nio_fs_UnixNativeDispatcher {
         if (err) {
           throwNodeError(thread, err);
         } else {
-          thread.asyncReturn(fd);
+          if (flagStr.indexOf('a') !== -1) {
+            // Need to figure out size of file to set position.
+            fs.fstat(fd, (err, stats) => {
+              if (err) {
+                throwNodeError(thread, err);
+              } else {
+                FDState.open(fd, stats.size);
+                thread.asyncReturn(fd);
+              }
+            });
+          } else {
+            FDState.open(fd, 0);
+            thread.asyncReturn(fd);
+          }
         }
       });
+    } else {
+      return -1;
     }
   }
 
@@ -394,6 +424,7 @@ class sun_nio_fs_UnixNativeDispatcher {
       if (err) {
         throwNodeError(thread, err);
       } else {
+        FDState.close(fd);
         thread.asyncReturn();
       }
     });
@@ -407,17 +438,32 @@ class sun_nio_fs_UnixNativeDispatcher {
       if (err) {
         throwNodeError(thread, err);
       } else {
-        thread.asyncReturn(Long.fromNumber(fd), null);
+        if (flagsStr.indexOf('a') !== -1) {
+          // Need to figure out file size to update file position.
+          fs.fstat(fd, (err, stats) => {
+            if (err) {
+              throwNodeError(thread, err);
+            } else {
+              FDState.open(fd, stats.size);
+              thread.asyncReturn(Long.fromNumber(fd), null);
+            }
+          });
+        } else {
+          FDState.open(fd, 0);
+          thread.asyncReturn(Long.fromNumber(fd), null);
+        }
       }
     });
   }
 
-  public static 'fclose(J)V'(thread: JVMThread, fd: Long): void {
+  public static 'fclose(J)V'(thread: JVMThread, fdLong: Long): void {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    fs.close(fd.toNumber(), (err?) => {
+    const fd = fdLong.toNumber();
+    fs.close(fd, (err?) => {
       if (err) {
         throwNodeError(thread, err);
       } else {
+        FDState.close(fd);
         thread.asyncReturn();
       }
     });
@@ -632,10 +678,11 @@ class sun_nio_fs_UnixNativeDispatcher {
   public static 'read(IJI)I'(thread: JVMThread, fd: number, buf: Long, nbyte: number): void {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     let buff = thread.getJVM().getHeap().get_buffer(buf.toNumber(), nbyte);
-    fs.read(fd, buff, 0, nbyte, null, (err, bytesRead) => {
+    fs.read(fd, buff, 0, nbyte, FDState.getPos(fd), (err, bytesRead) => {
       if (err) {
         throwNodeError(thread, err);
       } else {
+        FDState.incrementPos(fd, bytesRead);
         thread.asyncReturn(bytesRead);
       }
     });
@@ -644,10 +691,11 @@ class sun_nio_fs_UnixNativeDispatcher {
   public static 'write(IJI)I'(thread: JVMThread, fd: number, buf: Long, nbyte: number): void {
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
     let buff = thread.getJVM().getHeap().get_buffer(buf.toNumber(), nbyte);
-    fs.write(fd, buff, 0, nbyte, null, (err, bytesWritten) => {
+    fs.write(fd, buff, 0, nbyte, FDState.getPos(fd), (err, bytesWritten) => {
       if (err) {
         throwNodeError(thread, err);
       } else {
+        FDState.incrementPos(fd, bytesWritten);
         thread.asyncReturn(bytesWritten);
       }
     });
