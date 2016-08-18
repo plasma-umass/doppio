@@ -538,7 +538,8 @@ class JVM {
     }
     // Provide the natives with the Doppio API, if needed.
     const DoppioJVM = require('./doppiojvm'),
-      savedRequire = typeof(require) !== 'undefined' ? require : function(moduleName: string): any {
+      globalRequire = global['require'],
+      savedRequire = typeof(globalRequire) !== 'undefined' ? globalRequire : function(moduleName: string): any {
         throw new Error(`Cannot find module ${moduleName}`);
       };
 
