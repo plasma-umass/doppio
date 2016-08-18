@@ -76,19 +76,19 @@ export function asyncForEach<T>(
       done_cb: (err?: any) => void
   ): void {
   var i = -1;
-  function process(err?: any): void {
+  function processItem(err?: any): void {
     if (err) {
       done_cb(err);
     } else {
       i++;
       if (i < lst.length) {
-        fn(lst[i], process);
+        fn(lst[i], processItem);
       } else {
         done_cb();
       }
     }
   }
-  process();
+  processItem();
 }
 
 /**
@@ -96,19 +96,19 @@ export function asyncForEach<T>(
  */
 export function asyncSeries(tasks: {(next: (err?: any) => void): void}[], doneCb: (err?: any) => void) {
   var i = -1;
-  function process(err?: any): void {
+  function processItem(err?: any): void {
     if (err) {
       doneCb(err);
     } else {
       i++;
       if (i < tasks.length) {
-        tasks[i](process);
+        tasks[i](processItem);
       } else {
         doneCb();
       }
     }
   }
-  process();
+  processItem();
 }
 
 /**
@@ -125,19 +125,19 @@ export function asyncFind<T>(
     done_cb: (elem?: T) => void
   ): void {
   var i = -1;
-  function process(success: boolean): void {
+  function processItem(success: boolean): void {
     if (success) {
       done_cb(lst[i]);
     } else {
       i++;
       if (i < lst.length) {
-        fn(lst[i], process);
+        fn(lst[i], processItem);
       } else {
         done_cb();
       }
     }
   }
-  process(false);
+  processItem(false);
 }
 
 if (!(<any> Math)['imul']) {
