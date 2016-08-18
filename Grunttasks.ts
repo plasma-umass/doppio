@@ -28,6 +28,8 @@ function getWebpackTestConfig(target: string, optimize = false, benchmark = fals
   }
   // Change entries.
   config.entry = entries;
+  // No longer a UMD module, so change external configuration.
+  (<any> config.externals)['browserfs'] = 'BrowserFS';
   // Test config should run immediately; it is not a library.
   delete config.output.libraryTarget;
   delete config.output.library;
@@ -37,7 +39,6 @@ function getWebpackTestConfig(target: string, optimize = false, benchmark = fals
 /**
  * Returns a webpack configuration file for the given compilation target
  * @param target release, dev, or fast-dev
- * @todo Uglify configuration!
  */
 function getWebpackConfig(target: string, optimize: boolean = false): webpack.Configuration {
   const output = `${target}/doppio`, entry = path.resolve(__dirname, `build/${target}-cli/src/index`);
@@ -112,7 +113,20 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
     }
   }
   if (optimize) {
-    config.plugins.push(new webpack.optimize.UglifyJsPlugin());
+    config.plugins.push(new webpack.optimize.UglifyJsPlugin(<any> {
+      compress: {
+        warnings: false,
+        unsafe: true,
+        screw_ie8: false
+      },
+      mangle: {
+        screw_ie8: false
+      },
+      output: {
+        screw_ie8: false
+      },
+      sourceMap: true
+    }));
   }
 
   return config;
@@ -320,7 +334,14 @@ export function setup(grunt: IGrunt) {
         compress: {
           global_defs: {
             RELEASE: true
-          }
+          },
+          screw_ie8: false
+        },
+        mangle: {
+          screw_ie8: false
+        },
+        output: {
+          screw_ie8: false
         },
         sourceMap: true,
         sourceMapIncludeSources: true
