@@ -63,8 +63,13 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
         'process': path.resolve(__dirname, 'shims/process')
       }
     },
-    externals: {
-      'browserfs': 'BrowserFS'
+    externals: <any> {
+      'browserfs': {
+        root: 'BrowserFS',
+        commonjs2: 'browserfs',
+        commonjs: 'browserfs',
+        amd: 'browserfs'
+      }
     },
     plugins: [
       new webpack.ProvidePlugin({
