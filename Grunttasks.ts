@@ -878,7 +878,7 @@ export function setup(grunt: IGrunt) {
       'connect:server',
       'karma:dev']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
-    ['bin', 'includes', 'dist', 'shims', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
+    ['includes', 'dist', 'shims', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
         grunt.file.delete(path);
       }
