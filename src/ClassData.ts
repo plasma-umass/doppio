@@ -1529,7 +1529,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
 
     var evalText = outputStream.flush();
     // NOTE: Thread will be null during system bootstrapping.
-    if (typeof RELEASE === 'undefined' && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
+    if (!RELEASE && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
       thread.getJVM().dumpObjectDefinition(this, evalText);
     }
     const fcn = new Function("extendClass", "cls", "InternalStackFrame", "NativeStackFrame", "BytecodeStackFrame", "gLongZero", "ClassLoader", "Monitor", "thread", "getRef", "util", evalText);

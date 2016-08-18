@@ -62,7 +62,7 @@
     "test": "grunt test",
     "prepublish": "node ./prepublish.js",
     "install": "node ./install.js",
-    "appveyor-test": "grunt test-browser-appveyor"
+    "appveyor-test": "grunt --stack test-browser-appveyor"
   },
   "repository": {
     "type": "git",

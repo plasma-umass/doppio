@@ -36,6 +36,8 @@ export interface Option {
   // After parsing this option, stop parsing. The remaining arguments
   // should be passed in raw.
   stopParsing?: boolean;
+  // If set, determines if the option should be processed and displayed in help text.
+  enabled?: boolean;
   // [INTERNAL ONLY]
   prefix?: string;
   // [INTERNAL ONLY]
@@ -111,6 +113,11 @@ export class OptionParser {
       let optNames = Object.keys(opts);
       optNames.slice(0).forEach((optName) => {
         let option = opts[optName];
+        if (option.enabled === false) {
+          // Ignore disabled options.
+          delete desc[prefix][optName];
+          return;
+        }
         if (!option.type) {
           option.type = ParseType.FLAG;
         }

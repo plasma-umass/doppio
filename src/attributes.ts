@@ -7,7 +7,6 @@ import assert = require('./assert');
 import global = require('./global');
 
 declare var RELEASE: boolean;
-if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 export interface IAttributeClass {
   parse(byteStream: ByteStream, constantPool: ConstantPool.ConstantPool, attrLen: number, name: string): IAttribute;
@@ -76,9 +75,7 @@ export class Code implements IAttribute {
       maxLocals = byteStream.getUint16(),
       codeLen = byteStream.getUint32();
     if (codeLen === 0) {
-      if (RELEASE) {
-        throw "Error parsing code: Code length is zero";
-      }
+      throw "Error parsing code: Code length is zero";
     }
     var code = byteStream.slice(codeLen).getBuffer(),
       exceptLen = byteStream.getUint16(),

@@ -97,6 +97,7 @@ class sun_nio_ch_FileDispatcherImpl {
 
   public static 'close0(Ljava/io/FileDescriptor;)V'(thread: JVMThread, fdObj: JVMTypes.java_io_FileDescriptor): void {
     sun_nio_ch_FileDispatcherImpl['closeIntFD(I)V'](thread, fdObj["java/io/FileDescriptor/fd"]);
+    fdObj["java/io/FileDescriptor/fd"] = -1;
   }
 
   public static 'size0(Ljava/io/FileDescriptor;)J'(thread: JVMThread, fdObj: JVMTypes.java_io_FileDescriptor): void {
@@ -198,8 +199,7 @@ class FDMap<T> {
   }
 }
 
-var dirMap = new FDMap<DirFd>(),
-  fileMap = new FDMap<number>();
+const dirMap = new FDMap<DirFd>();
 
 function getStringFromHeap(thread: JVMThread, ptrLong: Long): string {
   var heap = thread.getJVM().getHeap(),

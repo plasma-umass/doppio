@@ -17,7 +17,9 @@ import Parker = require('./parker');
 import ThreadPool from './threadpool';
 import logging = require('./logging');
 import JDKInfo = require('../vendor/java_home/jdk.json');
+import global = require('./global');
 declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 // Do not import, otherwise TypeScript will prune it.
 // Referenced only in eval'd code.
@@ -321,10 +323,6 @@ class JVM {
 
   public getSystemClassLoader(): ClassLoader.ClassLoader {
     return this.systemClassLoader;
-  }
-
-  public static isReleaseBuild(): boolean {
-    return typeof(RELEASE) !== 'undefined' && RELEASE;
   }
 
   /**
@@ -791,13 +789,19 @@ eval(mod);
 
   public dumpObjectDefinition(cls: ClassData, evalText: string): void {
     if (this.shouldDumpCompiledCode()) {
-      fs.writeFile(path.resolve(this.dumpCompiledCodeDir, cls.getExternalName() + "_object.dump"), evalText, () => {});
+      fs.writeFile(path.resolve(this.dumpCompiledCodeDir, cls.getExternalName() + ".js"), evalText, () => {});
     }
   }
 
   public dumpBridgeMethod(methodSig: string, evalText: string): void {
     if (this.shouldDumpCompiledCode()) {
       fs.appendFile(path.resolve(this.dumpCompiledCodeDir, "vmtarget_bridge_methods.dump"), `${methodSig}:\n${evalText}\n\n`, () => {});
+    }
+  }
+
+  public dumpCompiledMethod(methodSig: string, pc: number, code: string): void {
+    if (this.shouldDumpCompiledCode()) {
+      fs.appendFile(path.resolve(this.dumpCompiledCodeDir, 'JIT_compiled_methods.dump'), `${methodSig}:${pc}:\n${code}\n\n`, () => {});
     }
   }
 

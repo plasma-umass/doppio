@@ -17,7 +17,6 @@ import {default as ThreadPool, Thread} from './threadpool';
 import global = require('./global');
 
 declare var RELEASE: boolean;
-if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
 var debug = logging.debug, vtrace = logging.vtrace, trace = logging.trace,
   // The number of method resumes we should allow before yielding for

@@ -561,6 +561,9 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
         const compiledFunction = trace.close(thread);
         if (compiledFunction) {
           _this.compiledFunctions[trace.startPC] = compiledFunction;
+          if (!RELEASE && thread.getJVM().shouldDumpCompiledCode()) {
+            thread.getJVM().dumpCompiledMethod(_this.fullSignature, trace.startPC, compiledFunction.toString());
+          }
         }
         trace = null;
       }
@@ -814,7 +817,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
   return bridgeMethod;`);
 
     var evalText = outStream.flush();
-    if (typeof RELEASE === 'undefined' && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
+    if (!RELEASE && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
       thread.getJVM().dumpBridgeMethod(this.fullSignature, evalText);
     }
     return new Function("thread", "cls", "util", evalText)(thread, this.cls, util);
