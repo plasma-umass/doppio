@@ -180,7 +180,7 @@ class java_io_FileInputStream {
       async_input(nBytes, (bytes: NodeBuffer) => {
         var b: number, idx: number;
         for (idx = 0; idx < bytes.length; idx++) {
-          b = bytes.readUInt8(idx);
+          b = bytes.readInt8(idx);
           byteArr.array[offset + idx] = b;
         }
         thread.asyncReturn(bytes.length === 0 ? -1 : bytes.length);

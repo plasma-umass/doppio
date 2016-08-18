@@ -7,7 +7,9 @@ import util = Doppio.VM.Util;
 import Long = Doppio.VM.Long;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
 import fs = require('fs');
+import BrowserFS = require('browserfs');
 declare var registerNatives: (defs: any) => void;
+let BFSUtils = BrowserFS.BFSRequire('bfs_utils');
 
 class sun_nio_ch_FileChannelImpl {
 
@@ -78,11 +80,13 @@ class sun_nio_ch_FileDispatcherImpl {
       addr = address.toNumber(),
       buf = thread.getJVM().getHeap().get_buffer(addr, len);
     thread.setStatus(ThreadStatus.ASYNC_WAITING);
-    fs.read(fd, buf, 0, len, null, (err, bytesRead) => {
+    fs.read(fd, buf, 0, len, fdObj.$pos, (err, bytesRead) => {
       if (err) {
         thread.throwNewException("Ljava/io/IOException;", 'Error reading file: ' + err);
       } else {
-        thread.asyncReturn(bytesRead);
+        fdObj.$pos += bytesRead;
+        // Return -1 if we reached the end of the file.
+        thread.asyncReturn(bytesRead === 0 ? -1 : bytesRead);
       }
     });
   }
@@ -128,6 +132,21 @@ class sun_nio_ch_FileDispatcherImpl {
         throwNodeError(thread, err);
       } else {
         thread.asyncReturn();
+      }
+    });
+  }
+
+  public static 'write0(Ljava/io/FileDescriptor;JI)I'(thread: JVMThread, fdObj: JVMTypes.java_io_FileDescriptor, addr: Long, len: number): void {
+    const fd = fdObj["java/io/FileDescriptor/fd"];
+    const heap = thread.getJVM().getHeap();
+    const data = heap.get_buffer(addr.toNumber(), len);
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    fs.write(fd, data, 0, len, fdObj.$pos, (err, numBytes) => {
+      if (err) {
+        throwNodeError(thread, err);
+      } else {
+        fdObj.$pos += numBytes;
+        thread.asyncReturn(numBytes);
       }
     });
   }
@@ -192,17 +211,21 @@ function getStringFromHeap(thread: JVMThread, ptrLong: Long): string {
   return heap.get_buffer(ptr, len).toString();
 }
 
+/**
+ * Converts a string into a NULL-terminated C string.
+ */
 function stringToByteArray(thread: JVMThread, str: string): JVMTypes.JVMArray<number> {
   if (!str) {
     return null;
   }
-
-  const buff = new Buffer(str, 'utf8'), len = buff.length,
-    arr = util.newArray<number>(thread, thread.getBsCl(), '[B', len);
+  // NULL terminate the string.
+  const buff = new Buffer(`${str}\0`, 'utf8');
+  const len = buff.length;
+  const i8 = new Int8Array(len);
   for (let i = 0; i < len; i++) {
-    arr.array[i] = buff.readUInt8(i);
+    i8[i] = buff.readInt8(i);
   }
-  return arr;
+  return util.newArrayFromData<number>(thread, thread.getBsCl(), '[B', <number[]><any> i8);
 }
 
 function convertError(thread: JVMThread, err: NodeJS.ErrnoException, cb: (err: JVMTypes.java_lang_Exception) => void): void {
@@ -263,8 +286,8 @@ function convertStats(stats: fs.Stats, jvmStats: JVMTypes.sun_nio_fs_UnixFileAtt
 }
 
 let UnixConstants: typeof JVMTypes.sun_nio_fs_UnixConstants = null;
-function flagTest(flag: number, mask: number): boolean {
-  return (flag & mask) === mask;
+function flagTest(flag: number, mask: number, value: number = mask): boolean {
+  return (flag & mask) === value;
 }
 
 /**
@@ -281,24 +304,11 @@ function flag2nodeflag(thread: JVMThread, flag: number): string {
     UnixConstants = <any> UCCls.getConstructor(thread);
   }
 
-  let sync = flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_SYNC']) || flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_DSYNC']);
-  let failIfExists = flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_EXCL'] | UnixConstants['sun/nio/fs/UnixConstants/O_CREAT']);
+  const sync = flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_SYNC']) || flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_DSYNC']);
+  const failIfExists = flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_EXCL'] | UnixConstants['sun/nio/fs/UnixConstants/O_CREAT']);
+  const O_ACCMODE = 0x3;
 
-  if (flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_RDONLY'])) {
-    // 'r' - Open file for reading. An exception occurs if the file does not exist.
-    // 'rs' - Open file for reading in synchronous mode. Instructs the operating system to bypass the local file system cache.
-    return sync ? 'rs' : 'r';
-  } else if (flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_WRONLY'])) {
-    if (flag & UnixConstants['sun/nio/fs/UnixConstants/O_APPEND']) {
-      // 'ax' - Like 'a' but fails if path exists.
-      // 'a' - Open file for appending. The file is created if it does not exist.
-      return failIfExists ? 'ax' : 'a';
-    } else {
-      // 'w' - Open file for writing. The file is created (if it does not exist) or truncated (if it exists).
-      // 'wx' - Like 'w' but fails if path exists.
-      return failIfExists ? 'wx' : 'w';
-    }
-  } else if (flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_RDWR'])) {
+  if (flagTest(flag, O_ACCMODE, UnixConstants['sun/nio/fs/UnixConstants/O_RDWR'])) {
     if (flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_APPEND'])) {
       // 'a+' - Open file for reading and appending. The file is created if it does not exist.
       // 'ax+' - Like 'a+' but fails if path exists.
@@ -311,6 +321,20 @@ function flag2nodeflag(thread: JVMThread, flag: number): string {
       // 'r+' - Open file for reading and writing. An exception occurs if the file does not exist.
       // 'rs+' - Open file for reading and writing, telling the OS to open it synchronously.
       return sync ? 'rs+' : 'r+';
+    }
+  } else if (flagTest(flag, O_ACCMODE, UnixConstants['sun/nio/fs/UnixConstants/O_RDONLY'])) {
+    // 'r' - Open file for reading. An exception occurs if the file does not exist.
+    // 'rs' - Open file for reading in synchronous mode. Instructs the operating system to bypass the local file system cache.
+    return sync ? 'rs' : 'r';
+  } else if (flagTest(flag, O_ACCMODE, UnixConstants['sun/nio/fs/UnixConstants/O_WRONLY'])) {
+    if (flagTest(flag, UnixConstants['sun/nio/fs/UnixConstants/O_APPEND'])) {
+      // 'ax' - Like 'a' but fails if path exists.
+      // 'a' - Open file for appending. The file is created if it does not exist.
+      return failIfExists ? 'ax' : 'a';
+    } else {
+      // 'w' - Open file for writing. The file is created (if it does not exist) or truncated (if it exists).
+      // 'wx' - Like 'w' but fails if path exists.
+      return failIfExists ? 'wx' : 'w';
     }
   } else {
     thread.throwNewException('Lsun/nio/fs/UnixException;', `Invalid open flag: ${flag}.`);
@@ -335,15 +359,7 @@ function date2components(date: Date): [number, number] {
 class sun_nio_fs_UnixNativeDispatcher {
 
   public static 'getcwd()[B'(thread: JVMThread): JVMTypes.JVMArray<number> {
-    var buff = new Buffer(`${process.cwd()}\0`, 'utf8'), len = buff.length,
-      rv = util.newArray<number>(thread, thread.getBsCl(), '[B', len),
-      i: number;
-
-    for (i = 0; i < len; i++) {
-      rv.array[i] = buff.readInt8(i);
-    }
-
-    return rv;
+    return stringToByteArray(thread, process.cwd());
   }
 
   public static 'dup(I)I'(thread: JVMThread, arg0: number): number {
@@ -473,7 +489,7 @@ class sun_nio_fs_UnixNativeDispatcher {
       if (err) {
         throwNodeError(thread, err);
       } else {
-        thread.asyncReturn(util.initCarr(thread.getBsCl(), linkPath));
+        thread.asyncReturn(stringToByteArray(thread, linkPath));
       }
     });
   }
@@ -484,7 +500,7 @@ class sun_nio_fs_UnixNativeDispatcher {
       if (err) {
         throwNodeError(thread, err);
       } else {
-        thread.asyncReturn(util.initCarr(thread.getBsCl(), resolvedPath));
+        thread.asyncReturn(stringToByteArray(thread, resolvedPath));
       }
     });
   }
@@ -553,12 +569,35 @@ class sun_nio_fs_UnixNativeDispatcher {
     thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
   }
 
-  public static 'utimes0(JJJ)V'(thread: JVMThread, arg0: Long, arg1: Long, arg2: Long): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'utimes0(JJJ)V'(thread: JVMThread, pathAddress: Long, times0: Long, times1: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    const p = getStringFromHeap(thread, pathAddress);
+    const t0 = new Date(times0.toNumber());
+    const t1 = new Date(times1.toNumber());
+    fs.utimes(p, t0, t1, (err) => {
+      // Ignore ENOTSUP errors; some BFS backends do not support this operation,
+      // and ignoring the error isn't typically an issue.
+      if (err && err.code !== 'ENOTSUP') {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
-  public static 'futimes(IJJ)V'(thread: JVMThread, arg0: number, arg1: Long, arg2: Long): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+  public static 'futimes(IJJ)V'(thread: JVMThread, fd: number, times0: Long, times1: Long): void {
+    thread.setStatus(ThreadStatus.ASYNC_WAITING);
+    const t0 = new Date(times0.toNumber());
+    const t1 = new Date(times1.toNumber());
+    fs.futimes(fd, t0, t1, (err) => {
+      // Ignore ENOTSUP errors; some BFS backends do not support this operation,
+      // and ignoring the error isn't typically an issue.
+      if (err && err.code !== 'ENOTSUP') {
+        throwNodeError(thread, err);
+      } else {
+        thread.asyncReturn();
+      }
+    });
   }
 
   public static 'opendir0(J)J'(thread: JVMThread, ptr: Long): void {
@@ -631,12 +670,12 @@ class sun_nio_fs_UnixNativeDispatcher {
 
   public static 'getpwuid(I)[B'(thread: JVMThread, arg0: number): JVMTypes.JVMArray<number> {
     // Make something up.
-    return util.initCarr(thread.getBsCl(), 'doppio');
+    return stringToByteArray(thread, 'doppio');
   }
 
   public static 'getgrgid(I)[B'(thread: JVMThread, arg0: number): JVMTypes.JVMArray<number> {
     // Make something up.
-    return util.initCarr(thread.getBsCl(), 'doppio');
+    return stringToByteArray(thread, 'doppio');
   }
 
   public static 'getpwnam0(J)I'(thread: JVMThread, arg0: Long): number {

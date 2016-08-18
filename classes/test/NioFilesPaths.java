@@ -65,7 +65,6 @@ class NioFilesPaths {
     {
       final Path p = Paths.get("/tmp", "temp_delete_me.txt");
       System.out.println("Does temp_delete_me.txt exist?: " + Files.exists(p));
-      /* File creation fails currently because channels not yet implemented
       System.out.println("Did we successfully create this file?: " + Files.createFile(p));
       System.out.println("And does it exist now?: " + Files.exists(p));
       final long lm = Files.getLastModifiedTime(p).toMillis();
@@ -99,24 +98,24 @@ class NioFilesPaths {
       printFile(p);
 
       // overwrite some text
-      System.out.println("Overwriting some text...");
+      /*System.out.println("Overwriting some text...");
       RandomAccessFile raf = new RandomAccessFile(f, "rw");
       raf.skipBytes(17);
       raf.writeChars("KILROY WAS HERE\n");
       raf.close();
       System.out.println("File size: " + f.length());
       System.out.println("File contents:");
-      printFile(f);
+      printFile(f);*/
       System.out.println("Deleting file: " + Files.deleteIfExists(p));
       System.out.println("Does the file exist?: " + Files.exists(p));
-      */
     }
 
     // Create and delete a directory.
     {
       Path p = Paths.get("/tmp","tempDir");
       System.out.println("Does tempDir exist?: " + Files.exists(p));
-      System.out.println("Making tempDir: " + Files.createDirectory(p));
+      System.out.println("Making tempDir...");
+      Files.createDirectory(p);
       System.out.println("Does tempDir exist now?: " + Files.exists(p));
       System.out.println("Deleting tempDir: " + Files.deleteIfExists(p));
       System.out.println("Does tempDir exist now?: " + Files.exists(p));
@@ -125,7 +124,8 @@ class NioFilesPaths {
       Path p = Paths.get("/tmp", "tempDir/tempDir");
       Path p2 = Paths.get("/tmp", "tempDir");
       System.out.println("Does tempDir/tempDir exist?: " + Files.exists(p));
-      System.out.println("Making tempDir/tempDir : " + Files.createDirectories(p));
+      System.out.println("Making tempDir/tempDir....");
+      Files.createDirectories(p);
       System.out.println("Does tempDir/tempDir exist now?: " + Files.exists(p));
       System.out.println("Does tempDir exist now?: " + Files.exists(p2));
       try {
@@ -146,6 +146,11 @@ class NioFilesPaths {
       } catch (final FileAlreadyExistsException fae) {
         System.out.println("couldn't create a directory that already exists");
       }
+    }
+
+    {
+      final Path p = Files.createTempFile("test", null);
+      System.out.println("Created tempDir. Does it exist? " + Files.exists(p));
     }
 
     /*
