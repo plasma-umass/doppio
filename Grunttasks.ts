@@ -137,7 +137,7 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
  * @param target release, dev, or fast-dev
  */
 function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']): karma.ConfigOptions {
-  return {
+  return <any> {
     // base path, that will be used to resolve files and exclude
     basePath: '.',
     frameworks: ['jasmine'],
@@ -149,6 +149,7 @@ function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']
     autoWatch: true,
     browsers: browsers,
     captureTimeout: 60000,
+    concurrency: 1,
     // Avoid hardcoding and cross-origin issues.
     proxies: {
       '/': 'http://localhost:8000/'

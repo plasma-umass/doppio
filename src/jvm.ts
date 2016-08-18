@@ -18,6 +18,7 @@ import ThreadPool from './threadpool';
 import logging = require('./logging');
 import JDKInfo = require('../vendor/java_home/jdk.json');
 import global = require('./global');
+import getGlobalRequire from './global_require';
 declare var RELEASE: boolean;
 if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
@@ -102,6 +103,10 @@ class JVM {
   // is JIT disabled?
   private jitDisabled: boolean = false;
   private dumpJITStats: boolean = false;
+
+  // Get the environment's require variable, indirectly.
+  // Hidden from webpack and other builders, as it confuses them.
+  private globalRequire: Function = null;
 
   public static isReleaseBuild(): boolean {
     return typeof(RELEASE) !== 'undefined' && RELEASE;
@@ -528,6 +533,9 @@ class JVM {
    */
   private evalNativeModule(mod: string): any {
     "use strict"; // Prevent eval from being terrible.
+    if (!this.globalRequire) {
+      this.globalRequire = getGlobalRequire();
+    }
     var rv: any;
     /**
      * Called by the native method file. Registers the package's native
@@ -538,10 +546,7 @@ class JVM {
     }
     // Provide the natives with the Doppio API, if needed.
     const DoppioJVM = require('./doppiojvm'),
-      globalRequire = global['require'],
-      savedRequire = typeof(globalRequire) !== 'undefined' ? globalRequire : function(moduleName: string): any {
-        throw new Error(`Cannot find module ${moduleName}`);
-      };
+      globalRequire = this.globalRequire;
 
     /**
      * An emulation of CommonJS require() for the modules.
@@ -570,9 +575,9 @@ class JVM {
         case 'pako/lib/zlib/adler32':
           return adler32;
         case 'crypto':
-          return util.are_in_browser() ? null : savedRequire('crypto');
+          return util.are_in_browser() ? null : globalRequire('crypto');
         default:
-          return savedRequire(name);
+          return globalRequire(name);
       }
     }
     /**

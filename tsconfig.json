@@ -26,6 +26,7 @@
         "src/fd_state.ts",
         "src/gLong.ts",
         "src/global.ts",
+        "src/global_require.ts",
         "src/heap.ts",
         "src/interfaces.ts",
         "src/jar.ts",
