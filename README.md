@@ -1,4 +1,4 @@
-doppio: A JVM in TypeScript v0.4.0
+doppio: A JVM in TypeScript v0.4.1
 ==================================
 
 [![Join the chat at https://gitter.im/plasma-umass/doppio](https://badges.gitter.im/plasma-umass/doppio.svg)](https://gitter.im/plasma-umass/doppio?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
