@@ -139,7 +139,7 @@ class java_lang_Class {
     const internalName = javaThis.$cls.getInternalName();
     const internalType = internalName[0];
     if (util.is_reference_type(internalType)) {
-      return util.newArrayFromData(thread, thread.getBsCl(), "java_lang_Object", javaThis.signers);
+      return javaThis.signers == null ? null : util.newArrayFromData(thread, thread.getBsCl(), "[Ljava/lang/Object;", javaThis.signers);
     }
     return null;
   }
@@ -148,8 +148,7 @@ class java_lang_Class {
     const internalName = javaThis.$cls.getInternalName();
     const internalType = internalName[0];
     if (util.is_reference_type(internalType)) {
-      // TODO: Should the array be copied or refer to the original array
-      javaThis.signers = arg0.array.slice();
+      javaThis.signers = arg0 == null ? null : arg0.array.slice();
     }
   }
 
