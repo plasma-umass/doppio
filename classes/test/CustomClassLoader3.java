@@ -6,16 +6,23 @@ public class CustomClassLoader3 extends ClassLoader {
     super(CustomClassLoader3.class.getClassLoader());
   }
 
-  // This class cannot rely on method/class/etc ordering, as it is
-  // non-standardized.
   public static void main(String [] args) throws Exception{
     CustomClassLoader3 ccl = new CustomClassLoader3();
     String[] signers = new String[]{"One", "Two"};
+
+    // Test with primitive types
     ccl.testSigners(java.lang.Byte.TYPE, null, null);
     ccl.testSigners(java.lang.Byte.TYPE, signers, null);
     ccl.testSigners(java.lang.Void.TYPE, signers, null);
+
+    // Test with reference types
     ccl.testSigners(ccl.getClass(), signers, signers);
     ccl.testSigners(ccl.getClass(), null, null);
+
+    // Test with array types
+    CustomClassLoader3[] arrayCCL = new CustomClassLoader3[] {ccl, ccl};
+    ccl.testSigners(arrayCCL.getClass(), null, null);
+    ccl.testSigners(arrayCCL.getClass(), signers, null);
   }
 
   void testSigners(Class<?> cls, Object[] signers, Object[] expected) {
