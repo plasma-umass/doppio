@@ -136,13 +136,21 @@ class java_lang_Class {
   }
 
   public static 'getSigners()[Ljava/lang/Object;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
+    const internalName = javaThis.$cls.getInternalName();
+    const internalType = internalName[0];
+    if (util.is_reference_type(internalType)) {
+      return util.newArrayFromData(thread, thread.getBsCl(), "java_lang_Object", javaThis.signers);
+    }
     return null;
   }
 
   public static 'setSigners([Ljava/lang/Object;)V'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class, arg0: JVMTypes.JVMArray<JVMTypes.java_lang_Object>): void {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+    const internalName = javaThis.$cls.getInternalName();
+    const internalType = internalName[0];
+    if (util.is_reference_type(internalType)) {
+      // TODO: Should the array be copied or refer to the original array
+      javaThis.signers = arg0.array.slice();
+    }
   }
 
   public static 'getEnclosingMethod0()[Ljava/lang/Object;'(thread: JVMThread, javaThis: JVMTypes.java_lang_Class): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {

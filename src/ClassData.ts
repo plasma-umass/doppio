@@ -52,7 +52,8 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     '$ws': ['Interfaces.IWebsock', 'null']
   },
   'Ljava/lang/Class;': {
-    '$cls': ['ClassData', 'null']
+    '$cls': ['ClassData', 'null'],
+    'signers': ['JVMTypes.java_lang_Object[]', 'null']
   },
   'Ljava/lang/ClassLoader;': {
     '$loader': ['ClassLoader', 'new ClassLoader.CustomClassLoader(thread.getBsCl(), this);']
