@@ -115,9 +115,11 @@ function getClasses(item: string): string[] {
   // Find classpath items that contains this item as a directory.
   let cpItems: IClasspathItem[] = [];
   for (let i = 0; i < classpath.length; i++) {
-    let stat = classpath[i].tryStatSync(item);
+    let searchedItem = item;
+    let stat = classpath[i].tryStatSync(searchedItem);
     if (!stat) {
-      stat = classpath[i].tryStatSync(`${item}.class`);
+      searchedItem = `${item}.class`;
+      stat = classpath[i].tryStatSync(searchedItem);
     }
     if (!stat) {
       continue;
@@ -125,8 +127,8 @@ function getClasses(item: string): string[] {
       if (!stat.isDirectory()) {
         // Files only counts if it is a class file.
         // Prevents an issue with the `doppio` shortcut counting as the `doppio` executable.
-        if (path.extname(item) === '.class') {
-          rv.push(file2desc(item));
+        if (path.extname(searchedItem) === '.class') {
+          rv.push(file2desc(searchedItem));
         }
       } else {
         cpItems.push(classpath[i]);
@@ -677,26 +679,29 @@ ClasspathFactory(JAVA_HOME, classpathPaths, (items: IClasspathItem[]) => {
       throw e;
     }
     classpath = items;
-
-    classNames.forEach((className) => {
-      let targetName: string = className.replace(/\//g, '_').replace(/\./g, '_'),
-        targetPath: string = className.replace(/\./g, '/');
-      let template = args.flag('typescript', false) ? new TSTemplate(args.stringOption('doppiojvm-path', 'doppiojvm'), outputDirectory) : new JSTemplate();
-      let stream = fs.createWriteStream(path.join(outputDirectory, targetName + '.' + template.getExtension()));
-      template.fileStart(stream);
-      let classes = getClasses(targetPath);
-      for (let i = 0; i < classes.length; i++) {
-        let desc = classes[i];
-        processClassData(stream, template, <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
+    try {
+      classNames.forEach((className) => {
+        let targetName: string = className.replace(/\//g, '_').replace(/\./g, '_'),
+          targetPath: string = className.replace(/\./g, '/');
+        let template = args.flag('typescript', false) ? new TSTemplate(args.stringOption('doppiojvm-path', 'doppiojvm'), outputDirectory) : new JSTemplate();
+        let stream = fs.createWriteStream(path.join(outputDirectory, targetName + '.' + template.getExtension()));
+        template.fileStart(stream);
+        let classes = getClasses(targetPath);
+        for (let i = 0; i < classes.length; i++) {
+          let desc = classes[i];
+          processClassData(stream, template, <ReferenceClassData<JVMTypes.java_lang_Object>> findClass(desc));
+        }
+        template.fileEnd(stream);
+        stream.end(new Buffer(''), () => {});
+        if (args.flag('typescript', false) && args.flag('headers_only', false)) {
+          fs.unlinkSync(path.join(outputDirectory, targetName + '.' + template.getExtension()));
+        }
+      });
+      if (args.flag('typescript', false)) {
+        TSTemplate.declFile.headersEnd();
       }
-      template.fileEnd(stream);
-      stream.end(new Buffer(''), () => {});
-      if (args.flag('typescript', false) && args.flag('headers_only', false)) {
-        fs.unlinkSync(path.join(outputDirectory, targetName + '.' + template.getExtension()));
-      }
-    });
-    if (args.flag('typescript', false)) {
-      TSTemplate.declFile.headersEnd();
+    } catch (e) {
+      console.error(`Encountered error: ${e}`);
     }
   });
 });
