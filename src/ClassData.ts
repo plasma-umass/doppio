@@ -13,7 +13,7 @@ import assert from './assert';
 import gLong from './gLong';
 import JVM from './jvm';
 import StringOutputStream from './StringOutputStream';
-import Monitor from './monitor';
+import Monitor from './Monitor';
 import * as JVMTypes from '../includes/JVMTypes';
 
 const trace = logging.trace;
