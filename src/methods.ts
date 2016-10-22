@@ -1,19 +1,19 @@
-"use strict";
-import util = require('./util');
-import ByteStream = require('./ByteStream');
-import attributes = require('./attributes');
-import JVM = require('./jvm');
-import ConstantPool = require('./ConstantPool');
-import ClassData = require('./ClassData');
-import threading = require('./threading');
-import gLong = require('./gLong');
-import ClassLoader = require('./ClassLoader');
-import assert = require('./assert');
-import enums = require('./enums');
-import Monitor = require('./Monitor');
-import StringOutputStream = require('./StringOutputStream');
-import JVMTypes = require('../includes/JVMTypes');
-import global = require('./global');
+import {Flags, descriptor2typestr, forwardResult, initString, reescapeJVMName, getTypes} from './util';
+import * as util from './util';
+import ByteStream from './ByteStream';
+import {IAttribute, makeAttributes, Signature, RuntimeVisibleAnnotations, Code, Exceptions} from './attributes';
+import JVM from './jvm';
+import {ConstantPool, ConstUTF8, MethodReference, InterfaceMethodReference} from './ConstantPool';
+import {ReferenceClassData, ArrayClassData, ClassData} from './ClassData';
+import {JVMThread, annotateOpcode, BytecodeStackFrame} from './threading';
+import gLong from './gLong';
+import {ClassLoader} from './ClassLoader';
+import assert from './assert';
+import {ThreadStatus, OpcodeLayoutType, OpCode, OpcodeLayouts, MethodHandleReferenceKind} from './enums';
+import Monitor from './Monitor';
+import StringOutputStream from './StringOutputStream';
+import * as JVMTypes from '../includes/JVMTypes';
+import global from './global';
 import {JitInfo, opJitInfo} from './jit';
 
 declare var RELEASE: boolean;
@@ -22,10 +22,10 @@ if (typeof RELEASE === 'undefined') global.RELEASE = false;
 var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } = {
   'java/lang/ref/Reference': {
     // NOP, because we don't do our own GC and also this starts a thread?!?!?!
-    '<clinit>()V': function (thread: threading.JVMThread): void { }
+    '<clinit>()V': function (thread: JVMThread): void { }
   },
   'java/lang/System': {
-    'loadLibrary(Ljava/lang/String;)V': function (thread: threading.JVMThread, libName: JVMTypes.java_lang_String): void {
+    'loadLibrary(Ljava/lang/String;)V': function (thread: JVMThread, libName: JVMTypes.java_lang_String): void {
       // Some libraries test if native libraries are available,
       // and expect an exception if they are not.
       // List all of the native libraries we support.
@@ -45,30 +45,30 @@ var trapped_methods: { [clsName: string]: { [methodName: string]: Function } } =
     }
   },
   'java/lang/Terminator': {
-    'setup()V': function (thread: threading.JVMThread): void {
+    'setup()V': function (thread: JVMThread): void {
       // XXX: We should probably fix this; we support threads now.
       // Historically: NOP'd because we didn't support threads.
     }
   },
   'java/nio/charset/Charset$3': {
     // this is trapped and NOP'ed for speed
-    'run()Ljava/lang/Object;': function (thread: threading.JVMThread, javaThis: JVMTypes.java_nio_charset_Charset$3): JVMTypes.java_lang_Object {
+    'run()Ljava/lang/Object;': function (thread: JVMThread, javaThis: JVMTypes.java_nio_charset_Charset$3): JVMTypes.java_lang_Object {
       return null;
     }
   },
   'sun/nio/fs/DefaultFileSystemProvider': {
     // OpenJDK doesn't know what the "Doppio" platform is. Tell it to use the Linux file system.
-    'create()Ljava/nio/file/spi/FileSystemProvider;': function(thread: threading.JVMThread): void {
-      thread.setStatus(enums.ThreadStatus.ASYNC_WAITING);
-      var dfsp: ClassData.ReferenceClassData<JVMTypes.sun_nio_fs_DefaultFileSystemProvider> = <any> thread.getBsCl().getInitializedClass(thread, 'Lsun/nio/fs/DefaultFileSystemProvider;'),
+    'create()Ljava/nio/file/spi/FileSystemProvider;': function(thread: JVMThread): void {
+      thread.setStatus(ThreadStatus.ASYNC_WAITING);
+      var dfsp: ReferenceClassData<JVMTypes.sun_nio_fs_DefaultFileSystemProvider> = <any> thread.getBsCl().getInitializedClass(thread, 'Lsun/nio/fs/DefaultFileSystemProvider;'),
        dfspCls: typeof JVMTypes.sun_nio_fs_DefaultFileSystemProvider = <any> dfsp.getConstructor(thread);
-      dfspCls['createProvider(Ljava/lang/String;)Ljava/nio/file/spi/FileSystemProvider;'](thread, [thread.getJVM().internString('sun.nio.fs.LinuxFileSystemProvider')], util.forwardResult(thread));
+      dfspCls['createProvider(Ljava/lang/String;)Ljava/nio/file/spi/FileSystemProvider;'](thread, [thread.getJVM().internString('sun.nio.fs.LinuxFileSystemProvider')], forwardResult(thread));
     }
   }
 };
 
 function getTrappedMethod(clsName: string, methSig: string): Function {
-  clsName = util.descriptor2typestr(clsName);
+  clsName = descriptor2typestr(clsName);
   if (trapped_methods.hasOwnProperty(clsName) && trapped_methods[clsName].hasOwnProperty(methSig)) {
     return trapped_methods[clsName][methSig];
   }
@@ -83,7 +83,7 @@ export class AbstractMethodField {
   /**
    * The declaring class of this method or field.
    */
-  public cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>;
+  public cls: ReferenceClassData<JVMTypes.java_lang_Object>;
   /**
    * The method / field's index in its defining class's method/field array.
    */
@@ -91,7 +91,7 @@ export class AbstractMethodField {
   /**
    * The method / field's flags (e.g. static).
    */
-  public accessFlags: util.Flags;
+  public accessFlags: Flags;
   /**
    * The name of the field, without the descriptor or owning class.
    */
@@ -106,21 +106,21 @@ export class AbstractMethodField {
   /**
    * Any attributes on this method or field.
    */
-  public attrs: attributes.IAttribute[];
+  public attrs: IAttribute[];
 
   /**
    * Constructs a field or method object from raw class data.
    */
-  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
+  constructor(cls: ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool, slot: number, byteStream: ByteStream) {
     this.cls = cls;
     this.slot = slot;
-    this.accessFlags = new util.Flags(byteStream.getUint16());
-    this.name = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value;
-    this.rawDescriptor = (<ConstantPool.ConstUTF8> constantPool.get(byteStream.getUint16())).value;
-    this.attrs = attributes.makeAttributes(byteStream, constantPool);
+    this.accessFlags = new Flags(byteStream.getUint16());
+    this.name = (<ConstUTF8> constantPool.get(byteStream.getUint16())).value;
+    this.rawDescriptor = (<ConstUTF8> constantPool.get(byteStream.getUint16())).value;
+    this.attrs = makeAttributes(byteStream, constantPool);
   }
 
-  public getAttribute(name: string): attributes.IAttribute {
+  public getAttribute(name: string): IAttribute {
     for (var i = 0; i < this.attrs.length; i++) {
       var attr = this.attrs[i];
       if (attr.getName() === name) {
@@ -130,7 +130,7 @@ export class AbstractMethodField {
     return null;
   }
 
-  public getAttributes(name: string): attributes.IAttribute[] {
+  public getAttributes(name: string): IAttribute[] {
     return this.attrs.filter((attr) => attr.getName() === name);
   }
 
@@ -138,12 +138,12 @@ export class AbstractMethodField {
    * Get the particular type of annotation as a JVM byte array. Returns null
    * if the annotation does not exist.
    */
-  protected getAnnotationType(thread: threading.JVMThread, name: string): JVMTypes.JVMArray<number> {
+  protected getAnnotationType(thread: JVMThread, name: string): JVMTypes.JVMArray<number> {
     var annotation = <{ rawBytes: Buffer }> <any> this.getAttribute(name);
     if (annotation === null) {
       return null;
     }
-    var byteArrCons = (<ClassData.ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B')).getConstructor(thread),
+    var byteArrCons = (<ArrayClassData<number>> thread.getBsCl().getInitializedClass(thread, '[B')).getConstructor(thread),
       rv = new byteArrCons(thread, 0);
 
     // TODO: Convert to typed array.
@@ -168,21 +168,21 @@ export class Field extends AbstractMethodField {
    */
   public fullName: string;
 
-  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
+  constructor(cls: ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool, slot: number, byteStream: ByteStream) {
     super(cls, constantPool, slot, byteStream);
-    this.fullName = `${util.descriptor2typestr(cls.getInternalName())}/${this.name}`;
+    this.fullName = `${descriptor2typestr(cls.getInternalName())}/${this.name}`;
   }
 
   /**
    * Calls cb with the reflectedField if it succeeds. Calls cb with null if it
    * fails.
    */
-  public reflector(thread: threading.JVMThread, cb: (reflectedField: JVMTypes.java_lang_reflect_Field) => void): void {
-    var signatureAttr = <attributes.Signature> this.getAttribute("Signature"),
+  public reflector(thread: JVMThread, cb: (reflectedField: JVMTypes.java_lang_reflect_Field) => void): void {
+    var signatureAttr = <Signature> this.getAttribute("Signature"),
       jvm = thread.getJVM(),
       bsCl = thread.getBsCl();
     var createObj = (typeObj: JVMTypes.java_lang_Class): JVMTypes.java_lang_reflect_Field => {
-      var fieldCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Field>> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;'),
+      var fieldCls = <ReferenceClassData<JVMTypes.java_lang_reflect_Field>> bsCl.getInitializedClass(thread, 'Ljava/lang/reflect/Field;'),
         fieldObj = new (fieldCls.getConstructor(thread))(thread);
 
       fieldObj['java/lang/reflect/Field/clazz'] = this.cls.getClassObject(thread);
@@ -190,7 +190,7 @@ export class Field extends AbstractMethodField {
       fieldObj['java/lang/reflect/Field/type'] = typeObj;
       fieldObj['java/lang/reflect/Field/modifiers'] = this.accessFlags.getRawByte();
       fieldObj['java/lang/reflect/Field/slot'] = this.slot;
-      fieldObj['java/lang/reflect/Field/signature'] = signatureAttr !== null ? util.initString(bsCl, signatureAttr.sig) : null;
+      fieldObj['java/lang/reflect/Field/signature'] = signatureAttr !== null ? initString(bsCl, signatureAttr.sig) : null;
       fieldObj['java/lang/reflect/Field/annotations'] = this.getAnnotationType(thread, 'RuntimeVisibleAnnotations');
 
       return fieldObj;
@@ -198,7 +198,7 @@ export class Field extends AbstractMethodField {
     // Our field's type may not be loaded, so we asynchronously load it here.
     // In the future, we can speed up reflection by having a synchronous_reflector
     // method that we can try first, and which may fail.
-    this.cls.getLoader().resolveClass(thread, this.rawDescriptor, (cdata: ClassData.ClassData) => {
+    this.cls.getLoader().resolveClass(thread, this.rawDescriptor, (cdata: ClassData) => {
       if (cdata != null) {
         cb(createObj(cdata.getClassObject(thread)));
       } else {
@@ -220,28 +220,27 @@ export class Field extends AbstractMethodField {
    */
   public outputJavaScriptField(jsConsName: string, outputStream: StringOutputStream): void {
     if (this.accessFlags.isStatic()) {
-      outputStream.write(`${jsConsName}["${util.reescapeJVMName(this.fullName)}"] = cls._getInitialStaticFieldValue(thread, "${util.reescapeJVMName(this.name)}");\n`);
+      outputStream.write(`${jsConsName}["${reescapeJVMName(this.fullName)}"] = cls._getInitialStaticFieldValue(thread, "${reescapeJVMName(this.name)}");\n`);
     } else {
-      outputStream.write(`this["${util.reescapeJVMName(this.fullName)}"] = ${this.getDefaultFieldValue()};\n`);
+      outputStream.write(`this["${reescapeJVMName(this.fullName)}"] = ${this.getDefaultFieldValue()};\n`);
     }
   }
 }
 
 const opcodeSize: number[] = function() {
-  const table:number[] = [];
-  const layoutType = enums.OpcodeLayoutType;
+  const table: number[] = [];
 
-  table[layoutType.OPCODE_ONLY] = 1;
-  table[layoutType.CONSTANT_POOL_UINT8] = 2;
-  table[layoutType.CONSTANT_POOL] = 3;
-  table[layoutType.CONSTANT_POOL_AND_UINT8_VALUE] = 4;
-  table[layoutType.UINT8_VALUE] = 2;
-  table[layoutType.UINT8_AND_INT8_VALUE] = 3;
-  table[layoutType.INT8_VALUE] = 2;
-  table[layoutType.INT16_VALUE] = 3;
-  table[layoutType.INT32_VALUE] = 5;
-  table[layoutType.ARRAY_TYPE] = 2;
-  table[layoutType.WIDE] = 1;
+  table[OpcodeLayoutType.OPCODE_ONLY] = 1;
+  table[OpcodeLayoutType.CONSTANT_POOL_UINT8] = 2;
+  table[OpcodeLayoutType.CONSTANT_POOL] = 3;
+  table[OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = 4;
+  table[OpcodeLayoutType.UINT8_VALUE] = 2;
+  table[OpcodeLayoutType.UINT8_AND_INT8_VALUE] = 3;
+  table[OpcodeLayoutType.INT8_VALUE] = 2;
+  table[OpcodeLayoutType.INT16_VALUE] = 3;
+  table[OpcodeLayoutType.INT32_VALUE] = 5;
+  table[OpcodeLayoutType.ARRAY_TYPE] = 2;
+  table[OpcodeLayoutType.WIDE] = 1;
 
   return table;
 }();
@@ -274,7 +273,7 @@ class Trace {
     this.infos.push(new TraceInfo(pc, jitInfo));
   }
 
-  public close(thread: threading.JVMThread): Function {
+  public close(thread: JVMThread): Function {
     if (this.infos.length > 1) {
       const symbolicStack: string[] = [];
       let symbolCount = 0;
@@ -370,12 +369,12 @@ export class Method extends AbstractMethodField {
   private compiledFunctions: Function[] = [];
   private failedCompile: boolean[] = [];
 
-  constructor(cls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool.ConstantPool, slot: number, byteStream: ByteStream) {
+  constructor(cls: ReferenceClassData<JVMTypes.java_lang_Object>, constantPool: ConstantPool, slot: number, byteStream: ByteStream) {
     super(cls, constantPool, slot, byteStream);
-    var parsedDescriptor = util.getTypes(this.rawDescriptor), i: number,
+    var parsedDescriptor = getTypes(this.rawDescriptor), i: number,
       p: string;
     this.signature = this.name + this.rawDescriptor;
-    this.fullSignature = `${util.descriptor2typestr(this.cls.getInternalName())}/${this.signature}`;
+    this.fullSignature = `${descriptor2typestr(this.cls.getInternalName())}/${this.signature}`;
     this.returnType = parsedDescriptor.pop();
     this.parameterTypes = parsedDescriptor;
     this.parameterWords = parsedDescriptor.length;
@@ -398,7 +397,7 @@ export class Method extends AbstractMethodField {
         // The first version of the native method attempts to fetch itself and
         // rewrite itself.
         var self = this;
-        this.code = function(thread: threading.JVMThread) {
+        this.code = function(thread: JVMThread) {
           // Try to fetch the native method.
           var jvm = thread.getJVM(),
             c = jvm.getNative(clsName, self.signature);
@@ -446,7 +445,7 @@ export class Method extends AbstractMethodField {
    * Used by OpenJDK's lambda implementation to hide lambda boilerplate.
    */
   public isHidden(): boolean {
-    var rva: attributes.RuntimeVisibleAnnotations = <any> this.getAttribute('RuntimeVisibleAnnotations');
+    var rva: RuntimeVisibleAnnotations = <any> this.getAttribute('RuntimeVisibleAnnotations');
     return rva !== null && rva.isHidden;
   }
 
@@ -454,7 +453,7 @@ export class Method extends AbstractMethodField {
    * Checks if this particular method has the CallerSensitive annotation.
    */
   public isCallerSensitive(): boolean {
-    var rva: attributes.RuntimeVisibleAnnotations = <any> this.getAttribute('RuntimeVisibleAnnotations');
+    var rva: RuntimeVisibleAnnotations = <any> this.getAttribute('RuntimeVisibleAnnotations');
     return rva !== null && rva.isCallerSensitive;
   }
 
@@ -467,12 +466,12 @@ export class Method extends AbstractMethodField {
     return this.parameterWords;
   }
 
-  public getCodeAttribute(): attributes.Code {
+  public getCodeAttribute(): Code {
     assert(!this.accessFlags.isNative() && !this.accessFlags.isAbstract());
     return this.code;
   }
 
-  public getOp(pc: number, codeBuffer: Buffer, thread: threading.JVMThread): any {
+  public getOp(pc: number, codeBuffer: Buffer, thread: JVMThread): any {
     if (this.numBBEntries <= 0) {
       if (!this.failedCompile[pc]) {
         const cachedCompiledFunction = this.compiledFunctions[pc];
@@ -488,12 +487,12 @@ export class Method extends AbstractMethodField {
         }
       }
     }
-    return codeBuffer.readUInt8(pc);
+    return codeBuffer[pc];
   }
 
   private makeInvokeStaticJitInfo(code: Buffer, pc: number) : JitInfo {
     const index = code.readUInt16BE(pc + 1);
-    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
+    const methodReference = <MethodReference | InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
     const method = methodReference.jsConstructor[methodReference.fullSignature];
 
@@ -515,7 +514,7 @@ ${onSuccess}`;
 
   private makeInvokeVirtualJitInfo(code: Buffer, pc: number) : JitInfo {
     const index = code.readUInt16BE(pc + 1);
-    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
+    const methodReference = <MethodReference | InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
     return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
       const onError = makeOnError(onErrorPushes);
@@ -532,7 +531,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.signature}'](t,a
 
   private makeInvokeNonVirtualJitInfo(code: Buffer, pc: number) : JitInfo {
     const index = code.readUInt16BE(pc + 1);
-    const methodReference = <ConstantPool.MethodReference | ConstantPool.InterfaceMethodReference> this.cls.constantPool.get(index);
+    const methodReference = <MethodReference | InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
     return {hasBranch: true, pops: -(paramSize + 1), pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
       const onError = makeOnError(onErrorPushes);
@@ -546,7 +545,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     }};
   }
 
-  private jitCompileFrom(startPC: number, thread: threading.JVMThread) {
+  private jitCompileFrom(startPC: number, thread: JVMThread) {
     if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
       console.log(`Planning to JIT: ${this.fullSignature} from ${startPC}`);
     }
@@ -571,10 +570,10 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     }
 
     for (let i = startPC; i < code.length && !done;) {
-      const op = code.readUInt8(i);
+      const op = code[i];
       // TODO: handle wide()
       if (!RELEASE && thread.getJVM().shouldPrintJITCompilation()) {
-        console.log(`${i}: ${threading.annotateOpcode(op, this, code, i)}`);
+        console.log(`${i}: ${annotateOpcode(op, this, code, i)}`);
       }
       const jitInfo = opJitInfo[op];
       if (jitInfo) {
@@ -586,20 +585,20 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
           this.failedCompile[i] = true;
           closeCurrentTrace();
         }
-      } else if (op === enums.OpCode.INVOKESTATIC_FAST && trace !== null) {
+      } else if (op === OpCode.INVOKESTATIC_FAST && trace !== null) {
         const invokeJitInfo: JitInfo = this.makeInvokeStaticJitInfo(code, i);
         trace.addOp(i, invokeJitInfo);
 
         this.failedCompile[i] = true;
         closeCurrentTrace();
 
-      } else if (((op === enums.OpCode.INVOKEVIRTUAL_FAST) || (op === enums.OpCode.INVOKEINTERFACE_FAST)) && trace !== null) {
+      } else if (((op === OpCode.INVOKEVIRTUAL_FAST) || (op === OpCode.INVOKEINTERFACE_FAST)) && trace !== null) {
         const invokeJitInfo: JitInfo = this.makeInvokeVirtualJitInfo(code, i);
         trace.addOp(i, invokeJitInfo);
 
         this.failedCompile[i] = true;
         closeCurrentTrace();
-      } else if ((op === enums.OpCode.INVOKENONVIRTUAL_FAST) && trace !== null) {
+      } else if ((op === OpCode.INVOKENONVIRTUAL_FAST) && trace !== null) {
         const invokeJitInfo: JitInfo = this.makeInvokeNonVirtualJitInfo(code, i);
         trace.addOp(i, invokeJitInfo);
 
@@ -617,7 +616,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
         }
         closeCurrentTrace();
       }
-      i += opcodeSize[enums.OpcodeLayouts[op]];
+      i += opcodeSize[OpcodeLayouts[op]];
     }
 
     return _this.compiledFunctions[startPC];
@@ -632,11 +631,11 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
    * Resolves all of the classes referenced through this method. Required in
    * order to create its reflection object.
    */
-  private _resolveReferencedClasses(thread: threading.JVMThread, cb: (classes: {[ className: string ]: ClassData.ClassData}) => void): void {
+  private _resolveReferencedClasses(thread: JVMThread, cb: (classes: {[ className: string ]: ClassData}) => void): void {
     // Start with the return type + parameter types + reflection object types.
     var toResolve: string[] = this.parameterTypes.concat(this.returnType),
-      code: attributes.Code = this.code,
-      exceptionAttribute = <attributes.Exceptions> this.getAttribute("Exceptions");
+      code: Code = this.code,
+      exceptionAttribute = <Exceptions> this.getAttribute("Exceptions");
     // Exception handler types.
     if (!this.accessFlags.isNative() && !this.accessFlags.isAbstract() && code.exceptionHandlers.length > 0) {
       toResolve.push('Ljava/lang/Throwable;'); // Mimic native Java (in case <any> is the only handler).
@@ -648,9 +647,9 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
       toResolve = toResolve.concat(exceptionAttribute.exceptions);
     }
 
-    this.cls.getLoader().resolveClasses(thread, toResolve, (classes: {[className: string]: ClassData.ClassData}) => {
+    this.cls.getLoader().resolveClasses(thread, toResolve, (classes: {[className: string]: ClassData}) => {
       // Use bootstrap classloader for reflection classes.
-      thread.getBsCl().resolveClasses(thread, ['Ljava/lang/reflect/Method;', 'Ljava/lang/reflect/Constructor;'], (classes2: {[className: string]: ClassData.ClassData}) => {
+      thread.getBsCl().resolveClasses(thread, ['Ljava/lang/reflect/Method;', 'Ljava/lang/reflect/Constructor;'], (classes2: {[className: string]: ClassData}) => {
         if (classes === null || classes2 === null) {
           cb(null);
         } else {
@@ -665,17 +664,17 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
   /**
    * Get a reflection object representing this method.
    */
-  public reflector(thread: threading.JVMThread, cb: (reflectedMethod: JVMTypes.java_lang_reflect_Executable) => void): void {
+  public reflector(thread: JVMThread, cb: (reflectedMethod: JVMTypes.java_lang_reflect_Executable) => void): void {
     var bsCl = thread.getBsCl(),
       // Grab the classes required to construct the needed arrays.
-      clazzArray = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;')).getConstructor(thread),
+      clazzArray = (<ArrayClassData<JVMTypes.java_lang_Class>> bsCl.getInitializedClass(thread, '[Ljava/lang/Class;')).getConstructor(thread),
       jvm = thread.getJVM(),
-      // Grab the needed attributes.
-      signatureAttr = <attributes.Signature> this.getAttribute("Signature"),
-      exceptionAttr = <attributes.Exceptions> this.getAttribute("Exceptions");
+      // Grab the needed
+      signatureAttr = <Signature> this.getAttribute("Signature"),
+      exceptionAttr = <Exceptions> this.getAttribute("Exceptions");
 
     // Retrieve all of the required class references.
-    this._resolveReferencedClasses(thread, (classes: { [className: string ]: ClassData.ClassData }) => {
+    this._resolveReferencedClasses(thread, (classes: { [className: string ]: ClassData }) => {
       if (classes === null) {
         return cb(null);
       }
@@ -697,7 +696,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
 
       if (this.name === '<init>') {
         // Constructor object.
-        var consCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Constructor>> classes['Ljava/lang/reflect/Constructor;']).getConstructor(thread),
+        var consCons = (<ReferenceClassData<JVMTypes.java_lang_reflect_Constructor>> classes['Ljava/lang/reflect/Constructor;']).getConstructor(thread),
           consObj = new consCons(thread);
         consObj['java/lang/reflect/Constructor/clazz'] = clazz;
         consObj['java/lang/reflect/Constructor/parameterTypes'] = parameterTypes;
@@ -710,7 +709,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
         cb(consObj);
       } else {
         // Method object.
-        var methodCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_reflect_Method>>  classes['Ljava/lang/reflect/Method;']).getConstructor(thread),
+        var methodCons = (<ReferenceClassData<JVMTypes.java_lang_reflect_Method>>  classes['Ljava/lang/reflect/Method;']).getConstructor(thread),
           methodObj = new methodCons(thread);
         methodObj['java/lang/reflect/Method/clazz'] = clazz;
         methodObj['java/lang/reflect/Method/name'] = name;
@@ -741,7 +740,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
    * these NULL values. It also adds the 'thread' object to the start of the
    * arguments array.
    */
-  public convertArgs(thread: threading.JVMThread, params: any[]): any[] {
+  public convertArgs(thread: JVMThread, params: any[]): any[] {
     if (this.isSignaturePolymorphic()) {
       // These don't need any conversion, and have arbitrary arguments.
       // Just append the thread object.
@@ -764,7 +763,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
   /**
    * Lock this particular method.
    */
-  public methodLock(thread: threading.JVMThread, frame: threading.BytecodeStackFrame): Monitor {
+  public methodLock(thread: JVMThread, frame: BytecodeStackFrame): Monitor {
     if (this.accessFlags.isStatic()) {
       // Static methods lock the class.
       return this.cls.getClassObject(thread).getMonitor();
@@ -793,10 +792,10 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
    * Retrieve the MemberName/invokedynamic JavaScript "bridge method" that
    * encapsulates the logic required to call this particular method.
    */
-  public getVMTargetBridgeMethod(thread: threading.JVMThread, refKind: number): (thread: threading.JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void {
+  public getVMTargetBridgeMethod(thread: JVMThread, refKind: number): (thread: JVMThread, descriptor: string, args: any[], cb?: (e?: JVMTypes.java_lang_Throwable, rv?: any) => void) => void {
     // TODO: Could cache these in the Method object if desired.
     var outStream = new StringOutputStream(),
-      virtualDispatch = !(refKind === enums.MethodHandleReferenceKind.INVOKESTATIC || refKind === enums.MethodHandleReferenceKind.INVOKESPECIAL);
+      virtualDispatch = !(refKind === MethodHandleReferenceKind.INVOKESTATIC || refKind === MethodHandleReferenceKind.INVOKESPECIAL);
     // Args: thread, cls, util
     if (this.accessFlags.isStatic()) {
       assert(!virtualDispatch, "Can't have static virtual dispatch.");
@@ -806,9 +805,9 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     if (!this.accessFlags.isStatic()) {
       outStream.write(`  var obj = args.shift();\n`);
       outStream.write(`  if (obj === null) { return thread.throwNewException('Ljava/lang/NullPointerException;', ''); }\n`);
-      outStream.write(`  obj["${util.reescapeJVMName(virtualDispatch ? this.signature : this.fullSignature)}"](thread, `);
+      outStream.write(`  obj["${reescapeJVMName(virtualDispatch ? this.signature : this.fullSignature)}"](thread, `);
     } else {
-      outStream.write(`  jsCons["${util.reescapeJVMName(this.fullSignature)}"](thread, `);
+      outStream.write(`  jsCons["${reescapeJVMName(this.fullSignature)}"](thread, `);
     }
     // TODO: Is it ever appropriate to box arguments for varargs functions? It appears not.
     outStream.write(`args`);
@@ -831,12 +830,12 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
   public outputJavaScriptFunction(jsConsName: string, outStream: StringOutputStream, nonVirtualOnly: boolean = false): void {
     var i: number;
     if (this.accessFlags.isStatic()) {
-      outStream.write(`${jsConsName}["${util.reescapeJVMName(this.fullSignature)}"] = ${jsConsName}["${util.reescapeJVMName(this.signature)}"] = `);
+      outStream.write(`${jsConsName}["${reescapeJVMName(this.fullSignature)}"] = ${jsConsName}["${reescapeJVMName(this.signature)}"] = `);
     } else {
       if (!nonVirtualOnly) {
-        outStream.write(`${jsConsName}.prototype["${util.reescapeJVMName(this.signature)}"] = `);
+        outStream.write(`${jsConsName}.prototype["${reescapeJVMName(this.signature)}"] = `);
       }
-      outStream.write(`${jsConsName}.prototype["${util.reescapeJVMName(this.fullSignature)}"] = `);
+      outStream.write(`${jsConsName}.prototype["${reescapeJVMName(this.fullSignature)}"] = `);
     }
     // cb check is boilerplate, required for natives calling into JVM land.
     outStream.write(`(function(method) {
@@ -864,9 +863,9 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
       }
     }
     outStream.write(`));
-    thread.setStatus(${enums.ThreadStatus.RUNNABLE});
+    thread.setStatus(${ThreadStatus.RUNNABLE});
   };
-})(cls.getSpecificMethod("${util.reescapeJVMName(this.cls.getInternalName())}", "${util.reescapeJVMName(this.signature)}"));\n`);
+})(cls.getSpecificMethod("${reescapeJVMName(this.cls.getInternalName())}", "${reescapeJVMName(this.signature)}"));\n`);
   }
 }
 
@@ -893,7 +892,7 @@ export function dumpStats() {
   for (let i = 0; i < top.length; i++) {
     const op = top[i];
     if (statTraceCloser[op] > 0) {
-      console.log(enums.OpCode[op], statTraceCloser[op]);
+      console.log(OpCode[op], statTraceCloser[op]);
     }
   }
 }

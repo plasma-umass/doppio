@@ -1,14 +1,15 @@
 import {TriState} from './enums';
-import assert = require('./assert');
-import fs = require('fs');
-import BrowserFS = require('browserfs');
+import assert from './assert';
+import * as fs from 'fs';
+import * as BrowserFS from 'browserfs';
 const bfsPath = BrowserFS.BFSRequire('path');
-import nodePath = require('path');
-import util = require('./util');
+import * as nodePath from 'path';
+import {asyncForEach} from './util';
 // Type information only.
 import TBFSFS from 'browserfs/dist/node/core/FS';
 // Export so it can be returned from ClasspathJar.
-export type TZipFS = BrowserFS.FileSystem.ZipFS;
+import TZipFS from 'browserfs/dist/node/backend/ZipFS';
+export type TZipFS = TZipFS;
 let BFSFS = BrowserFS.BFSRequire('fs');
 let ZipFS = BrowserFS.FileSystem.ZipFS;
 export type MetaIndex = {[pkgName: string]: boolean | MetaIndex};
@@ -476,7 +477,7 @@ export function ClasspathFactory(javaHomePath: string, paths: string[], cb: (ite
     if (!err) {
       metaIndex = parseMetaIndex(data.toString());
     }
-    util.asyncForEach(paths, (p, nextItem) => {
+    asyncForEach(paths, (p, nextItem) => {
       let pRelToHome = nodePath.relative(`${javaHomePath}/lib`, p);
       fs.stat(p, (err, stats) => {
         let cpItem: IClasspathItem;

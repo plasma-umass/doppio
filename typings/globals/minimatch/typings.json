@@ -1,8 +1,0 @@
-{
-  "resolution": "main",
-  "tree": {
-    "src": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/708609e0764daeb5eb64104af7aca50c520c4e6e/minimatch/minimatch.d.ts",
-    "raw": "github:DefinitelyTyped/DefinitelyTyped/minimatch/minimatch.d.ts#708609e0764daeb5eb64104af7aca50c520c4e6e",
-    "typings": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/708609e0764daeb5eb64104af7aca50c520c4e6e/minimatch/minimatch.d.ts"
-  }
-}

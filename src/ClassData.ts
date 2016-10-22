@@ -1,25 +1,25 @@
-"use strict";
-import util = require('./util');
-import ByteStream = require('./ByteStream');
-import ConstantPool = require('./ConstantPool');
-import attributes = require('./attributes');
+import {ext_classname, Flags, descriptor2typestr, boxClassName, asyncForEach, typedArraysSupported, jvmName2JSName, initialValue} from './util';
+import * as util from './util';
+import ByteStream from './ByteStream';
+import {ConstantPool, ClassReference, ConstString, MethodHandle, IConstantPoolItem} from './ConstantPool';
+import {IAttribute, makeAttributes, BootstrapMethods, ConstantValue} from './attributes';
 import {JVMThread, InternalStackFrame, NativeStackFrame, BytecodeStackFrame} from './threading';
-import logging = require('./logging');
-import methods = require('./methods');
-import ClassLoader = require('./ClassLoader');
-import enums = require('./enums');
-import ClassLock = require('./ClassLock');
-import assert = require('./assert');
-import gLong = require('./gLong');
-import JVM = require('./jvm');
-import StringOutputStream = require('./StringOutputStream');
-import JVMTypes = require('../includes/JVMTypes');
-import ClassState = enums.ClassState;
+import * as logging from './logging';
+import {Method, Field} from './methods';
+import {ClassLoader, CustomClassLoader} from './ClassLoader';
+import {ClassState, ConstantPoolItemType} from './enums';
+import ClassLock from './ClassLock';
+import assert from './assert';
+import gLong from './gLong';
+import JVM from './jvm';
+import StringOutputStream from './StringOutputStream';
+import Monitor from './monitor';
+import * as JVMTypes from '../includes/JVMTypes';
 
-import trace = logging.trace;
-import debug = logging.debug;
+const trace = logging.trace;
+const debug = logging.debug;
 
-import global = require('./global');
+import global from './global';
 
 declare var RELEASE: boolean;
 if (typeof RELEASE === 'undefined') global.RELEASE = false;
@@ -56,7 +56,7 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     'signers': ['JVMTypes.java_lang_Object[]', 'null']
   },
   'Ljava/lang/ClassLoader;': {
-    '$loader': ['ClassLoader', 'new ClassLoader.CustomClassLoader(thread.getBsCl(), this);']
+    '$loader': ['ClassLoader', 'new CustomClassLoader(thread.getBsCl(), this);']
   },
   'Ljava/lang/Thread;': {
     // Note: Need to handle initial case when thread is NULL.
@@ -173,14 +173,14 @@ function extendClass(cls: any, superCls: any) {
  * Represents a single class in the JVM.
  */
 export abstract class ClassData {
-  protected loader: ClassLoader.ClassLoader;
-  public accessFlags: util.Flags = null;
+  protected loader: ClassLoader;
+  public accessFlags: Flags = null;
   /**
    * We make this private to *enforce* call sites to use our getter functions.
    * The actual state of this class depends on the state of its parents, and
    * parents do not inform their children when they change state.
    */
-  private state: enums.ClassState = enums.ClassState.LOADED;
+  private state: ClassState = ClassState.LOADED;
   private jco: JVMTypes.java_lang_Class = null;
   /**
    * The class's canonical name, in internal form.
@@ -193,7 +193,7 @@ export abstract class ClassData {
    * Responsible for setting up all of the fields that are guaranteed to be
    * present on any ClassData object.
    */
-  constructor(loader: ClassLoader.ClassLoader) {
+  constructor(loader: ClassLoader) {
     this.loader = loader;
   }
 
@@ -201,7 +201,7 @@ export abstract class ClassData {
    * Get the external form of this class's name (e.g. java.lang.String).
    */
   public getExternalName(): string {
-    return util.ext_classname(this.className);
+    return ext_classname(this.className);
   }
 
   /**
@@ -229,7 +229,7 @@ export abstract class ClassData {
    * Returns the ClassLoader object of the classloader that initialized this
    * class. Returns null for the default classloader.
    */
-  public getLoader(): ClassLoader.ClassLoader {
+  public getLoader(): ClassLoader {
     return this.loader;
   }
 
@@ -330,21 +330,21 @@ export abstract class ClassData {
    * signature *without* invoking method lookup.
    * @param methodSignature The method's full signature, e.g. <clinit>()V
    */
-  public getMethod(methodSignature: string): methods.Method {
+  public getMethod(methodSignature: string): Method {
     return null;
   }
 
   /**
    * Retrieve all of the methods defined on this class.
    */
-  public getMethods(): methods.Method[] {
+  public getMethods(): Method[] {
     return [];
   }
 
   /**
    * Retrieve the set of fields defined on this class.
    */
-  public getFields(): methods.Field[] {
+  public getFields(): Field[] {
     return [];
   }
 
@@ -362,14 +362,14 @@ export abstract class ClassData {
   /**
    * Set the state of this particular class to LOADED/RESOLVED/INITIALIZED.
    */
-  public setState(state: enums.ClassState): void {
+  public setState(state: ClassState): void {
     this.state = state;
   }
 
   /**
    * Gets the current state of this class.
    */
-  protected getState(): enums.ClassState {
+  protected getState(): ClassState {
     if (this.state === ClassState.RESOLVED && this.getMethod('<clinit>()V') === null) {
       // We can promote to INITIALIZED if this class has no static initialization
       // logic, and its parent class is initialized.
@@ -439,11 +439,11 @@ export abstract class ClassData {
 }
 
 export class PrimitiveClassData extends ClassData {
-  constructor(className: string, loader: ClassLoader.ClassLoader) {
+  constructor(className: string, loader: ClassLoader) {
     super(loader);
     this.className = className;
     // PrimitiveClassData objects are ABSTRACT, FINAL, and PUBLIC.
-    this.accessFlags = new util.Flags(0x411);
+    this.accessFlags = new Flags(0x411);
     this.setState(ClassState.INITIALIZED);
   }
 
@@ -460,7 +460,7 @@ export class PrimitiveClassData extends ClassData {
    * Returns the internal class name for the corresponding boxed type.
    */
   public boxClassName(): string {
-    return util.boxClassName(this.className);
+    return boxClassName(this.className);
   }
 
   /**
@@ -474,7 +474,7 @@ export class PrimitiveClassData extends ClassData {
     var wrapped = new boxCons(thread);
     if (boxName !== 'V') {
       // XXX: all primitive wrappers store their value in a private static final field named 'value'
-      (<any> wrapped)[util.descriptor2typestr(boxName) + '/value'] = value;
+      (<any> wrapped)[descriptor2typestr(boxName) + '/value'] = value;
       assert(typeof value === "number" || typeof value === "boolean" || typeof value.low_ === "number", `Invalid primitive value: ${value}`);
     }
     return wrapped;
@@ -501,11 +501,11 @@ export class ArrayClassData<T> extends ClassData {
   private componentClass: ClassData;
   private _constructor: IJVMConstructor<JVMTypes.JVMArray<T>> = null;
 
-  constructor(componentType: string, loader: ClassLoader.ClassLoader) {
+  constructor(componentType: string, loader: ClassLoader) {
     super(loader);
     this.className = `[${componentType}`;
     // ArrayClassData objects are ABSTRACT, FINAL, and PUBLIC.
-    this.accessFlags = new util.Flags(0x411);
+    this.accessFlags = new Flags(0x411);
     this.componentClassName = componentType;
   }
 
@@ -513,11 +513,11 @@ export class ArrayClassData<T> extends ClassData {
    * Looks up a method with the given signature. Returns null if no method
    * found.
    */
-  public methodLookup(signature: string): methods.Method {
+  public methodLookup(signature: string): Method {
     return this.superClass.methodLookup(signature);
   }
 
-  public fieldLookup(name: string): methods.Field {
+  public fieldLookup(name: string): Field {
     return this.superClass.fieldLookup(name);
   }
 
@@ -530,7 +530,7 @@ export class ArrayClassData<T> extends ClassData {
       setImmediate(() => cb(this));
       return;
     }
-    util.asyncForEach(["Ljava/lang/Object;", this.componentClassName], (cls: string, nextItem: (err?: any) => void) => {
+    asyncForEach(["Ljava/lang/Object;", this.componentClassName], (cls: string, nextItem: (err?: any) => void) => {
       this.loader.resolveClass(thread, cls, (cdata: ClassData) => {
         if (cdata !== null) {
           nextItem();
@@ -613,7 +613,7 @@ export class ArrayClassData<T> extends ClassData {
    * Uses typed arrays when available for primitive arrays.
    */
   private getJSArrayConstructor(): string {
-    if (!util.typedArraysSupported) {
+    if (!typedArraysSupported) {
       return 'Array';
     }
     switch (this.componentClassName) {
@@ -695,7 +695,7 @@ export class ArrayClassData<T> extends ClassData {
   private _constructConstructor(thread: JVMThread): IJVMConstructor<JVMTypes.JVMArray<T>> {
     assert(this._constructor === null, `Tried to construct constructor twice for ${this.getExternalName()}!`);
     var outputStream = new StringOutputStream(),
-      jsClassName = util.jvmName2JSName(this.getInternalName());
+      jsClassName = jvmName2JSName(this.getInternalName());
       // Arguments: extendClass, cls, superCls, gLongZero, thread
     outputStream.write(`extendClass(${jsClassName}, superCls.getConstructor(thread));
   function ${jsClassName}(thread, lengths) {\n`);
@@ -755,19 +755,19 @@ export class ArrayClassData<T> extends ClassData {
 export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends ClassData {
   private minorVersion: number;
   public majorVersion: number;
-  public constantPool: ConstantPool.ConstantPool;
+  public constantPool: ConstantPool;
   /**
    * All of the fields directly defined by this class.
    */
-  private fields: methods.Field[];
+  private fields: Field[];
   /**
    * All of the methods directly defined by this class.
    */
-  private methods: methods.Method[];
-  private attrs: attributes.IAttribute[];
+  private methods: Method[];
+  private attrs: IAttribute[];
   private interfaceClasses: ReferenceClassData<JVMTypes.java_lang_Object>[] = null;
-  private superClassRef: ConstantPool.ClassReference = null;
-  private interfaceRefs: ConstantPool.ClassReference[];
+  private superClassRef: ClassReference = null;
+  private interfaceRefs: ClassReference[];
   /**
    * Initialization lock.
    */
@@ -779,41 +779,41 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   /**
    * Virtual field table
    */
-  private _fieldLookup: { [name: string]: methods.Field } = {};
+  private _fieldLookup: { [name: string]: Field } = {};
   /**
    * All fields in object instantiations. Fields from super classes are in front
    * of fields from this class. A field's offset in the array is its *vmindex*.
    */
-  protected _objectFields: methods.Field[] = [];
+  protected _objectFields: Field[] = [];
   /**
    * All static fields in this particular class. The field's offset in this
    * array is its *vmindex*.
    */
-  protected _staticFields: methods.Field[] = [];
+  protected _staticFields: Field[] = [];
   /**
    * Virtual method table, keyed by method signature. Unlike _vmTable,
    * _methodLookup contains static methods and constructors, too.
    */
-  private _methodLookup: { [signature: string]: methods.Method } = {};
+  private _methodLookup: { [signature: string]: Method } = {};
   /**
    * Virtual method table, keyed by vmindex. Methods originally defined by
    * super classes are in front of methods defined in this class. Overriding
    * methods are placed into the vmindex of the originating method.
    */
-  protected _vmTable: methods.Method[] = [];
+  protected _vmTable: Method[] = [];
   /**
    * Default method implementations that this class did *not* inherit, but are
    * still invocable in the class via their full name (e.g. through an
    * invokespecial bytecode).
    */
-  protected _uninheritedDefaultMethods: methods.Method[] = [];
+  protected _uninheritedDefaultMethods: Method[] = [];
   /**
    * The ProtectionDomain for this class, specified by the application class
    * loader. NULL for bootstrap classloaded items.
    */
   protected _protectionDomain: JVMTypes.java_security_ProtectionDomain;
 
-  constructor(buffer: Buffer, protectionDomain?: JVMTypes.java_security_ProtectionDomain, loader?: ClassLoader.ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
+  constructor(buffer: Buffer, protectionDomain?: JVMTypes.java_security_ProtectionDomain, loader?: ClassLoader, cpPatches?: JVMTypes.JVMArray<JVMTypes.java_lang_Object>) {
     super(loader);
     this._protectionDomain = protectionDomain ? protectionDomain : null;
     var byteStream = new ByteStream(buffer),
@@ -826,48 +826,48 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     if (!(45 <= this.majorVersion && this.majorVersion <= 52)) {
       throw new Error("Major version invalid");
     }
-    this.constantPool = new ConstantPool.ConstantPool();
+    this.constantPool = new ConstantPool();
     this.constantPool.parse(byteStream, cpPatches);
     // bitmask for {public,final,super,interface,abstract} class modifier
-    this.accessFlags = new util.Flags(byteStream.getUint16());
+    this.accessFlags = new Flags(byteStream.getUint16());
 
-    this.className = (<ConstantPool.ClassReference> this.constantPool.get(byteStream.getUint16())).name;
+    this.className = (<ClassReference> this.constantPool.get(byteStream.getUint16())).name;
     // super reference is 0 when there's no super (basically just java.lang.Object)
     var superRef = byteStream.getUint16();
     if (superRef !== 0) {
-      this.superClassRef = (<ConstantPool.ClassReference> this.constantPool.get(superRef));
+      this.superClassRef = (<ClassReference> this.constantPool.get(superRef));
     }
     // direct interfaces of this class
     var isize = byteStream.getUint16();
-    this.interfaceRefs = new Array<ConstantPool.ClassReference>(isize);
+    this.interfaceRefs = new Array<ClassReference>(isize);
     for (i = 0; i < isize; ++i) {
-      this.interfaceRefs[i] = <ConstantPool.ClassReference> this.constantPool.get(byteStream.getUint16());
+      this.interfaceRefs[i] = <ClassReference> this.constantPool.get(byteStream.getUint16());
     }
     // fields of this class
     var numFields = byteStream.getUint16();
-    this.fields = new Array<methods.Field>(numFields);
+    this.fields = new Array<Field>(numFields);
     for (i = 0; i < numFields; ++i) {
-      this.fields[i] = new methods.Field(this, this.constantPool, i, byteStream);
+      this.fields[i] = new Field(this, this.constantPool, i, byteStream);
     }
     // class methods
     var numMethods = byteStream.getUint16();
-    this.methods = new Array<methods.Method>(numMethods);
+    this.methods = new Array<Method>(numMethods);
     for (i = 0; i < numMethods; i++) {
-      var m = new methods.Method(this, this.constantPool, i, byteStream);
+      var m = new Method(this, this.constantPool, i, byteStream);
       this.methods[i] = m;
     }
     // class attributes
-    this.attrs = attributes.makeAttributes(byteStream, this.constantPool);
+    this.attrs = makeAttributes(byteStream, this.constantPool);
     if (byteStream.hasBytes()) {
       throw `Leftover bytes in classfile: ${byteStream}`;
     }
   }
 
-  public getSuperClassReference(): ConstantPool.ClassReference {
+  public getSuperClassReference(): ClassReference {
     return this.superClassRef;
   }
 
-  public getInterfaceClassReferences(): ConstantPool.ClassReference[] {
+  public getInterfaceClassReferences(): ClassReference[] {
     return this.interfaceRefs.slice(0);
   }
 
@@ -883,14 +883,14 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * The set of fields that this class has.
    * DO NOT MUTATE!
    */
-  public getFields(): methods.Field[] {
+  public getFields(): Field[] {
     return this.fields;
   }
 
   /**
    * Get the Virtual Method table for this class.
    */
-  public getVMTable(): methods.Method[] {
+  public getVMTable(): Method[] {
     return this._vmTable;
   }
 
@@ -898,7 +898,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Returns the VM index for the given method. Returns -1 if not present in the
    * virtual method table (e.g. is static or a constructor).
    */
-  public getVMIndexForMethod(m: methods.Method): number {
+  public getVMIndexForMethod(m: Method): number {
     // Use M's signature, as we might override the method and use a different
     // method object in the table for its vmindex.
     return this._vmTable.indexOf(this.methodLookup(m.signature));
@@ -907,7 +907,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   /**
    * Returns the method corresponding to the given VMIndex.
    */
-  public getMethodFromVMIndex(i: number): methods.Method {
+  public getMethodFromVMIndex(i: number): Method {
     if (this._vmTable[i] !== undefined) {
       return this._vmTable[i];
     }
@@ -919,7 +919,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * NOTE: A static and non-static field can have the same vmindex! Caller must
    * be able to differentiate between static and non-static behavior!
    */
-  public getVMIndexForField(f: methods.Field): number {
+  public getVMIndexForField(f: Field): number {
     if (f.accessFlags.isStatic()) {
       assert(f.cls === this, "Looks like we actually need to support static field lookups!");
       return this._staticFields.indexOf(f);
@@ -928,7 +928,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     }
   }
 
-  public getStaticFieldFromVMIndex(index: number): methods.Field {
+  public getStaticFieldFromVMIndex(index: number): Field {
     var f = this._staticFields[index];
     if (f !== undefined) {
       return f;
@@ -936,7 +936,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     return null;
   }
 
-  public getObjectFieldFromVMIndex(index: number): methods.Field {
+  public getObjectFieldFromVMIndex(index: number): Field {
     var f = this._objectFields[index];
     if (f !== undefined) {
       return f;
@@ -948,7 +948,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Get a field from its "slot". A "slot" is just the field's index in its
    * defining class's field array.
    */
-  public getFieldFromSlot(slot: number): methods.Field {
+  public getFieldFromSlot(slot: number): Field {
     return this.fields[slot];
   }
 
@@ -956,7 +956,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Get a method from its "slot". A "slot" is just the method's index in its
    * defining class's method array.
    */
-  public getMethodFromSlot(slot: number): methods.Method {
+  public getMethodFromSlot(slot: number): Method {
     return this.methods[slot];
   }
 
@@ -964,7 +964,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Retrieve a method with the given signature from this particular class.
    * Does not search superclasses / interfaces.
    */
-  public getMethod(sig: string): methods.Method {
+  public getMethod(sig: string): Method {
     var m = this._methodLookup[sig];
     if (m.cls === this) {
       return m;
@@ -972,11 +972,11 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     return null;
   }
 
-  public getSpecificMethod(definingCls: string, sig: string): methods.Method {
+  public getSpecificMethod(definingCls: string, sig: string): Method {
     if (this.getInternalName() === definingCls) {
       return this.getMethod(sig);
     }
-    var searchClasses = this.interfaceClasses.slice(0), m: methods.Method;
+    var searchClasses = this.interfaceClasses.slice(0), m: Method;
     if (this.superClass) {
       searchClasses.push(this.superClass);
     }
@@ -992,7 +992,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Get the methods belonging to this particular class.
    * DO NOT MUTATE!
    */
-  public getMethods(): methods.Method[] {
+  public getMethods(): Method[] {
     return this.methods;
   }
 
@@ -1001,7 +1001,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * not inherited in the virtual method table.
    * DO NOT MUTATE!
    */
-  public getUninheritedDefaultMethods(): methods.Method[] {
+  public getUninheritedDefaultMethods(): Method[] {
     return this._uninheritedDefaultMethods;
   }
 
@@ -1024,7 +1024,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     }
 
     // My methods override my super class'.
-    this.methods.forEach((m: methods.Method) => {
+    this.methods.forEach((m: Method) => {
       var superM = this._methodLookup[m.signature];
       if (!m.accessFlags.isStatic() && m.name !== "<init>") {
         // Only non-static non-constructor methods are placed into the virtual
@@ -1083,7 +1083,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     });
 
     // My fields override all other fields.
-    this.fields.forEach((f: methods.Field) => {
+    this.fields.forEach((f: Field) => {
       this._fieldLookup[f.name] = f;
       if (f.accessFlags.isStatic()) {
         this._staticFields.push(f);
@@ -1097,7 +1097,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Looks up a method with the given signature. Returns null if no method
    * found.
    */
-  public methodLookup(signature: string): methods.Method {
+  public methodLookup(signature: string): Method {
     var m = this._methodLookup[signature];
     if (m !== undefined) {
       return m;
@@ -1110,8 +1110,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Performs method lookup, and includes signature polymorphic results if
    * the method is signature polymorphic.
    */
-  public signaturePolymorphicAwareMethodLookup(signature: string): methods.Method {
-    var m: methods.Method;
+  public signaturePolymorphicAwareMethodLookup(signature: string): Method {
+    var m: Method;
     if (null !== (m = this.methodLookup(signature))) {
       return m;
     } else if (this.className === 'Ljava/lang/invoke/MethodHandle;') {
@@ -1136,7 +1136,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   /**
    * Looks up a field with the given name. Returns null if no method found.
    */
-  public fieldLookup(name: string): methods.Field {
+  public fieldLookup(name: string): Field {
     var f = this._fieldLookup[name];
     if (f !== undefined) {
       return f;
@@ -1145,7 +1145,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     }
   }
 
-  public getAttribute(name: string): attributes.IAttribute {
+  public getAttribute(name: string): IAttribute {
     var attrs = this.attrs;
     for (var i = 0; i < attrs.length; i++) {
       var attr = attrs[i];
@@ -1156,9 +1156,9 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     return null;
   }
 
-  public getAttributes(name: string): attributes.IAttribute[] {
+  public getAttributes(name: string): IAttribute[] {
     var attrs = this.attrs;
-    var results : attributes.IAttribute[] = [];
+    var results : IAttribute[] = [];
     for (var i = 0; i < attrs.length; i++) {
       var attr = attrs[i];
       if (attr.getName() === name) {
@@ -1171,8 +1171,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   /**
    * Get the bootstrap method information for an InvokeDynamic opcode.
    */
-  public getBootstrapMethod(idx: number): [ConstantPool.MethodHandle, ConstantPool.IConstantPoolItem[]] {
-    var bms = <attributes.BootstrapMethods> this.getAttribute('BootstrapMethods');
+  public getBootstrapMethod(idx: number): [MethodHandle, IConstantPoolItem[]] {
+    var bms = <BootstrapMethods> this.getAttribute('BootstrapMethods');
     return bms.bootstrapMethods[idx];
   }
 
@@ -1181,13 +1181,13 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * only be called when the constructor is created.
    */
   private _getInitialStaticFieldValue(thread: JVMThread, name: string): any {
-    var f: methods.Field = this.fieldLookup(name);
+    var f: Field = this.fieldLookup(name);
     if (f !== null && f.accessFlags.isStatic()) {
-      var cva = <attributes.ConstantValue> f.getAttribute('ConstantValue');
+      var cva = <ConstantValue> f.getAttribute('ConstantValue');
       if (cva !== null) {
         switch (cva.value.getType()) {
-          case enums.ConstantPoolItemType.STRING:
-            var stringCPI = <ConstantPool.ConstString> cva.value;
+          case ConstantPoolItemType.STRING:
+            var stringCPI = <ConstString> cva.value;
             if (stringCPI.value === null) {
               stringCPI.value = thread.getJVM().internString(stringCPI.stringValue);
             }
@@ -1197,7 +1197,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
             return (<any> cva.value).value;
         }
       } else {
-        return util.initialValue(f.rawDescriptor);
+        return initialValue(f.rawDescriptor);
       }
     }
     assert(false, `Tried to construct a static field value that ${f !== null ? "isn't static" : "doesn't exist"}: ${f !== null ? f.cls.getInternalName() : this.getInternalName()} ${name}`);
@@ -1220,7 +1220,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
         toResolve = this.superClassRef !== null ? this.interfaceRefs.concat(this.superClassRef) : this.interfaceRefs,
         allGood = true,
         resolvedItems: ReferenceClassData<JVMTypes.java_lang_Object>[] = [], i: number,
-        item: ConstantPool.ClassReference;
+        item: ClassReference;
       for (i = 0; i < toResolve.length; i++) {
         item = toResolve[i];
         if (item.tryResolve(loader)) {
@@ -1384,7 +1384,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
       cons['<clinit>()V'](thread, null, (e?: JVMTypes.java_lang_Throwable) => {
         if (e) {
           debug(`Initialization of class ${this.className} failed.`);
-          this.setState(enums.ClassState.RESOLVED);
+          this.setState(ClassState.RESOLVED);
           /**
            * "The class or interface initialization method must have completed
            *  abruptly by throwing some exception E. If the class of E is not
@@ -1419,7 +1419,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
             });
           }
         } else {
-          this.setState(enums.ClassState.INITIALIZED);
+          this.setState(ClassState.INITIALIZED);
           debug(`Initialization of class ${this.className} succeeded.`);
           // Normal case! Initialization succeeded.
           cb(this);
@@ -1427,7 +1427,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
       });
     } else {
       // Class doesn't have a static initializer.
-      this.setState(enums.ClassState.INITIALIZED);
+      this.setState(ClassState.INITIALIZED);
       cb(this);
     }
   }
@@ -1444,12 +1444,12 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * Resolve the class.
    */
   public resolve(thread: JVMThread, cb: (cdata: ClassData) => void, explicit: boolean = true): void {
-    var toResolve: ConstantPool.ClassReference[] = this.interfaceRefs.slice(0);
+    var toResolve: ClassReference[] = this.interfaceRefs.slice(0);
     if (this.superClassRef !== null) {
       toResolve.push(this.superClassRef);
     }
-    toResolve = toResolve.filter((item: ConstantPool.ClassReference) => !item.isResolved());
-    util.asyncForEach(toResolve, (clsRef: ConstantPool.ClassReference, nextItem: (err?: any) => void) => {
+    toResolve = toResolve.filter((item: ClassReference) => !item.isResolved());
+    asyncForEach(toResolve, (clsRef: ClassReference, nextItem: (err?: any) => void) => {
       clsRef.resolve(thread, this.loader, this, (status: boolean) => {
         if (!status) {
           nextItem("Failed.");
@@ -1459,7 +1459,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
       }, explicit);
     }, (err?: any) => {
       if (!err) {
-        this.setResolved(this.superClassRef !== null ? <ReferenceClassData<JVMTypes.java_lang_Object>> this.superClassRef.cls : null, this.interfaceRefs.map((ref: ConstantPool.ClassReference) => <ReferenceClassData<JVMTypes.java_lang_Object>> ref.cls));
+        this.setResolved(this.superClassRef !== null ? <ReferenceClassData<JVMTypes.java_lang_Object>> this.superClassRef.cls : null, this.interfaceRefs.map((ref: ClassReference) => <ReferenceClassData<JVMTypes.java_lang_Object>> ref.cls));
         cb(this);
       } else {
         cb(null);
@@ -1472,9 +1472,9 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
    * methods manifest as new vmindices in the virtual method table compared with
    * the superclass, and are not defined in this class itself.
    */
-  public getMirandaAndDefaultMethods(): methods.Method[] {
-    var superClsMethodTable: methods.Method[] = this.superClass !== null ? this.superClass.getVMTable() : [];
-    return this.getVMTable().slice(superClsMethodTable.length).filter((method: methods.Method) => method.cls !== this);
+  public getMirandaAndDefaultMethods(): Method[] {
+    var superClsMethodTable: Method[] = this.superClass !== null ? this.superClass.getVMTable() : [];
+    return this.getVMTable().slice(superClsMethodTable.length).filter((method: Method) => method.cls !== this);
   }
 
   public outputInjectedFields(outputStream: StringOutputStream) {
@@ -1492,7 +1492,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
   protected _constructConstructor(thread: JVMThread): IJVMConstructor<T> {
     assert(this._constructor === null, `Attempted to construct constructor twice for class ${this.getExternalName()}!`);
 
-    var jsClassName = util.jvmName2JSName(this.getInternalName()),
+    var jsClassName = jvmName2JSName(this.getInternalName()),
       outputStream = new StringOutputStream();
 
     // Expects args: extendClass, cls, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLongZero, ClassLoader, Monitor, thread
@@ -1504,7 +1504,7 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     this.outputInjectedFields(outputStream);
 
     // Output instance field assignments.
-    this._objectFields.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
+    this._objectFields.forEach((f: Field) => f.outputJavaScriptField(jsClassName, outputStream));
     outputStream.write(`  }
   ${jsClassName}.cls = cls;\n`);
 
@@ -1512,16 +1512,16 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     this.outputInjectedMethods(jsClassName, outputStream);
 
     // Static fields.
-    this._staticFields.forEach((f: methods.Field) => f.outputJavaScriptField(jsClassName, outputStream));
+    this._staticFields.forEach((f: Field) => f.outputJavaScriptField(jsClassName, outputStream));
 
     // Static and instance methods.
-    this.getMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream));
+    this.getMethods().forEach((m: Method) => m.outputJavaScriptFunction(jsClassName, outputStream));
 
     // Miranda and default interface methods.
-    this.getMirandaAndDefaultMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream));
+    this.getMirandaAndDefaultMethods().forEach((m: Method) => m.outputJavaScriptFunction(jsClassName, outputStream));
 
     // Uninherited default methods.
-    this.getUninheritedDefaultMethods().forEach((m: methods.Method) => m.outputJavaScriptFunction(jsClassName, outputStream, true));
+    this.getUninheritedDefaultMethods().forEach((m: Method) => m.outputJavaScriptFunction(jsClassName, outputStream, true));
 
     outputStream.write(`  return ${jsClassName};`);
 
@@ -1530,8 +1530,8 @@ export class ReferenceClassData<T extends JVMTypes.java_lang_Object> extends Cla
     if (!RELEASE && thread !== null && thread.getJVM().shouldDumpCompiledCode()) {
       thread.getJVM().dumpObjectDefinition(this, evalText);
     }
-    const fcn = new Function("extendClass", "cls", "InternalStackFrame", "NativeStackFrame", "BytecodeStackFrame", "gLongZero", "ClassLoader", "Monitor", "thread", "getRef", "util", evalText);
-    return fcn(extendClass, this, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLong.ZERO, require('./ClassLoader'), require('./Monitor'), thread, getRef, util);
+    const fcn = new Function("extendClass", "cls", "InternalStackFrame", "NativeStackFrame", "BytecodeStackFrame", "gLongZero", "CustomClassLoader", "Monitor", "thread", "getRef", "util", evalText);
+    return fcn(extendClass, this, InternalStackFrame, NativeStackFrame, BytecodeStackFrame, gLong.ZERO, CustomClassLoader, Monitor, thread, getRef, util);
   }
 
   public getConstructor(thread: JVMThread): IJVMConstructor<T> {

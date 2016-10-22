@@ -1,11 +1,11 @@
 import {ThreadStatus} from './enums';
 import {JVMThread} from './threading';
-import assert = require('./assert');
+import assert from './assert';
 
 /**
  * Manages parked threads and their callbacks.
  */
-class Parker {
+export default class Parker {
   private _parkCounts: { [threadRef: number]: number } = {};
   private _parkCallbacks: { [threadRef: number]: () => void } = {};
 
@@ -59,5 +59,3 @@ class Parker {
     return !!this._parkCounts[thread.getRef()];
   }
 }
-
-export = Parker;

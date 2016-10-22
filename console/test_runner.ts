@@ -1,9 +1,8 @@
-"use strict";
-import testing = require('../src/testing');
-import os = require('os');
-import fs = require('fs');
-import path = require('path');
-import JDKInfo = require('../vendor/java_home/jdk.json');
+import {runTests, TestOptions, TestingError} from '../src/testing';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as JDKInfo from '../vendor/java_home/jdk.json';
 
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
@@ -11,10 +10,10 @@ require('source-map-support').install({
 });
 
 // Default options.
-var opts: testing.TestOptions = {
+var opts: TestOptions = {
   doppioHomePath: path.resolve(__dirname, '..'),
   // Override default since we are in node.
-  nativeClasspath: [path.resolve(__dirname, path.join('..', 'src', 'natives'))],
+  nativeClasspath: [],
   enableSystemAssertions: true,
   enableAssertions: true,
   intMode: false,
@@ -42,7 +41,7 @@ function makefileTest(argv: any): void {
 
   // Enter a domain so we are robust to uncaught errors.
   var errCallback: (err: any) => void = null;
-  function finish(err?: testing.TestingError) {
+  function finish(err?: TestingError) {
     // Print out the status of this test.
     process.stdout.write(err ? failChar : passChar);
     if (err) {
@@ -68,7 +67,7 @@ function makefileTest(argv: any): void {
     }
   });
 
-  testing.runTests(opts, true, keepGoing, false, (cb: (err: Error) => void) => {
+  runTests(opts, true, keepGoing, false, (cb: (err: Error) => void) => {
     errCallback = cb;
   }, finish);
 }
@@ -97,9 +96,9 @@ function regularTest(argv: any): void {
     }
   });
 
-  testing.runTests(opts, quiet, keepGoing, hideDiffs, (cb: (err: Error) => void) => {
+  runTests(opts, quiet, keepGoing, hideDiffs, (cb: (err: Error) => void) => {
     errCallback = cb;
-  }, (err?: testing.TestingError) => {
+  }, (err?: TestingError) => {
     process.exit(err ? 1 : 0);
   });
 }

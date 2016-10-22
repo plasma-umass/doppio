@@ -1,17 +1,17 @@
-import threading = require('./threading');
-import ClassData = require('./ClassData');
+import {JVMThread} from './threading';
+import {ClassData} from './ClassData';
 
 /**
  * A single class lock, used for load/initialization locks.
  */
-class ClassLock {
-  private queue: { thread: threading.JVMThread; cb: (cdata: ClassData.ClassData) => void; }[] = [];
+export default class ClassLock {
+  private queue: { thread: JVMThread; cb: (cdata: ClassData) => void; }[] = [];
 
   /**
    * Checks if the lock is taken. If so, it enqueues the callback. Otherwise,
    * it takes the lock and returns true.
    */
-  public tryLock(thread: threading.JVMThread, cb: (cdata: ClassData.ClassData) => void): boolean {
+  public tryLock(thread: JVMThread, cb: (cdata: ClassData) => void): boolean {
     // We're the owner if the queue was previously empty.
     return this.queue.push({ thread: thread, cb: cb }) === 1;
   }
@@ -20,7 +20,7 @@ class ClassLock {
    * Releases the lock on the class, and passes the object to all enqueued
    * callbacks.
    */
-  public unlock(cdata: ClassData.ClassData): void {
+  public unlock(cdata: ClassData): void {
     var i: number, num = this.queue.length;
     for (i = 0; i < num; i++) {
       this.queue[i].cb(cdata);
@@ -31,12 +31,10 @@ class ClassLock {
   /**
    * Get the owner of this lock.
    */
-  public getOwner(): threading.JVMThread {
+  public getOwner(): JVMThread {
     if (this.queue.length > 0) {
       return this.queue[0].thread;
     }
     return null;
   }
 }
-
-export = ClassLock;

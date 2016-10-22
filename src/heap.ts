@@ -2,13 +2,11 @@
 // for explicit memory management into a buffer.
 // by Emery Berger, www.cs.umass.edu/~emery
 
-"use strict";
-
 interface HashTable<T> {
   [key : number]: T;
 }
 
-class Heap {
+export default class Heap {
 
   // size = total amount of memory for the heap.
   constructor(private size: number) {
@@ -68,7 +66,7 @@ class Heap {
   // Access a byte at this location.
   get_byte(addr: number): number {
     // TODO: add sanity checks?
-    return this._buffer.readUInt8(addr);
+    return this._buffer[addr];
   }
 
   get_word(addr: number): number {
@@ -84,7 +82,7 @@ class Heap {
   }
 
   set_byte(addr: number, value: number): void {
-    this._buffer.writeUInt8(value, addr);
+    this._buffer[addr] = value;;
   }
 
   set_signed_byte(addr: number, value: number): void {
@@ -164,5 +162,3 @@ class Heap {
   private _sizeMap : HashTable<number> = {};
 
 }
-
-export = Heap;

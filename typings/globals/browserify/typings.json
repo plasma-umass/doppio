@@ -1,8 +1,0 @@
-{
-  "resolution": "main",
-  "tree": {
-    "src": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/3191f6e0088eee07c4d8fd24e4d27a40a60d9eb9/browserify/browserify.d.ts",
-    "raw": "github:DefinitelyTyped/DefinitelyTyped/browserify/browserify.d.ts#3191f6e0088eee07c4d8fd24e4d27a40a60d9eb9",
-    "typings": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/3191f6e0088eee07c4d8fd24e4d27a40a60d9eb9/browserify/browserify.d.ts"
-  }
-}

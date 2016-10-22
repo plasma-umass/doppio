@@ -3,6 +3,7 @@
 *.js.map
 /vendor/java_home
 /includes
+.vscode
 
 *.swp
 *.un~

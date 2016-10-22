@@ -1,4 +1,4 @@
-import JVMTypes = require('../../includes/JVMTypes');
+import * as JVMTypes from '../../includes/JVMTypes';
 import * as Doppio from '../doppiojvm';
 import JVMThread = Doppio.VM.Threading.JVMThread;
 import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
@@ -6,7 +6,6 @@ import IJVMConstructor = Doppio.VM.ClassFile.IJVMConstructor;
 import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
-declare var registerNatives: (defs: any) => void;
 
 function doPrivileged(thread: JVMThread, action: JVMTypes.java_security_PrivilegedAction, ctx?: JVMTypes.java_security_AccessControlContext): void {
   thread.setStatus(ThreadStatus.ASYNC_WAITING);
@@ -42,25 +41,27 @@ function doPrivileged(thread: JVMThread, action: JVMTypes.java_security_Privileg
   });
 }
 
-class java_security_AccessController {
+export default function (): any {
+  class java_security_AccessController {
 
-  public static 'doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedAction) => void = doPrivileged;
-  public static 'doPrivileged(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedAction, ctx: JVMTypes.java_security_AccessControlContext) => void = doPrivileged;
-  public static 'doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedExceptionAction) => void = doPrivileged;
-  public static 'doPrivileged(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedExceptionAction, ctx: JVMTypes.java_security_AccessControlContext) => void = doPrivileged;
+    public static 'doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedAction) => void = doPrivileged;
+    public static 'doPrivileged(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedAction, ctx: JVMTypes.java_security_AccessControlContext) => void = doPrivileged;
+    public static 'doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedExceptionAction) => void = doPrivileged;
+    public static 'doPrivileged(Ljava/security/PrivilegedExceptionAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;': (thread: JVMThread, action: JVMTypes.java_security_PrivilegedExceptionAction, ctx: JVMTypes.java_security_AccessControlContext) => void = doPrivileged;
 
-  public static 'getStackAccessControlContext()Ljava/security/AccessControlContext;'(thread: JVMThread): JVMTypes.java_security_AccessControlContext {
-    return null;
+    public static 'getStackAccessControlContext()Ljava/security/AccessControlContext;'(thread: JVMThread): JVMTypes.java_security_AccessControlContext {
+      return null;
+    }
+
+    public static 'getInheritedAccessControlContext()Ljava/security/AccessControlContext;'(thread: JVMThread): JVMTypes.java_security_AccessControlContext {
+      thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
+      // Satisfy TypeScript return type.
+      return null;
+    }
+
   }
 
-  public static 'getInheritedAccessControlContext()Ljava/security/AccessControlContext;'(thread: JVMThread): JVMTypes.java_security_AccessControlContext {
-    thread.throwNewException('Ljava/lang/UnsatisfiedLinkError;', 'Native method not implemented.');
-    // Satisfy TypeScript return type.
-    return null;
-  }
-
-}
-
-registerNatives({
-  'java/security/AccessController': java_security_AccessController
-});
+  return {
+    'java/security/AccessController': java_security_AccessController
+  };
+};

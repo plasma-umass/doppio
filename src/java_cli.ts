@@ -1,7 +1,7 @@
 import {OptionParser, ParseType, PrefixParseResult} from './option_parser';
-import JVM = require('./jvm');
-import util = require('./util');
-import logging = require('./logging');
+import JVM from './jvm';
+import {descriptor2typestr, int_classname} from './util';
+import {setLogLevel, LogLevel} from './logging';
 import {JVMCLIOptions} from './interfaces';
 
 declare const RELEASE: boolean;
@@ -107,7 +107,7 @@ let parser = new OptionParser({
  *   number to the callback indicating the exit value.
  * @param [jvmStarted] Called with the JVM object once we have invoked it.
  */
-function java(args: string[], opts: JVMCLIOptions,
+export default function java(args: string[], opts: JVMCLIOptions,
                      doneCb: (status: number) => void,
                      jvmStarted: (jvm: JVM) => void = function(jvm: JVM): void {}): void {
   let parsedArgs = parser.parse(args),
@@ -131,14 +131,14 @@ function java(args: string[], opts: JVMCLIOptions,
   opts.dumpJITStats = nonStandard.flag('dump-JIT-stats', false);
 
   if (/^[0-9]+$/.test(logOption)) {
-    logging.log_level = parseInt(logOption, 10);
+    setLogLevel(parseInt(logOption, 10));
   } else {
-    let level = (<any> logging)[logOption.toUpperCase()];
+    let level = (<any> LogLevel)[logOption.toUpperCase()];
     if (level == null) {
       process.stderr.write(`Unrecognized log level: ${logOption}.`);
       return printHelp(opts.launcherName, parser.help('default'), doneCb, 1);
     }
-    logging.log_level = level;
+    setLogLevel(level);
   }
 
   if (nonStandard.flag('list-class-cache', false)) {
@@ -248,7 +248,7 @@ function launchJvm(standardOptions: PrefixParseResult, opts: JVMCLIOptions, jvmS
     }
     if (cname.indexOf('.') !== -1) {
       // hack: convert java.foo.Bar to java/foo/Bar
-      cname = util.descriptor2typestr(util.int_classname(cname));
+      cname = descriptor2typestr(int_classname(cname));
     }
     jvmState.runClass(cname, mainArgs.slice(1), doneCb);
     jvmStarted(jvmState);
@@ -272,5 +272,3 @@ function printNonStandardHelp(launcherName: string, str: string, doneCb: (arg: n
   process.stdout.write(`${str}\n\nThe -X options are non-standard and subject to change without notice.\n`);
   doneCb(rv);
 }
-
-export = java;

@@ -1,4 +1,3 @@
-/// <reference path="typings/index.d.ts" />
 /**
  * Contains all of doppio's grunt build tasks in TypeScript.
  */
@@ -57,11 +56,11 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
       extensions: ['', '.js', '.json'],
       // Use our versions of Node modules.
       alias: {
-        'buffer': path.resolve(__dirname, 'shims/buffer'),
-        'fs': path.resolve(__dirname, 'shims/fs'),
-        'path': path.resolve(__dirname, 'shims/path'),
-        'BFSBuffer': path.resolve(__dirname, 'shims/BFSBuffer'),
-        'process': path.resolve(__dirname, 'shims/process')
+        'buffer': require.resolve('browserfs/dist/shims/buffer'),
+        'fs': require.resolve('browserfs/dist/shims/fs'),
+        'path': require.resolve('browserfs/dist/shims/path'),
+        'BFSBuffer': require.resolve('browserfs/dist/shims/bufferGlobal'),
+        'process': require.resolve('browserfs/dist/shims/process')
       }
     },
     externals: <any> {
@@ -164,21 +163,6 @@ function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']
     urlRoot: '/karma/',
     browserNoActivityTimeout: 180000,
     browserDisconnectTimeout: 180000
-  };
-}
-
-/**
- * Returns a configuration that copies the natives from the appropriate
- * -cli build to the browser build.
- */
-function getCopyNativesConfig(buildType: string, test = false, benchmark = false): any {
-  return {
-    files: [{
-      expand: true,
-      cwd: test ? `build/scratch/test/${benchmark ? 'release' : buildType}/src` : `build/${buildType}-cli/src`,
-      src: 'natives/*.js*',
-      dest: `build/${benchmark ? 'benchmark' : `${test ? 'test-' : ''}${buildType}`}`
-    }]
   };
 }
 
@@ -396,13 +380,6 @@ export function setup(grunt: IGrunt) {
           dest: 'dist'
         }]
       },
-      'dev-natives': getCopyNativesConfig('dev'),
-      'fast-dev-natives': getCopyNativesConfig('fast-dev'),
-      'release-natives': getCopyNativesConfig('release'),
-      'test-dev-natives': getCopyNativesConfig('dev', true),
-      'test-fast-dev-natives': getCopyNativesConfig('fast-dev', true),
-      'test-release-natives': getCopyNativesConfig('release', true),
-      'benchmark-natives': getCopyNativesConfig('benchmark', true, true),
       'examples': {
         files: [{
           expand: true,
@@ -684,17 +661,6 @@ export function setup(grunt: IGrunt) {
     });
   });
 
-  grunt.registerTask('webpack-shims', "Creates shims needed for Webpack.", function() {
-    // Create shims.
-    if (!fs.existsSync('shims')) {
-      fs.mkdirSync('shims');
-    }
-    ['fs', 'path', 'buffer', 'process'].forEach((mod) => {
-      fs.writeFileSync(`shims/${mod}.js`, `var BrowserFS = require('browserfs');module.exports=BrowserFS.BFSRequire('${mod}');\n`, { encoding: 'utf8'});
-    });
-    fs.writeFileSync(`shims/BFSBuffer.js`, `var BrowserFS = require('browserfs');module.exports=BrowserFS.BFSRequire('buffer').Buffer;`, { encoding: 'utf8' });
-  });
-
   function benchmarkLocally(command: string, intOnly: boolean, outFile: string, done: (e?: Error) => void): void {
     const benchmarks = require('./vendor/benchmarks/benchmarks.json');
     const benchmarkNames = Object.keys(benchmarks);
@@ -760,9 +726,7 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask("benchmark-browser",
     ['build-test-release',
      'make_build_dir:benchmark',
-     'webpack-shims',
      'webpack:benchmark',
-     'copy:benchmark-natives',
      'listings:benchmark',
      'benchmark-browser-server']);
   grunt.registerTask("benchmark-browser-server", 'Runs an HTTP server for serving up benchmarks.', function() {
@@ -819,23 +783,17 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('dev',
     ['dev-cli',
      'make_build_dir:dev',
-     'webpack-shims',
      'webpack:dev',
-     'copy:dev-natives',
      'listings:dev']);
   grunt.registerTask('fast-dev',
     ['fast-dev-cli',
      'make_build_dir:fast-dev',
-     'webpack-shims',
      'webpack:fast-dev',
-     'copy:fast-dev-natives',
      'listings:fast-dev']);
   grunt.registerTask('release',
     ['release-cli',
      'make_build_dir:release',
-     'webpack-shims',
      'webpack:release',
-     'copy:release-natives',
      'listings:release']);
 
   grunt.registerTask('examples',
@@ -875,32 +833,26 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser',
     ['build-test-release',
      'make_build_dir:test-release',
-     'webpack-shims',
      'webpack:test-release',
-     'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
      'karma:release']);
   grunt.registerTask('test-browser-fast-dev',
     ['build-test-fast-dev',
      'make_build_dir:test-fast-dev',
-     'webpack-shims',
      'webpack:test-fast-dev',
-     'copy:test-fast-dev-natives',
      'listings:test-fast-dev',
      'connect:server',
      'karma:fast-dev']);
  grunt.registerTask('test-browser-dev',
      ['build-test-dev',
       'make_build_dir:test-dev',
-      'webpack-shims',
       'webpack:test-dev',
-      'copy:test-dev-natives',
       'listings:test-dev',
       'connect:server',
       'karma:dev']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
-    ['includes', 'dist', 'shims', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
+    ['includes', 'dist', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
         grunt.file.delete(path);
       }
@@ -910,18 +862,14 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser-travis',
     ['build-test-release',
      'make_build_dir:test-release',
-     'webpack-shims',
      'webpack:test-release',
-     'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
      'karma:travis']);
   grunt.registerTask('test-browser-appveyor',
     ['build-test-release',
      'make_build_dir:test-release',
-     'webpack-shims',
      'webpack:test-release',
-     'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
      'karma:appveyor']);

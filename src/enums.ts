@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * A class can be in one of these states at any given point in time.
  */

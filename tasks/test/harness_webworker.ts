@@ -1,9 +1,8 @@
-/// <reference path="../../typings/index.d.ts" />
 importScripts('/node_modules/browserfs/dist/browserfs.js');
 
 import {MessageType, Message, SetupMessage, TestListingMessage, RunTestMessage, TestResultMessage} from './messages';
 import {getTests, runTest} from './harness_common';
-import DoppioJVM = require('../../src/doppiojvm');
+import * as DoppioJVM from '../../src/doppiojvm';
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
 
 enum State {

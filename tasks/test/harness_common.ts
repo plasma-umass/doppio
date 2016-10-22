@@ -1,13 +1,12 @@
-/// <reference path="../../typings/index.d.ts" />
 /**
  * Contains the test logic, used in WW and main thread tests.
  */
-import BrowserFS = require('browserfs');
-import fs = require('fs');
-import path = require('path');
+import * as BrowserFS from 'browserfs';
+import * as fs from 'fs';
+import * as path from 'path';
 // Force initialization of standard output.
 (<any> process).initializeTTYs();
-import DoppioJVM = require('../../src/doppiojvm');
+import * as DoppioJVM from '../../src/doppiojvm';
 import TestOptions = DoppioJVM.Testing.TestOptions;
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
 import * as logging from '../../src/logging';

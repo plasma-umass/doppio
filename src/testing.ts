@@ -1,11 +1,9 @@
-"use strict";
-import JVM = require('./jvm');
-import util = require('./util');
-import difflib = require('./difflib');
-import path = require('path');
-import fs = require('fs');
-import interfaces = require('./interfaces');
-import logging = require('./logging');
+import JVM from './jvm';
+import {descriptor2typestr, int_classname, merge, asyncForEach} from './util';
+import {text_diff} from './difflib';
+import * as path from 'path';
+import * as fs from 'fs';
+import {JVMOptions} from './interfaces';
 
 export interface TestingError extends Error {
   originalError?: any;
@@ -83,7 +81,7 @@ class OutputCapturer {
 /**
  * Doppio testing options.
  */
-export interface TestOptions extends interfaces.JVMOptions {
+export interface TestOptions extends JVMOptions {
   /**
    * Classes to test. Each can be in one of the following forms:
    * - foo.bar.Baz
@@ -118,7 +116,7 @@ export class DoppioTest {
     this.opts = opts;
     if (cls.indexOf('.') !== -1) {
       // Convert foo.bar.Baz => foo/bar/Baz
-      cls = util.descriptor2typestr(util.int_classname(cls));
+      cls = descriptor2typestr(int_classname(cls));
     }
     this.cls = cls;
     this.outFile = path.resolve(opts.doppioHomePath, cls) + ".runout";
@@ -128,7 +126,7 @@ export class DoppioTest {
    * Constructs a new JVM for the test.
    */
   private constructJVM(cb: (err: any, jvm?: JVM) => void): void {
-    new JVM(<any> util.merge(JVM.getDefaultOptions(this.opts.doppioHomePath), this.opts, {
+    new JVM(<any> merge(JVM.getDefaultOptions(this.opts.doppioHomePath), this.opts, {
       classpath: [this.opts.doppioHomePath],
       enableAssertions: true,
       enableSystemAssertions: true
@@ -239,7 +237,7 @@ export function diff(doppioOut: string, nativeOut: string): string {
   // @todo Robust to Windows line breaks!
   var doppioLines = doppioOut.split(/\n/),
     jvmLines = nativeOut.split(/\n/),
-    diff: string[] = difflib.text_diff(doppioLines, jvmLines, 2);
+    diff: string[] = text_diff(doppioLines, jvmLines, 2);
   if (diff.length > 0) {
     return 'Doppio | Java\n' + diff.join('\n');
   }
@@ -258,7 +256,7 @@ export function runTests(opts: TestOptions, quiet: boolean, continueAfterFailure
   }
 
   getTests(opts, (tests) => {
-    util.asyncForEach(tests, (test: DoppioTest, nextTest: (err?: any) => void) => {
+    asyncForEach(tests, (test: DoppioTest, nextTest: (err?: any) => void) => {
       var hasFinished = false;
       print(`[${test.cls}]: Running... `);
       test.run(registerGlobalErrorTrap, (err: TestingError, actual?: string, expected?: string, diff?: string): void => {
