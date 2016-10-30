@@ -42,7 +42,7 @@ public class Exceptional {
 
       // check that natively thrown errors are handled properly
       try {
-        new FileReader("./NonExistentFile!!!");
+        new FileReader("NonExistentFile!!!");
       }
       catch (Exception e) {
         System.out.println(e.getMessage());
