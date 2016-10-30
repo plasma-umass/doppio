@@ -1,4 +1,4 @@
-doppio: A JVM in TypeScript v0.4.2
+doppio: A JVM in TypeScript v0.5.0
 ==================================
 
 [![Join the chat at https://gitter.im/plasma-umass/doppio](https://badges.gitter.im/plasma-umass/doppio.svg)](https://gitter.im/plasma-umass/doppio?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -24,12 +24,15 @@ Getting & Building the Code
 ---------------------------
 
 Before attempting to build doppio, you must have the following installed:
-* Node v4.0 or higher
+
+* Node v6.0 or higher
+  * There is a bug that prevents you from compiling DoppioJVM with Node v4 and below.
 * NPM package `grunt-cli` installed globally
   * `npm install -g grunt-cli`
 * Java 8 JDK
 
 If you are on Windows, you will need the following installed:
+
 * Git (must be on your PATH)
 * Python (must be on your PATH)
 * A version of Visual Studio
