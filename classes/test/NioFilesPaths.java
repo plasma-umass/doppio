@@ -57,13 +57,13 @@ class NioFilesPaths {
     }
 
     {
-      final Path p = Paths.get("/tmp");
-      System.out.println("Is /tmp a directory?: " + Files.isDirectory(p));
+      final Path p = Paths.get(System.getProperty("java.io.tmpdir"));
+      System.out.println("Is the tmpdir a directory?: " + Files.isDirectory(p));
       System.out.println("Can I write to it?: " + Files.isWritable(p));
     }
 
     {
-      final Path p = Paths.get("/tmp", "temp_delete_me.txt");
+      final Path p = Paths.get(System.getProperty("java.io.tmpdir"), "temp_delete_me.txt");
       System.out.println("Does temp_delete_me.txt exist?: " + Files.exists(p));
       System.out.println("Did we successfully create this file?: " + Files.createFile(p));
       System.out.println("And does it exist now?: " + Files.exists(p));
@@ -112,7 +112,7 @@ class NioFilesPaths {
 
     // Create and delete a directory.
     {
-      Path p = Paths.get("/tmp","tempDir");
+      Path p = Paths.get(System.getProperty("java.io.tmpdir"),"tempDir");
       System.out.println("Does tempDir exist?: " + Files.exists(p));
       System.out.println("Making tempDir...");
       Files.createDirectory(p);
@@ -121,8 +121,8 @@ class NioFilesPaths {
       System.out.println("Does tempDir exist now?: " + Files.exists(p));
     }
     {
-      Path p = Paths.get("/tmp", "tempDir/tempDir");
-      Path p2 = Paths.get("/tmp", "tempDir");
+      Path p = Paths.get(System.getProperty("java.io.tmpdir"), "tempDir/tempDir");
+      Path p2 = Paths.get(System.getProperty("java.io.tmpdir"), "tempDir");
       System.out.println("Does tempDir/tempDir exist?: " + Files.exists(p));
       System.out.println("Making tempDir/tempDir....");
       Files.createDirectories(p);
@@ -140,7 +140,7 @@ class NioFilesPaths {
     }
 
     {
-      final Path p = Paths.get("/tmp");
+      final Path p = Paths.get(System.getProperty("java.io.tmpdir"));
       try {
         System.out.println("Trying to create a directory that already exists: " + Files.createDirectory(p));
       } catch (final FileAlreadyExistsException fae) {

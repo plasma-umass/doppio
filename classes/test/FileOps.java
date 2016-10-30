@@ -146,7 +146,8 @@ class FileOps {
       System.out.println("Renaming it to temp_rename_file2.txt: " + f.renameTo(f2));
       System.out.println("Old file exist? " + f.exists() + " New file exists? " + f2.exists());
       System.out.println("Recreating old file: " + f.createNewFile());
-      System.out.println("Moving on top of old file: " + f2.renameTo(f));
+      // Commenting out FS-specific behavior
+      //System.out.println("Moving on top of old file: " + f2.renameTo(f));
       System.out.println("Deleting old file: " + f.delete());
       System.out.println("Trying to move nonexistant old file: " + f.renameTo(f2));
     }
@@ -161,6 +162,8 @@ class FileOps {
       System.out.println("Can I read the file?: " + f.canRead());
       // make sure we can open a read-only file with RandomAccessFile
       RandomAccessFile raf = new RandomAccessFile(f, "r");
+      // Close so we can delete file on Windows, which locks the file otherwise.
+      raf.close();
       System.out.println("Deleting file: " + f.delete());
     }
 
