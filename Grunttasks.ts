@@ -61,7 +61,11 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
         'fs': require.resolve('browserfs/dist/shims/fs'),
         'path': require.resolve('browserfs/dist/shims/path'),
         'BFSBuffer': require.resolve('browserfs/dist/shims/bufferGlobal'),
-        'process': require.resolve('browserfs/dist/shims/process')
+        'process': require.resolve('browserfs/dist/shims/process'),
+        // webpack provides no way to ignore a require() for a plugin without
+        // triggering an error, so shim these with bogus modules.
+        'net': require.resolve('browserfs/dist/shims/fs'),
+        'dns': require.resolve('browserfs/dist/shims/fs')
       }
     },
     externals: <any> {
@@ -73,7 +77,6 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
       }
     },
     plugins: [
-      new webpack.IgnorePlugin(/^net$/),
       new webpack.ProvidePlugin({
         Buffer: 'BFSBuffer',
         process: 'process'
@@ -450,7 +453,7 @@ export function setup(grunt: IGrunt) {
       default: {
         files: [{
           expand: true,
-          src: 'classes/test/TCPTest.java'
+          src: 'classes/test/*.java'
         }]
       }
     },
