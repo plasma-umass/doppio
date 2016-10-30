@@ -319,7 +319,7 @@ Now that you have a new native defined, you'll need to make sure that DoppioJVM 
 
 With the Node frontend, specify the directories with the `-Xnative-classpath` option, delimited by colons (`:`), much like the regular classpath.
 
-### Browser Frontend: In-browser filesystem
+#### Browser Frontend: In-browser filesystem
 
 For the browser frontend, you'll need to add the native method(s) to a directory in the in-browser filesystem,
 and then change `nativeClasspath` to point to that directory.
@@ -334,7 +334,7 @@ The easiest way to add natives to the in-browser filesystem is to:
 
 Whenever you add a native or rename a native file, you will need to re-generate `listings.json`.
 
-### Browser Frontend: Ordinary JavaScript Script
+#### Browser Frontend: Ordinary JavaScript Script
 
 If you want to avoid adding your native methods to the in-browser filesystem, you can define a native method module in
 an ordinary JavaScript script included on the webpage and register it with DoppioJVM:
