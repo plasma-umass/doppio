@@ -42,10 +42,12 @@ public class Exceptional {
 
       // check that natively thrown errors are handled properly
       try {
-        new FileReader("./NonExistentFile!!!");
+        new FileReader("NonExistentFile!!!");
       }
       catch (Exception e) {
-        System.out.println(e.getMessage());
+        if (e instanceof FileNotFoundException) {
+          System.out.println("NonExistentFile!! not found");
+        }
         // Note: Some JDK versions may have +/- an extra stack frame.
         System.out.println("is trace depth >= 5?: " + (e.getStackTrace().length >= 5 ? "yes" : "no"));
       }

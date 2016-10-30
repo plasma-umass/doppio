@@ -1,29 +1,31 @@
-import ClassData = require('./ClassData');
-import ClassLoader = require('./ClassLoader');
-import methods = require('./methods');
-import enums = require('./enums');
-import assert = require('./assert');
-import gLong = require('./gLong');
-import opcodes = require('./opcodes');
-import attributes = require('./attributes');
-import logging = require('./logging');
-import JVM = require('./jvm');
-import util = require('./util');
-import ConstantPool = require('./ConstantPool');
-import JVMTypes = require('../includes/JVMTypes');
-import Monitor = require('./Monitor');
-import ThreadStatus = enums.ThreadStatus;
+import {ClassData, IJVMConstructor, ReferenceClassData} from './ClassData';
+import {ClassLoader, BootstrapClassLoader} from './ClassLoader';
+import {Method} from './methods';
+import {ThreadStatus, StackFrameType, OpCode, Constants, JVMTIThreadState, OpcodeLayoutType, ConstantPoolItemType, OpcodeLayouts} from './enums';
+import assert from './assert';
+import gLong from './gLong';
+import {LookupTable, throwException, isNull, resolveCPItem, ArrayTypes} from './opcodes';
+import {ExceptionHandler, LineNumberTable, SourceFile} from './attributes';
+import {logLevel, LogLevel, debug_vars, setLogLevel, debug_var} from './logging';
+import * as logging from './logging';
+import JVM from './jvm';
+import {float2int, wrapFloat, asyncForEach, initString, ext_classname, is_primitive_type, is_array_type, is_reference_type} from './util';
+import {IConstantPoolItem, MethodReference, ClassReference, InterfaceMethodReference, FieldReference, NameAndTypeInfo} from './ConstantPool';
+import * as JVMTypes from '../includes/JVMTypes';
+import Monitor from './Monitor';
 import {default as ThreadPool, Thread} from './threadpool';
-import global = require('./global');
+import global from './global';
+
+const debug = logging.debug;
+const vtrace = logging.vtrace;
+const trace = logging.trace;
 
 declare var RELEASE: boolean;
-if (typeof RELEASE === 'undefined') global.RELEASE = false;
 
-var debug = logging.debug, vtrace = logging.vtrace, trace = logging.trace,
-  // The number of method resumes we should allow before yielding for
-  // responsiveness. Updated using a cumulative moving average to ensure
-  // Doppio is responsive.
-  maxMethodResumes: number = 10000,
+// The number of method resumes we should allow before yielding for
+// responsiveness. Updated using a cumulative moving average to ensure
+// Doppio is responsive.
+let maxMethodResumes: number = 10000,
   // The number of method resumes until Doppio should yield again.
   methodResumesLeft: number = maxMethodResumes,
   // Used for the CMA.
@@ -52,7 +54,7 @@ export interface IStackFrame {
   /**
    * This stack frame's type.
    */
-  type: enums.StackFrameType;
+  type: StackFrameType;
   /**
    * Retrieve a stack trace frame from this stack trace. If this stack frame
    * should not be language-visible, return null.
@@ -61,7 +63,7 @@ export interface IStackFrame {
   /**
    * Retrieve the classloader for this method.
    */
-  getLoader(): ClassLoader.ClassLoader;
+  getLoader(): ClassLoader;
 }
 
 export class PreAllocatedStack {
@@ -202,13 +204,13 @@ export class PreAllocatedStack {
 }
 
 const jitUtil = {
-  isNull: opcodes.isNull,
-  resolveCPItem: opcodes.resolveCPItem,
-  throwException: opcodes.throwException,
+  isNull: isNull,
+  resolveCPItem: resolveCPItem,
+  throwException: throwException,
   gLong: gLong,
-  float2int: util.float2int,
-  wrapFloat: util.wrapFloat,
-  Constants: enums.Constants
+  float2int: float2int,
+  wrapFloat: wrapFloat,
+  Constants: Constants
 };
 
 /**
@@ -220,14 +222,14 @@ export class BytecodeStackFrame implements IStackFrame {
   public opStack: PreAllocatedStack;
   public returnToThreadLoop: boolean = false;
   public lockedMethodLock: boolean = false;
-  public method: methods.Method;
+  public method: Method;
 
   /**
    * Constructs a bytecode method's stack frame.
    * @param method The bytecode method to run.
    * @param args The arguments to pass to the bytecode method.
    */
-  constructor(method: methods.Method, args: any[]) {
+  constructor(method: Method, args: any[]) {
     this.method = method;
     method.incrBBEntries();
     assert(!method.accessFlags.isNative(), 'Cannot run a native method using a BytecodeStackFrame.');
@@ -240,14 +242,14 @@ export class BytecodeStackFrame implements IStackFrame {
 
   public run(thread: JVMThread): void {
     var method = this.method, code = this.method.getCodeAttribute().getCode(),
-      opcodeTable = opcodes.LookupTable;
-    if (!RELEASE && logging.log_level >= logging.TRACE) {
+      opcodeTable = LookupTable;
+    if (!RELEASE && logLevel >= LogLevel.TRACE) {
       if (this.pc === 0) {
         trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Running ${this.method.getFullSignature()} [Bytecode]:`);
       } else {
         trace(`\nT${thread.getRef()} D${thread.getStackTrace().length} Resuming ${this.method.getFullSignature()}:${this.pc} [Bytecode]:`);
       }
-      vtrace(`  S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+      vtrace(`  S: [${debug_vars(this.opStack.getRaw())}], L: [${debug_vars(this.locals)}]`);
     }
 
     if (method.accessFlags.isSynchronized() && !this.lockedMethodLock) {
@@ -272,13 +274,13 @@ export class BytecodeStackFrame implements IStackFrame {
     if (thread.getJVM().isJITDisabled()) {
       // Interpret until we get the signal to return to the thread loop.
       while (!this.returnToThreadLoop) {
-        var opCode = code.readUInt8(this.pc);
-        if (!RELEASE && logging.log_level === logging.VTRACE) {
+        var opCode = code[this.pc];
+        if (!RELEASE && logLevel === LogLevel.VTRACE) {
           vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
         }
         opcodeTable[opCode](thread, this, code);
-        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+        if (!RELEASE && !this.returnToThreadLoop && logLevel === LogLevel.VTRACE) {
+          vtrace(`    S: [${debug_vars(this.opStack.getRaw())}], L: [${debug_vars(this.locals)}]`);
         }
       }
     } else {
@@ -286,18 +288,18 @@ export class BytecodeStackFrame implements IStackFrame {
       while (!this.returnToThreadLoop) {
         var op = method.getOp(this.pc, code, thread);
         if (typeof op === 'function') {
-          if (!RELEASE && logging.log_level === logging.VTRACE) {
+          if (!RELEASE && logLevel === LogLevel.VTRACE) {
             vtrace(`  ${this.pc} running JIT compiled function:\n${op.toString()}`);
           }
           op(this, thread, jitUtil);
         } else {
-          if (!RELEASE && logging.log_level === logging.VTRACE) {
+          if (!RELEASE && logLevel === LogLevel.VTRACE) {
             vtrace(`  ${this.pc} ${annotateOpcode(op, method, code, this.pc)}`);
           }
           opcodeTable[op](thread, this, code);
         }
-        if (!RELEASE && !this.returnToThreadLoop && logging.log_level === logging.VTRACE) {
-          vtrace(`    S: [${logging.debug_vars(this.opStack.getRaw())}], L: [${logging.debug_vars(this.locals)}]`);
+        if (!RELEASE && !this.returnToThreadLoop && logLevel === LogLevel.VTRACE) {
+          vtrace(`    S: [${debug_vars(this.opStack.getRaw())}], L: [${debug_vars(this.locals)}]`);
         }
       }
     }
@@ -305,29 +307,29 @@ export class BytecodeStackFrame implements IStackFrame {
 
   public scheduleResume(thread: JVMThread, rv?: any, rv2?: any): void {
     // Advance to the next opcode.
-    var prevOp = this.method.getCodeAttribute().getCode().readUInt8(this.pc);
+    var prevOp = this.method.getCodeAttribute().getCode()[this.pc];
     switch (prevOp) {
-      case enums.OpCode.INVOKEINTERFACE:
-      case enums.OpCode.INVOKEINTERFACE_FAST:
+      case OpCode.INVOKEINTERFACE:
+      case OpCode.INVOKEINTERFACE_FAST:
         this.pc += 5;
         break;
-      case enums.OpCode.INVOKESPECIAL:
-      case enums.OpCode.INVOKESTATIC:
-      case enums.OpCode.INVOKEVIRTUAL:
-      case enums.OpCode.INVOKESTATIC_FAST:
-      case enums.OpCode.INVOKENONVIRTUAL_FAST:
-      case enums.OpCode.INVOKEVIRTUAL_FAST:
-      case enums.OpCode.INVOKEHANDLE:
-      case enums.OpCode.INVOKEBASIC:
-      case enums.OpCode.LINKTOSPECIAL:
-      case enums.OpCode.LINKTOVIRTUAL:
-      case enums.OpCode.INVOKEDYNAMIC:
-      case enums.OpCode.INVOKEDYNAMIC_FAST:
+      case OpCode.INVOKESPECIAL:
+      case OpCode.INVOKESTATIC:
+      case OpCode.INVOKEVIRTUAL:
+      case OpCode.INVOKESTATIC_FAST:
+      case OpCode.INVOKENONVIRTUAL_FAST:
+      case OpCode.INVOKEVIRTUAL_FAST:
+      case OpCode.INVOKEHANDLE:
+      case OpCode.INVOKEBASIC:
+      case OpCode.LINKTOSPECIAL:
+      case OpCode.LINKTOVIRTUAL:
+      case OpCode.INVOKEDYNAMIC:
+      case OpCode.INVOKEDYNAMIC_FAST:
         this.pc += 3;
         break;
       default:
         // Should be impossible.
-        assert(false, `Resuming from a non-invoke opcode! Opcode: ${enums.OpCode[prevOp]} [${prevOp}]`);
+        assert(false, `Resuming from a non-invoke opcode! Opcode: ${OpCode[prevOp]} [${prevOp}]`);
         break;
     }
 
@@ -352,7 +354,7 @@ export class BytecodeStackFrame implements IStackFrame {
       pc = this.pc, method = this.method,
       // STEP 1: See if we can find an appropriate handler for this exception!
       exceptionHandlers = codeAttr.exceptionHandlers,
-      ecls = e.getClass(), handler: attributes.ExceptionHandler;
+      ecls = e.getClass(), handler: ExceptionHandler;
     for (let i = 0; i < exceptionHandlers.length; i++) {
       let eh = exceptionHandlers[i];
       if (eh.startPC <= pc && pc < eh.endPC) {
@@ -378,7 +380,7 @@ export class BytecodeStackFrame implements IStackFrame {
             }
             debug(`${method.getFullSignature()}: Has to resolve exception classes. Deferring scheduling...`);
             thread.setStatus(ThreadStatus.ASYNC_WAITING);
-            method.cls.getLoader().resolveClasses(thread, handlerClasses, (classes: { [name: string]: ClassData.ClassData; }) => {
+            method.cls.getLoader().resolveClasses(thread, handlerClasses, (classes: { [name: string]: ClassData; }) => {
               if (classes !== null) {
                 debug(`${method.getFullSignature()}: Rethrowing exception to handle!`);
                 // Rethrow the exception to trigger scheduleException again.
@@ -421,14 +423,14 @@ export class BytecodeStackFrame implements IStackFrame {
   /**
    * Returns the classloader for the stack frame.
    */
-  public getLoader(): ClassLoader.ClassLoader {
+  public getLoader(): ClassLoader {
     return this.method.cls.getLoader();
   }
 
   /**
    * Indicates the type of this stack frame.
    */
-  public type: enums.StackFrameType = enums.StackFrameType.BYTECODE;
+  public type: StackFrameType = StackFrameType.BYTECODE;
 
   public getStackTraceFrame(): IStackTraceFrame {
     return {
@@ -445,7 +447,7 @@ export class BytecodeStackFrame implements IStackFrame {
  */
 export class NativeStackFrame implements IStackFrame {
   private nativeMethod: Function;
-  public method: methods.Method;
+  public method: Method;
   private args: any[];
 
   /**
@@ -453,7 +455,7 @@ export class NativeStackFrame implements IStackFrame {
    * @param method The native method to run.
    * @param args The arguments to pass to the native method.
    */
-  constructor(method: methods.Method, args: any[]) {
+  constructor(method: Method, args: any[]) {
     this.method = method;
     this.args = args;
     assert(method.accessFlags.isNative());
@@ -503,7 +505,7 @@ export class NativeStackFrame implements IStackFrame {
     return false;
   }
 
-  public type: enums.StackFrameType = enums.StackFrameType.NATIVE;
+  public type: StackFrameType = StackFrameType.NATIVE;
 
   public getStackTraceFrame(): IStackTraceFrame {
     return {
@@ -517,7 +519,7 @@ export class NativeStackFrame implements IStackFrame {
   /**
    * Returns the classloader for the stack frame.
    */
-  public getLoader(): ClassLoader.ClassLoader {
+  public getLoader(): ClassLoader {
     return this.method.cls.getLoader();
   }
 }
@@ -570,20 +572,20 @@ export class InternalStackFrame implements IStackFrame {
     return true;
   }
 
-  public type: enums.StackFrameType = enums.StackFrameType.INTERNAL;
+  public type: StackFrameType = StackFrameType.INTERNAL;
 
   public getStackTraceFrame(): IStackTraceFrame {
     // These should not be language visible.
     return null;
   }
 
-  public getLoader(): ClassLoader.ClassLoader {
+  public getLoader(): ClassLoader {
     throw new Error("Internal stack frames have no loader.");
   }
 }
 
 export interface IStackTraceFrame {
-  method: methods.Method;
+  method: Method;
   pc: number;
   stack: any[];
   locals: any[];
@@ -613,7 +615,7 @@ export class JVMThread implements Thread {
    * monitor that is involved.
    */
   private monitor: Monitor = null;
-  private bsCl: ClassLoader.BootstrapClassLoader;
+  private bsCl: BootstrapClassLoader;
   private tpool: ThreadPool<JVMThread>;
   private jvmThreadObj: JVMTypes.java_lang_Thread;
   private jvm: JVM;
@@ -674,8 +676,8 @@ export class JVMThread implements Thread {
   /**
    * Returns the currently running method. Returns NULL if stack is empty.
    */
-  public currentMethod(): methods.Method {
-    var stack = this.stack, idx = stack.length, method: methods.Method;
+  public currentMethod(): Method {
+    var stack = this.stack, idx = stack.length, method: Method;
     while (--idx >= 0) {
       method = stack[idx].getStackTraceFrame().method;
       if (method !== null) {
@@ -695,14 +697,14 @@ export class JVMThread implements Thread {
   /**
    * Retrieve the bootstrap classloader.
    */
-  public getBsCl(): ClassLoader.BootstrapClassLoader {
+  public getBsCl(): BootstrapClassLoader {
     return this.bsCl;
   }
 
   /**
    * Get the classloader for the current frame.
    */
-  public getLoader(): ClassLoader.ClassLoader {
+  public getLoader(): ClassLoader {
     let loader = this.stack[this.stack.length - 1].getLoader();
     if (loader) {
       return loader;
@@ -735,8 +737,8 @@ export class JVMThread implements Thread {
     let loader = this.getLoader();
     this.setStatus(ThreadStatus.ASYNC_WAITING);
     if (Array.isArray(names)) {
-      let rv: ClassData.IJVMConstructor<any>[] = [];
-      util.asyncForEach(names, (name, nextItem) => {
+      let rv: IJVMConstructor<any>[] = [];
+      asyncForEach(names, (name, nextItem) => {
         this._import(name, loader, (cons) => {
           rv.push(cons);
           nextItem();
@@ -749,12 +751,12 @@ export class JVMThread implements Thread {
     }
   }
 
-  private _import(name: string, loader: ClassLoader.ClassLoader, cb: (rv?: ClassData.IJVMConstructor<any>) => void, explicit: boolean): void {
-    let cls = <ClassData.ReferenceClassData<any>> loader.getInitializedClass(this, name);
+  private _import(name: string, loader: ClassLoader, cb: (rv?: IJVMConstructor<any>) => void, explicit: boolean): void {
+    let cls = <ReferenceClassData<any>> loader.getInitializedClass(this, name);
     if (cls) {
       setImmediate(() => cb(cls.getConstructor(this)));
     } else {
-      loader.initializeClass(this, name, (cdata: ClassData.ReferenceClassData<any>) => {
+      loader.initializeClass(this, name, (cdata: ReferenceClassData<any>) => {
         if (cdata) {
           cb(cdata.getConstructor(this));
         }
@@ -797,12 +799,12 @@ export class JVMThread implements Thread {
   public getPrintableStackTrace(): string {
     var rv: string = "";
     this.getStackTrace().reverse().forEach((trace: IStackTraceFrame) => {
-      rv += `\tat ${util.ext_classname(trace.method.cls.getInternalName())}::${trace.method.name}(`;
+      rv += `\tat ${ext_classname(trace.method.cls.getInternalName())}::${trace.method.name}(`;
       if (trace.pc >= 0) {
         // Bytecode method
         var code = trace.method.getCodeAttribute();
-        var table = <attributes.LineNumberTable> code.getAttribute('LineNumberTable');
-        var srcAttr = <attributes.SourceFile> trace.method.cls.getAttribute('SourceFile');
+        var table = <LineNumberTable> code.getAttribute('LineNumberTable');
+        var srcAttr = <SourceFile> trace.method.cls.getAttribute('SourceFile');
         if (srcAttr != null) {
           rv += srcAttr.filename;
         } else {
@@ -836,11 +838,11 @@ export class JVMThread implements Thread {
     while (this.status === ThreadStatus.RUNNABLE && stack.length > 0) {
       const sf = stack[stack.length - 1];
       if (!RELEASE) {
-        if (sf.type === enums.StackFrameType.BYTECODE && this.jvm.shouldVtrace((<BytecodeStackFrame> sf).method.fullSignature)) {
-          var oldLevel = logging.log_level;
-          logging.log_level = logging.VTRACE;
+        if (sf.type === StackFrameType.BYTECODE && this.jvm.shouldVtrace((<BytecodeStackFrame> sf).method.fullSignature)) {
+          var oldLevel = logLevel;
+          setLogLevel(LogLevel.VTRACE);
           sf.run(this);
-          logging.log_level = oldLevel;
+          setLogLevel(oldLevel);
         } else {
           sf.run(this);
         }
@@ -914,7 +916,7 @@ export class JVMThread implements Thread {
   private rawSetStatus(newStatus: ThreadStatus): void {
     var jvmNewStatus: number = 0, oldStatus = this.status;
 
-    if (logging.log_level === logging.VTRACE) {
+    if (logLevel === LogLevel.VTRACE) {
       vtrace(`\nT${this.getRef()} ${ThreadStatus[oldStatus]} => ${ThreadStatus[newStatus]}`);
     }
     assert(validateThreadTransition(oldStatus, newStatus), `Invalid thread transition: ${ThreadStatus[oldStatus]} => ${ThreadStatus[newStatus]}`);
@@ -924,28 +926,28 @@ export class JVMThread implements Thread {
     // Ensures that JVM code can introspect on our threads.
     switch (newStatus) {
       case ThreadStatus.NEW:
-        jvmNewStatus |= enums.JVMTIThreadState.ALIVE;
+        jvmNewStatus |= JVMTIThreadState.ALIVE;
         break;
       case ThreadStatus.RUNNABLE:
-        jvmNewStatus |= enums.JVMTIThreadState.RUNNABLE;
+        jvmNewStatus |= JVMTIThreadState.RUNNABLE;
         break;
       case ThreadStatus.BLOCKED:
       case ThreadStatus.UNINTERRUPTABLY_BLOCKED:
-        jvmNewStatus |= enums.JVMTIThreadState.BLOCKED_ON_MONITOR_ENTER;
+        jvmNewStatus |= JVMTIThreadState.BLOCKED_ON_MONITOR_ENTER;
         break;
       case ThreadStatus.WAITING:
       case ThreadStatus.ASYNC_WAITING:
       case ThreadStatus.PARKED:
-        jvmNewStatus |= enums.JVMTIThreadState.WAITING_INDEFINITELY;
+        jvmNewStatus |= JVMTIThreadState.WAITING_INDEFINITELY;
         break;
       case ThreadStatus.TIMED_WAITING:
-        jvmNewStatus |= enums.JVMTIThreadState.WAITING_WITH_TIMEOUT;
+        jvmNewStatus |= JVMTIThreadState.WAITING_WITH_TIMEOUT;
         break;
       case ThreadStatus.TERMINATED:
-        jvmNewStatus |= enums.JVMTIThreadState.TERMINATED;
+        jvmNewStatus |= JVMTIThreadState.TERMINATED;
         break;
       default:
-        jvmNewStatus = enums.JVMTIThreadState.RUNNABLE;
+        jvmNewStatus = JVMTIThreadState.RUNNABLE;
         break;
     }
 
@@ -1049,7 +1051,7 @@ export class JVMThread implements Thread {
 
   /**
    * Returns from the currently executing method with the given return value.
-   * Used by asynchronous native methods.
+   * Used by asynchronous native
    *
    * Causes the following state transition:
    * * RUNNING => RUNNABLE
@@ -1069,14 +1071,14 @@ export class JVMThread implements Thread {
     assert(typeof (rv) !== 'boolean' && rv2 == null);
     // Pop off the current method.
     var frame = stack.pop();
-    if (frame.type != enums.StackFrameType.INTERNAL) {
+    if (frame.type != StackFrameType.INTERNAL) {
       var frameCast = <BytecodeStackFrame> frame;
-      if (frame.type === enums.StackFrameType.BYTECODE) {
+      if (frame.type === StackFrameType.BYTECODE) {
         // This line will be preceded by a line that prints the method, so can be short n' sweet.
-        trace(`  Returning: ${logging.debug_var(rv)}`);
+        trace(`  Returning: ${debug_var(rv)}`);
       }
 
-      trace(`\nT${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${logging.debug_var(rv)}`);
+      trace(`\nT${this.getRef()} D${this.getStackTrace().length + 1} Returning value from ${frameCast.method.getFullSignature()} [${frameCast.method.accessFlags.isNative() ? 'Native' : 'Bytecode'}]: ${debug_var(rv)}`);
       assert(validateReturnValue(this, frameCast.method,
         frameCast.method.returnType, this.bsCl,
         frameCast.method.cls.getLoader(), rv, rv2), `Invalid return value for method ${frameCast.method.getFullSignature()}`);
@@ -1125,7 +1127,7 @@ export class JVMThread implements Thread {
     // Stack may actually be empty, so guard against this.
     if (idx >= 0) {
       // An internal stack frame cannot process its own thrown exception.
-      if (stack[idx].type === enums.StackFrameType.INTERNAL) {
+      if (stack[idx].type === StackFrameType.INTERNAL) {
         stack.pop();
         idx--;
       }
@@ -1153,13 +1155,13 @@ export class JVMThread implements Thread {
    * @param msg The message to include with the exception.
    */
   public throwNewException<T extends JVMTypes.java_lang_Throwable>(clsName: string, msg: string) {
-    var cls = <ClassData.ReferenceClassData<T>> this.bsCl.getInitializedClass(this, clsName),
+    var cls = <ReferenceClassData<T>> this.getLoader().getInitializedClass(this, clsName),
       throwException = () => {
         var eCons = cls.getConstructor(this),
           e = new eCons(this);
 
         // Construct the exception, and throw it when done.
-        e['<init>(Ljava/lang/String;)V'](this, [util.initString(this.bsCl, msg)], (err?: JVMTypes.java_lang_Throwable) => {
+        e['<init>(Ljava/lang/String;)V'](this, [initString(this.bsCl, msg)], (err?: JVMTypes.java_lang_Throwable) => {
           if (err) {
             this.throwException(err);
           } else {
@@ -1173,7 +1175,7 @@ export class JVMThread implements Thread {
     } else {
       // Initialization required.
       this.setStatus(ThreadStatus.ASYNC_WAITING);
-      this.bsCl.initializeClass(this, clsName, (cdata: ClassData.ReferenceClassData<T>) => {
+      this.getLoader().initializeClass(this, clsName, (cdata: ReferenceClassData<T>) => {
         if (cdata != null) {
           cls = cdata;
           throwException();
@@ -1249,15 +1251,15 @@ function validateThreadTransition(oldStatus: ThreadStatus, newStatus: ThreadStat
  * [DEBUG] Asserts that the return value of the function passes basic sanity
  * checks.
  */
-function validateReturnValue(thread: JVMThread, method: methods.Method, returnType: string, bsCl: ClassLoader.BootstrapClassLoader, cl: ClassLoader.ClassLoader, rv1: any, rv2: any): boolean {
+function validateReturnValue(thread: JVMThread, method: Method, returnType: string, bsCl: BootstrapClassLoader, cl: ClassLoader, rv1: any, rv2: any): boolean {
   // invokeBasic is typed with an Object return value, but it can return any
   // damn type it wants, primitive or no.
   if (method.fullSignature === "java/lang/invoke/MethodHandle/invokeBasic([Ljava/lang/Object;)Ljava/lang/Object;") {
     return true;
   }
 
-  var cls: ClassData.ClassData;
-  if (util.is_primitive_type(returnType)) {
+  var cls: ClassData;
+  if (is_primitive_type(returnType)) {
     switch (returnType) {
       case 'Z': // Boolean
         assert(rv2 === undefined, "Second return value must be undefined for Boolean type.");
@@ -1286,7 +1288,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       case 'F': // Float
         assert(rv2 === undefined, "Second return value must be undefined for Float type.");
         // NaN !== NaN, so we have to have a special case here.
-        assert(util.wrapFloat(rv1) === rv1 || (isNaN(rv1) && isNaN(util.wrapFloat(rv1))), `Float value is out of bounds: ${rv1}`);
+        assert(wrapFloat(rv1) === rv1 || (isNaN(rv1) && isNaN(wrapFloat(rv1))), `Float value is out of bounds: ${rv1}`);
         break;
       case 'D': // Double
         assert(rv2 === null, "Second return value must be NULL for Double type.");
@@ -1296,7 +1298,7 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
         assert(rv1 === undefined && rv2 === undefined, "Return values must be undefined for Void type");
         break;
     }
-  } else if (util.is_array_type(returnType)) {
+  } else if (is_array_type(returnType)) {
     assert(rv2 === undefined, "Second return value must be undefined for array type.");
     assert(rv1 === null || (typeof rv1 === 'object' && typeof rv1['getClass'] === 'function'), `Invalid array object: ${rv1}`);
     if (rv1 != null) {
@@ -1304,16 +1306,16 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
       assert(rv1.getClass().isCastable(cls), `Return value of type ${rv1.getClass().getInternalName()} unable to be cast to return type ${returnType}.`);
     }
   } else {
-    assert(util.is_reference_type(returnType), `Invalid reference type: ${returnType}`);
+    assert(is_reference_type(returnType), `Invalid reference type: ${returnType}`);
     assert(rv2 === undefined, `Second return value must be undefined for reference type.`);
     // All objects and arrays are instances of java/lang/Object.
-    assert(rv1 === null || rv1 instanceof (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread), `Reference return type must be an instance of Object; value: ${rv1}`);
+    assert(rv1 === null || rv1 instanceof (<ReferenceClassData<JVMTypes.java_lang_Object>> bsCl.getInitializedClass(thread, 'Ljava/lang/Object;')).getConstructor(thread), `Reference return type must be an instance of Object; value: ${rv1}`);
     if (rv1 != null) {
       cls = assertClassInitializedOrResolved(thread, cl, returnType, false);
       if (!cls.accessFlags.isInterface()) {
         // You can return an interface type without initializing it,
         // since they don't need to be initialized until you try to
-        // invoke one of their methods.
+        // invoke one of their
         // NOTE: We don't check if the class is in the INITIALIZED state,
         // since it is possible that it is currently in the process of being
         // initialized. getInitializedClass handles this subtlety.
@@ -1325,8 +1327,8 @@ function validateReturnValue(thread: JVMThread, method: methods.Method, returnTy
   return true;
 }
 
-function assertClassInitializedOrResolved(thread: JVMThread, cl: ClassLoader.ClassLoader, type: string, initialized: boolean): ClassData.ClassData {
-  var cls: ClassData.ClassData = null;
+function assertClassInitializedOrResolved(thread: JVMThread, cl: ClassLoader, type: string, initialized: boolean): ClassData {
+  var cls: ClassData = null;
   // Break out of loop once class is found.
   while (cls === null) {
     cls = initialized ? cl.getInitializedClass(thread, type) : cl.getResolvedClass(type);
@@ -1344,42 +1346,42 @@ function assertClassInitializedOrResolved(thread: JVMThread, cl: ClassLoader.Cla
   return cls;
 }
 
-function printConstantPoolItem(cpi: ConstantPool.IConstantPoolItem): string {
+function printConstantPoolItem(cpi: IConstantPoolItem): string {
   switch (cpi.getType()) {
-    case enums.ConstantPoolItemType.METHODREF:
-      var cpiMR = <ConstantPool.MethodReference> cpi;
-      return util.ext_classname(cpiMR.classInfo.name) + "." + cpiMR.signature;
-    case enums.ConstantPoolItemType.INTERFACE_METHODREF:
-      var cpiIM = <ConstantPool.InterfaceMethodReference> cpi;
-      return util.ext_classname(cpiIM.classInfo.name) + "." + cpiIM.signature;
-    case enums.ConstantPoolItemType.FIELDREF:
-      var cpiFR = <ConstantPool.FieldReference> cpi;
-      return util.ext_classname(cpiFR.classInfo.name) + "." + cpiFR.nameAndTypeInfo.name + ":" + util.ext_classname(cpiFR.nameAndTypeInfo.descriptor);
-    case enums.ConstantPoolItemType.NAME_AND_TYPE:
-      var cpiNAT = <ConstantPool.NameAndTypeInfo> cpi;
+    case ConstantPoolItemType.METHODREF:
+      var cpiMR = <MethodReference> cpi;
+      return ext_classname(cpiMR.classInfo.name) + "." + cpiMR.signature;
+    case ConstantPoolItemType.INTERFACE_METHODREF:
+      var cpiIM = <InterfaceMethodReference> cpi;
+      return ext_classname(cpiIM.classInfo.name) + "." + cpiIM.signature;
+    case ConstantPoolItemType.FIELDREF:
+      var cpiFR = <FieldReference> cpi;
+      return ext_classname(cpiFR.classInfo.name) + "." + cpiFR.nameAndTypeInfo.name + ":" + ext_classname(cpiFR.nameAndTypeInfo.descriptor);
+    case ConstantPoolItemType.NAME_AND_TYPE:
+      var cpiNAT = <NameAndTypeInfo> cpi;
       return cpiNAT.name + ":" + cpiNAT.descriptor;
-    case enums.ConstantPoolItemType.CLASS:
-      var cpiClass = <ConstantPool.ClassReference> cpi;
-      return util.ext_classname(cpiClass.name);
+    case ConstantPoolItemType.CLASS:
+      var cpiClass = <ClassReference> cpi;
+      return ext_classname(cpiClass.name);
     default:
-      return logging.debug_var((<any> cpi).value);
+      return debug_var((<any> cpi).value);
   }
 }
 
 // TODO: Prefix behind DEBUG, cache lowercase opcode names.
-export var OpcodeLayoutPrinters: {[layoutAtom: number]: (method: methods.Method, code: NodeBuffer, pc: number) => string} = {};
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.OPCODE_ONLY] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1)));
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_UINT8] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt8(pc + 1)));
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1))) + " " + code.readUInt8(pc + 3);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readUInt8(pc + 1) + " " + code.readInt8(pc + 2);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT8_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt8(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT16_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt16BE(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.INT32_VALUE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + code.readInt32BE(pc + 1);
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.ARRAY_TYPE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase() + " " + opcodes.ArrayTypes[code.readUInt8(pc + 1)];
-OpcodeLayoutPrinters[enums.OpcodeLayoutType.WIDE] = (method: methods.Method, code: NodeBuffer, pc: number) => enums.OpCode[code.readUInt8(pc)].toLowerCase();
+export var OpcodeLayoutPrinters: {[layoutAtom: number]: (method: Method, code: NodeBuffer, pc: number) => string} = {};
+OpcodeLayoutPrinters[OpcodeLayoutType.OPCODE_ONLY] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase();
+OpcodeLayoutPrinters[OpcodeLayoutType.CONSTANT_POOL] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1)));
+OpcodeLayoutPrinters[OpcodeLayoutType.CONSTANT_POOL_UINT8] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code[pc + 1]));
+OpcodeLayoutPrinters[OpcodeLayoutType.CONSTANT_POOL_AND_UINT8_VALUE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + printConstantPoolItem(method.cls.constantPool.get(code.readUInt16BE(pc + 1))) + " " + code[pc + 3];
+OpcodeLayoutPrinters[OpcodeLayoutType.UINT8_VALUE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + code[pc + 1];
+OpcodeLayoutPrinters[OpcodeLayoutType.UINT8_AND_INT8_VALUE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + code[pc + 1] + " " + code[pc + 2];
+OpcodeLayoutPrinters[OpcodeLayoutType.INT8_VALUE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + code.readInt8(pc + 1);
+OpcodeLayoutPrinters[OpcodeLayoutType.INT16_VALUE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + code.readInt16BE(pc + 1);
+OpcodeLayoutPrinters[OpcodeLayoutType.INT32_VALUE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + code.readInt32BE(pc + 1);
+OpcodeLayoutPrinters[OpcodeLayoutType.ARRAY_TYPE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase() + " " + ArrayTypes[code[pc + 1]];
+OpcodeLayoutPrinters[OpcodeLayoutType.WIDE] = (method: Method, code: NodeBuffer, pc: number) => OpCode[code[pc]].toLowerCase();
 
-export function annotateOpcode(op: number, method: methods.Method, code: NodeBuffer, pc: number): string {
-  return OpcodeLayoutPrinters[enums.OpcodeLayouts[op]](method, code, pc);
+export function annotateOpcode(op: number, method: Method, code: NodeBuffer, pc: number): string {
+  return OpcodeLayoutPrinters[OpcodeLayouts[op]](method, code, pc);
 }

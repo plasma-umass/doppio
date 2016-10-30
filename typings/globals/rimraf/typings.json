@@ -1,8 +1,0 @@
-{
-  "resolution": "main",
-  "tree": {
-    "src": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/35989a3ab4834b8e8b2b56788f1d4fc46a25dc8d/rimraf/rimraf.d.ts",
-    "raw": "github:DefinitelyTyped/DefinitelyTyped/rimraf/rimraf.d.ts#35989a3ab4834b8e8b2b56788f1d4fc46a25dc8d",
-    "typings": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/35989a3ab4834b8e8b2b56788f1d4fc46a25dc8d/rimraf/rimraf.d.ts"
-  }
-}

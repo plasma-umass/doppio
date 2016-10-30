@@ -1,12 +1,12 @@
 /**
  * Downloads DoppioJVM's JDK into vendor/java_home.
  */
-import fs = require('fs');
-import path = require('path');
-import url = require('url');
-import https = require('https');
-import rimraf = require('rimraf');
-import glob = require('glob');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as url from 'url';
+import * as https from 'https';
+import * as rimraf from 'rimraf';
+import * as glob from 'glob';
 let gunzip: () => NodeJS.ReadWriteStream = require('gunzip-maybe');
 let tarFs: {
   extract: (path: string) => NodeJS.WritableStream;

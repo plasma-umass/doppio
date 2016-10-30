@@ -1,6 +1,4 @@
-"use strict";
-import gLong = require('./gLong');
-import enums = require('./enums');
+import gLong from './gLong';
 
 // default module: logging
 
@@ -25,14 +23,19 @@ export function debug_vars(arr: any[]): string[] {
 
 // log levels
 // TODO: turn this into an enum, if possible
-export var VTRACE = 10;
-export var TRACE = 9;
-export var DEBUG = 5;
-export var ERROR = 1;
-export var log_level = ERROR;
+export enum LogLevel {
+  VTRACE = 10,
+  TRACE = 9,
+  DEBUG = 5,
+  ERROR = 1
+}
+export let logLevel: LogLevel = LogLevel.ERROR;
+export function setLogLevel(level: LogLevel): void {
+  logLevel = level;
+}
 
 function log(level: number, msgs: any[]): void {
-  if (level <= log_level) {
+  if (level <= logLevel) {
     var msg = msgs.join(' ');
     if (level == 1) {
       console.error(msg);
@@ -43,17 +46,17 @@ function log(level: number, msgs: any[]): void {
 }
 
 export function vtrace(...msgs: any[]): void {
-  log(VTRACE, msgs);
+  log(LogLevel.VTRACE, msgs);
 }
 
 export function trace(...msgs: any[]): void {
-  log(TRACE, msgs);
+  log(LogLevel.TRACE, msgs);
 }
 
 export function debug(...msgs: any[]): void {
-  log(DEBUG, msgs);
+  log(LogLevel.DEBUG, msgs);
 }
 
 export function error(...msgs: any[]): void {
-  log(ERROR, msgs);
+  log(LogLevel.ERROR, msgs);
 }

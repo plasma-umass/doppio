@@ -1,10 +1,10 @@
 ﻿/**
  * A safe to use key value map.
- * 
+ *
  * JavaScript objects cannot be used as general-purpose key value maps, as they
  * contain a number of default fields. This class avoids those issues.
  */
-class SafeMap<T> {
+export default class SafeMap<T> {
   private cache: { [key: string]: T };
 
   constructor() {
@@ -36,4 +36,3 @@ class SafeMap<T> {
   }
 }
 
-export = SafeMap;

@@ -1,18 +1,13 @@
-import os = require('os');
-import fs = require('fs');
-import path = require('path');
-
 /**
  * Generates JVMTypes.d.ts in the includes/ directory.
  */
 function includes(grunt: IGrunt) {
-  grunt.registerMultiTask('includes', 'Generates JVMTypes.d.ts.', function() {
+  grunt.registerMultiTask('includes', 'Generates JVMTypes.d.ts.', function(this: grunt.task.ITask) {
     var doppiohPath: string = 'build/dev-cli/console/doppioh.js',
-        options = this.options(),
+        options = <any> this.options({}),
         packages: string[] = options.packages,
         dest: string = options.dest,
         done: (status?: boolean) => void = this.async(),
-        i: number, tasks: Array<AsyncFunction<void>> = [],
         force: string[] = options.force,
         headersOnly: boolean = options.headersOnly,
         standardArgPrefix = [doppiohPath, '-d', dest, '-ts', '-dpath', './src/doppiojvm'];

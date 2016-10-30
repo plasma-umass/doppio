@@ -1,35 +1,31 @@
-"use strict";
-import util = require('./util');
-import SafeMap = require('./SafeMap');
-import methods = require('./methods');
+import {are_in_browser, initCarr, merge, asyncForEach, asyncSeries, ext_classname, initString, int_classname, descriptor2typestr} from './util';
+import SafeMap from './SafeMap';
+import {dumpStats} from './methods';
 import {ClassData, ReferenceClassData, ArrayClassData} from './ClassData';
-import ClassLoader = require('./ClassLoader');
-import fs = require('fs');
-import path = require('path');
-import buffer = require('buffer');
+import {BootstrapClassLoader, ClassLoader} from './ClassLoader';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as buffer from 'buffer';
 import {JVMThread} from './threading';
 import {ThreadStatus, JVMStatus} from './enums';
-import Heap = require('./heap');
-import assert = require('./assert');
-import interfaces = require('./interfaces');
-import JVMTypes = require('../includes/JVMTypes');
-import Parker = require('./parker');
+import Heap from './heap';
+import assert from './assert';
+import {JVMOptions} from './interfaces';
+import * as JVMTypes from '../includes/JVMTypes';
+import Parker from './parker';
 import ThreadPool from './threadpool';
-import logging = require('./logging');
-import JDKInfo = require('../vendor/java_home/jdk.json');
-declare var RELEASE: boolean;
+import * as JDKInfo from '../vendor/java_home/jdk.json';
+import global from './global';
+import getGlobalRequire from './global_require';
+import * as BrowserFS from 'browserfs';
+import * as DoppioJVM from './doppiojvm';
 
-// Do not import, otherwise TypeScript will prune it.
-// Referenced only in eval'd code.
-let BrowserFS = require('browserfs');
-let deflate = require('pako/lib/zlib/deflate');
-let inflate = require('pako/lib/zlib/inflate');
-let zstream = require('pako/lib/zlib/zstream');
-let crc32 = require('pako/lib/zlib/crc32');
-let adler32 = require('pako/lib/zlib/adler32');
+declare var RELEASE: boolean;
+if (typeof RELEASE === 'undefined') global.RELEASE = false;
+
 // For version information.
 let pkg: any;
-if (util.are_in_browser()) {
+if (are_in_browser()) {
   pkg = require('../package.json');
 } else {
   pkg = require('../../../package.json');
@@ -67,7 +63,7 @@ var coreClasses = [
 class JVM {
   private systemProperties: {[prop: string]: string} = null;
   private internedStrings: SafeMap<JVMTypes.java_lang_String> = new SafeMap<JVMTypes.java_lang_String>();
-  private bsCl: ClassLoader.BootstrapClassLoader = null;
+  private bsCl: BootstrapClassLoader = null;
   private threadPool: ThreadPool<JVMThread> = null;
   private natives: { [clsName: string]: { [methSig: string]: Function } } = {};
   // 20MB heap
@@ -83,7 +79,7 @@ class JVM {
   private enabledAssertions: boolean | string[] = false;
   private disabledAssertions: string[] = [];
   private printJITCompilation: boolean = false;
-  private systemClassLoader: ClassLoader.ClassLoader = null;
+  private systemClassLoader: ClassLoader = null;
   private nextRef: number = 0;
   // Set of all of the methods we want vtrace to be enabled on.
   // DEBUG builds only.
@@ -101,14 +97,54 @@ class JVM {
   private jitDisabled: boolean = false;
   private dumpJITStats: boolean = false;
 
+  // Get the environment's require variable, indirectly.
+  // Hidden from webpack and other builders, as it confuses them.
+  private globalRequire: Function = null;
+
+  public static isReleaseBuild(): boolean {
+    return typeof(RELEASE) !== 'undefined' && RELEASE;
+  }
+  private static getNativeMethodModules(): (() => any)[] {
+    if (!this._haveAddedBuiltinNativeModules) {
+      // NOTE: Replace with an ES6 import when we switch to a supporting bundler like Rollup.
+      // Currently cannot import these above to avoid circular imports, which Webpack does not
+      // support.
+      JVM.registerNativeModule(require('./natives/doppio').default);
+      JVM.registerNativeModule(require('./natives/java_io').default);
+      JVM.registerNativeModule(require('./natives/java_lang').default);
+      JVM.registerNativeModule(require('./natives/java_net').default);
+      JVM.registerNativeModule(require('./natives/java_nio').default);
+      JVM.registerNativeModule(require('./natives/java_security').default);
+      JVM.registerNativeModule(require('./natives/java_util').default);
+      JVM.registerNativeModule(require('./natives/sun_font').default);
+      JVM.registerNativeModule(require('./natives/sun_management').default);
+      JVM.registerNativeModule(require('./natives/sun_misc').default);
+      JVM.registerNativeModule(require('./natives/sun_net').default);
+      JVM.registerNativeModule(require('./natives/sun_nio').default);
+      JVM.registerNativeModule(require('./natives/sun_reflect').default);
+      this._haveAddedBuiltinNativeModules = true;
+    }
+    return this._nativeMethodModules;
+  }
+
+  private static _nativeMethodModules: (() => any)[] = [];
+  private static _haveAddedBuiltinNativeModules = false;
+  /**
+   * Registers a JavaScript module that provides particular native methods with Doppio.
+   * All new JVMs constructed will auto-run this module to add its natives.
+   */
+  public static registerNativeModule(mod: () => any): void {
+    this._nativeMethodModules.push(mod);
+  }
+
   /**
    * (Async) Construct a new instance of the Java Virtual Machine.
    */
-  constructor(opts: interfaces.JVMOptions, cb: (e: any, jvm?: JVM) => void) {
+  constructor(opts: JVMOptions, cb: (e: any, jvm?: JVM) => void) {
     if (typeof(opts.doppioHomePath) !== 'string') {
       throw new TypeError("opts.doppioHomePath *must* be specified.");
     }
-    opts = <interfaces.JVMOptions> util.merge(JVM.getDefaultOptions(opts.doppioHomePath), opts);
+    opts = <JVMOptions> merge(JVM.getDefaultOptions(opts.doppioHomePath), opts);
 
     this.jitDisabled = opts.intMode;
     this.dumpJITStats = opts.dumpJITStats;
@@ -126,10 +162,13 @@ class JVM {
     if (!Array.isArray(opts.classpath)) {
       throw new TypeError("opts.classpath must be specified as an array of file paths.");
     }
-    if(typeof(opts.javaHomePath) !== 'string') {
+    if (typeof(opts.javaHomePath) !== 'string') {
       throw new TypeError("opts.javaHomePath must be specified.");
     }
-    if (!Array.isArray(opts.nativeClasspath) || opts.nativeClasspath.length === 0) {
+    if (!opts.nativeClasspath) {
+      opts.nativeClasspath = [];
+    }
+    if (!Array.isArray(opts.nativeClasspath)) {
       throw new TypeError("opts.nativeClasspath must be specified as an array of file paths.");
     }
 
@@ -164,7 +203,7 @@ class JVM {
      */
     bootupTasks.push((next: (err?: any) => void): void => {
       this.bsCl =
-        new ClassLoader.BootstrapClassLoader(this.systemProperties['java.home'], bootstrapClasspath, next);
+        new BootstrapClassLoader(this.systemProperties['java.home'], bootstrapClasspath, next);
     });
 
     /**
@@ -186,7 +225,7 @@ class JVM {
           firstThreadObj.$thread = firstThread = this.firstThread = new JVMThread(this, this.threadPool, firstThreadObj);
           firstThreadObj.ref = 1;
           firstThreadObj['java/lang/Thread/priority'] = 5;
-          firstThreadObj['java/lang/Thread/name'] = util.initCarr(this.bsCl, 'main');
+          firstThreadObj['java/lang/Thread/name'] = initCarr(this.bsCl, 'main');
           firstThreadObj['java/lang/Thread/blockerLock'] = new ((<ReferenceClassData<JVMTypes.java_lang_Object>> this.bsCl.getResolvedClass('Ljava/lang/Object;')).getConstructor(firstThread))(firstThread);
           next();
         }
@@ -198,7 +237,7 @@ class JVM {
      * JVM's ThreadGroup once that class is initialized.
      */
     bootupTasks.push((next: (err?: any) => void): void => {
-      util.asyncForEach<string>(coreClasses, (coreClass: string, nextItem: (err?: any) => void) => {
+      asyncForEach<string>(coreClasses, (coreClass: string, nextItem: (err?: any) => void) => {
         this.bsCl.initializeClass(firstThread, coreClass, (cdata: ClassData) => {
           if (cdata == null) {
             nextItem(`Failed to initialize ${coreClass}`);
@@ -232,7 +271,7 @@ class JVM {
     });
 
     /**
-     * Task #6: Initialize the application's classloader.
+     * Task #6: Initialize the application's
      */
     bootupTasks.push((next: (err?: any) => void) => {
       var clCons = <typeof JVMTypes.java_lang_ClassLoader> (<ReferenceClassData<JVMTypes.java_lang_ClassLoader>> this.bsCl.getInitializedClass(firstThread, 'Ljava/lang/ClassLoader;')).getConstructor(firstThread);
@@ -261,7 +300,7 @@ class JVM {
     });
 
     // Perform bootup tasks, and then trigger the callback function.
-    util.asyncSeries(bootupTasks, (err?: any): void => {
+    asyncSeries(bootupTasks, (err?: any): void => {
       // XXX: Without setImmediate, the firstThread won't clear out the stack
       // frame that triggered us, and the firstThread won't transition to a
       // 'terminated' status.
@@ -286,14 +325,14 @@ class JVM {
     }
   }
 
-  public static getDefaultOptions(doppioHome: string): interfaces.JVMOptions {
+  public static getDefaultOptions(doppioHome: string): JVMOptions {
     let javaHome = path.join(doppioHome, 'vendor', 'java_home');
     return {
       doppioHomePath: doppioHome,
       classpath: ['.'],
       bootstrapClasspath: JDKInfo.classpath.map((item) => path.join(javaHome, item)),
       javaHomePath: javaHome,
-      nativeClasspath: [path.join(doppioHome, 'natives')],
+      nativeClasspath: [],
       enableSystemAssertions: false,
       enableAssertions: false,
       disableAssertions: null,
@@ -319,12 +358,8 @@ class JVM {
     return JDKInfo;
   }
 
-  public getSystemClassLoader(): ClassLoader.ClassLoader {
+  public getSystemClassLoader(): ClassLoader {
     return this.systemClassLoader;
-  }
-
-  public static isReleaseBuild(): boolean {
-    return typeof(RELEASE) !== 'undefined' && RELEASE;
   }
 
   /**
@@ -367,7 +402,7 @@ class JVM {
     var thread = this.firstThread;
     assert(thread != null, `Thread isn't created yet?`);
     // Convert foo.bar.Baz => Lfoo/bar/Baz;
-    className = util.int_classname(className);
+    className = int_classname(className);
 
     // Initialize the class.
     this.systemClassLoader.initializeClass(thread, className, (cdata: ReferenceClassData<any>) => {
@@ -378,7 +413,7 @@ class JVM {
           jvmifiedArgs = new strArrCons(thread, args.length), i: number;
 
         for (i = 0; i < args.length; i++) {
-          jvmifiedArgs.array[i] = util.initString(this.bsCl, args[i]);
+          jvmifiedArgs.array[i] = initString(this.bsCl, args[i]);
         }
 
         // Find the main method, and run it.
@@ -390,7 +425,7 @@ class JVM {
           thread.throwNewException("Ljava/lang/NoSuchMethodError;", `Could not find main method in class ${cdata.getExternalName()}.`);
         }
       } else {
-        process.stdout.write(`Error: Could not find or load main class ${util.ext_classname(className)}\n`);
+        process.stdout.write(`Error: Could not find or load main class ${ext_classname(className)}\n`);
         // Erroneous exit.
         this.terminationCb(1);
       }
@@ -455,7 +490,7 @@ class JVM {
       case JVMStatus.TERMINATING:
 
         if (!RELEASE && this.dumpJITStats) {
-          methods.dumpStats();
+          dumpStats();
         }
 
         this.status = JVMStatus.TERMINATED;
@@ -514,7 +549,7 @@ class JVM {
       return this.internedStrings.get(str);
     } else {
       if (!javaObj) {
-        javaObj = util.initString(this.bsCl, str);
+        javaObj = initString(this.bsCl, str);
       }
       this.internedStrings.set(str, javaObj);
       return javaObj;
@@ -525,86 +560,63 @@ class JVM {
    * Evaluate native modules. Emulates CommonJS functionality.
    */
   private evalNativeModule(mod: string): any {
-    "use strict"; // Prevent eval from being terrible.
-    var rv: any,
-      // Provide the natives with the Doppio API, if needed.
-      DoppioJVM = require('./doppiojvm'),
-      Buffer = (<any> buffer).Buffer,
-      process2 = process,
-      savedRequire = typeof require !== 'undefined' ? require : function(moduleName: string): any {
-        throw new Error(`Cannot find module ${moduleName}`);
-      };
-    (() => {
-      /* tslint:disable:no-unused-variable */
-      /**
-       * Called by the native method file. Registers the package's native
-       * methods with the JVM.
-       */
-      function registerNatives(defs: any): void {
-        rv = defs;
-      }
-      /**
-       * Emulates CommonJS require().
-       * Placed into an eval() call to avoid browserify-dereq from
-       * fucking renaming the goddamn thing to _dereq_.
-       */
-      eval(`
-var process = process2;
-function require(name) {
-  switch(name) {
-    case 'doppiojvm':
-    case '../doppiojvm':
-      return DoppioJVM;
-    case 'fs':
-      return fs;
-    case 'path':
-      return path;
-    case 'buffer':
-      return buffer;
-    case 'browserfs':
-      return BrowserFS;
-    case 'pako/lib/zlib/zstream':
-      return zstream;
-    case 'pako/lib/zlib/inflate':
-      return inflate;
-    case 'pako/lib/zlib/deflate':
-      return deflate;
-    case 'pako/lib/zlib/crc32':
-      return crc32;
-    case 'pako/lib/zlib/adler32':
-      return adler32;
-    case 'crypto':
-    case 'net':
-    case 'dns':
-      return util.are_in_browser() ? null : savedRequire(name);
-    default:
-      return savedRequire(name);
-  }
-}
-/**
- * Emulate AMD module 'define' function for natives compiled as AMD modules.
- */
-function define(resources, module) {
-  var args = [];
-  resources.forEach(function(resource) {
-    switch (resource) {
-      case 'require':
-        args.push(require);
-        break;
-      case 'exports':
-        args.push({});
-        break;
-      default:
-        args.push(require(resource));
-        break;
+    if (!this.globalRequire) {
+      this.globalRequire = getGlobalRequire();
     }
-  });
-  module.apply(null, args);
-}
-eval(mod);
-`);
-      /* tslint:enable:no-unused-variable */
-    })();
+    let rv: any;
+    /**
+     * Called by the native method file. Registers the package's native
+     * methods with the JVM.
+     */
+    function registerNatives(defs: any): void {
+      rv = defs;
+    }
+    // Provide the natives with the Doppio API, if needed.
+    const globalRequire = this.globalRequire;
+
+    /**
+     * An emulation of CommonJS require() for the modules.
+     */
+    function moduleRequire(name: string): any {
+      switch(name) {
+        case 'doppiojvm':
+        case '../doppiojvm':
+          return DoppioJVM;
+        case 'fs':
+          return fs;
+        case 'path':
+          return path;
+        case 'buffer':
+          return buffer;
+        case 'browserfs':
+          return BrowserFS;
+        default:
+          return globalRequire(name);
+      }
+    }
+    /**
+     * Emulate AMD module 'define' function for natives compiled as AMD modules.
+     */
+    function moduleDefine(resources: string[], module: Function): void {
+      let args: any[] = [];
+      resources.forEach(function(resource) {
+        switch (resource) {
+          case 'require':
+            args.push(moduleRequire);
+            break;
+          case 'exports':
+            args.push({});
+            break;
+          default:
+            args.push(moduleRequire(resource));
+            break;
+        }
+      });
+      module.apply(null, args);
+    }
+
+    const modFcn = new Function("require", "define", "registerNatives", "process", "DoppioJVM", "Buffer", mod);
+    modFcn(moduleRequire, moduleDefine, registerNatives, process, DoppioJVM, Buffer);
     return rv;
   }
 
@@ -644,7 +656,7 @@ eval(mod);
    * Returns null if none found.
    */
   public getNative(clsName: string, methSig: string): Function {
-    clsName = util.descriptor2typestr(clsName);
+    clsName = descriptor2typestr(clsName);
     if (this.natives.hasOwnProperty(clsName)) {
       var clsMethods = this.natives[clsName];
       if (clsMethods.hasOwnProperty(methSig)) {
@@ -664,14 +676,21 @@ eval(mod);
 
   /**
    * Loads in all of the native method modules prior to execution.
-   * Currently a hack around our classloader.
-   * @todo Make neater with util.async stuff.
+   * Currently a hack around our
+   * @todo Make neater with async stuff.
    */
   private initializeNatives(doneCb: () => void): void {
+    const registeredModules = JVM.getNativeMethodModules();
+    for (let i = 0; i < registeredModules.length; i++) {
+      this.registerNatives(registeredModules[i]());
+    }
     var nextDir = () => {
       if (i === this.nativeClasspath.length) {
         // Next phase: Load up the files.
-        var count: number = processFiles.length;
+        let count: number = processFiles.length;
+        if (count === 0) {
+          return doneCb();
+        }
         processFiles.forEach((file: string) => {
           fs.readFile(file, (err: any, data: NodeBuffer) => {
             if (!err) {
@@ -708,7 +727,7 @@ eval(mod);
    * [Private] Same as reset_system_properties, but called by the constructor.
    */
   private _initSystemProperties(bootstrapClasspath: string[], javaClassPath: string[], javaHomePath: string, tmpDir: string, opts: {[name: string]: string}): void {
-    this.systemProperties = util.merge({
+    this.systemProperties = merge({
       'java.class.path': javaClassPath.join(':'),
       'java.home': javaHomePath,
       'java.ext.dirs': path.join(javaHomePath, 'lib', 'ext'),
@@ -732,7 +751,7 @@ eval(mod);
       'java.vm.name': 'DoppioJVM 32-bit VM',
       'java.vm.version': pkg.version,
       'java.vm.vendor': 'PLASMA@UMass',
-      'java.awt.headless': (util.are_in_browser()).toString(), // true if we're using the console frontend
+      'java.awt.headless': (are_in_browser()).toString(), // true if we're using the console frontend
       'java.awt.graphicsenv': 'classes.awt.CanvasGraphicsEnvironment',
       'jline.terminal': 'jline.UnsupportedTerminal', // we can't shell out to `stty`,
       'sun.arch.data.model': '32', // Identify as 32-bit, because that's how we act.
@@ -743,7 +762,7 @@ eval(mod);
   /**
    * Retrieves the bootstrap class loader.
    */
-  public getBootstrapClassLoader(): ClassLoader.BootstrapClassLoader {
+  public getBootstrapClassLoader(): BootstrapClassLoader {
     return this.bsCl;
   }
 
@@ -793,13 +812,19 @@ eval(mod);
 
   public dumpObjectDefinition(cls: ClassData, evalText: string): void {
     if (this.shouldDumpCompiledCode()) {
-      fs.writeFile(path.resolve(this.dumpCompiledCodeDir, cls.getExternalName() + "_object.dump"), evalText, () => {});
+      fs.writeFile(path.resolve(this.dumpCompiledCodeDir, cls.getExternalName() + ".js"), evalText, () => {});
     }
   }
 
   public dumpBridgeMethod(methodSig: string, evalText: string): void {
     if (this.shouldDumpCompiledCode()) {
       fs.appendFile(path.resolve(this.dumpCompiledCodeDir, "vmtarget_bridge_methods.dump"), `${methodSig}:\n${evalText}\n\n`, () => {});
+    }
+  }
+
+  public dumpCompiledMethod(methodSig: string, pc: number, code: string): void {
+    if (this.shouldDumpCompiledCode()) {
+      fs.appendFile(path.resolve(this.dumpCompiledCodeDir, 'JIT_compiled_methods.dump'), `${methodSig}:${pc}:\n${code}\n\n`, () => {});
     }
   }
 
@@ -812,4 +837,4 @@ eval(mod);
   }
 }
 
-export = JVM;
+export default JVM;

@@ -17,8 +17,7 @@ public class FileDescriptors {
     FileInputStream fs1 = new FileInputStream("classes/test/FileDescriptors.java");
     testDescriptorValidity(fs1, fs1.getFD());
 
-    // replace by createTempFile when we get around to supporting it
-    File temp = new File("/tmp/Doppio-FileDescriptorsTest");
+    File temp = File.createTempFile("Doppio-FileDescriptorsTest", ".txt");
     FileOutputStream fs2 = new FileOutputStream(temp);
     testDescriptorValidity(fs2, fs2.getFD());
     temp.delete(); // we don't support deleteOnExit either

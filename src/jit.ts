@@ -1,9 +1,7 @@
-"use strict";
-
-import enums = require('./enums');
-import opcodes = require('./opcodes');
+import {OpCode} from './enums';
+import * as opcodes from './opcodes';
 import {Method} from './methods';
-import ConstantPool = require('./ConstantPool');
+import {FieldReference, ClassReference} from './ConstantPool';
 
 
 export interface JitInfo {
@@ -24,7 +22,6 @@ export const opJitInfo: JitInfo[] = function() {
 // Intentionally indented higher: emitted code is shorter.
 
 const table:JitInfo[] = [];
-const OpCode = enums.OpCode;
 
 table[OpCode.ACONST_NULL] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess) => {
   return `var ${pushes[0]}=null;${onSuccess}`;
@@ -127,7 +124,7 @@ table[OpCode.ISTORE_3] = store3_32;
 table[OpCode.FSTORE_3] = store3_32;
 
 const store_64: JitInfo = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
-  const offset = code.readUInt8(pc + 1);
+  const offset = code[pc + 1];
   return `f.locals[${offset+1}]=${pops[0]};f.locals[${offset}]=${pops[1]};${onSuccess}`;
 }}
 
@@ -283,7 +280,7 @@ table[OpCode.LASTORE] = astore64;
 
 // TODO: get the constant at JIT time ?
 table[OpCode.LDC] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
-  const index = code.readUInt8(pc + 1);
+  const index = code[pc + 1];
   const onError = makeOnError(onErrorPushes, pc);
   return `
 var cnst${suffix}=f.method.cls.constantPool.get(${index});
@@ -324,7 +321,7 @@ ${pushes[1]}=null;${onSuccess}`;
 table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes, pc);
   const index = code.readUInt16BE(pc + 1);
-  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const fieldInfo = <FieldReference> method.cls.constantPool.get(index);
   const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
   return `if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}['${name}'];${onSuccess}}else{${onError}}`;
 }};
@@ -332,7 +329,7 @@ table[OpCode.GETFIELD_FAST32] = {hasBranch: false, pops: 1, pushes: 1, emit: (po
 table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes, pc);
   const index = code.readUInt16BE(pc + 1);
-  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const fieldInfo = <FieldReference> method.cls.constantPool.get(index);
   const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
   return `if(!u.isNull(t,f,${pops[0]})){var ${pushes[0]}=${pops[0]}['${name}'],${pushes[1]}=null;${onSuccess}}else{${onError}}`;
 }};
@@ -340,7 +337,7 @@ table[OpCode.GETFIELD_FAST64] = {hasBranch: false, pops: 1, pushes: 2, emit: (po
 table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes, pc);
   const index = code.readUInt16BE(pc + 1);
-  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const fieldInfo = <FieldReference> method.cls.constantPool.get(index);
   const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
   return `if(!u.isNull(t,f,${pops[1]})){${pops[1]}['${name}']=${pops[0]};${onSuccess}}else{${onError}}`;
 }};
@@ -348,7 +345,7 @@ table[OpCode.PUTFIELD_FAST32] = {hasBranch: false, pops: 2, pushes: 0, emit: (po
 table[OpCode.PUTFIELD_FAST64] = {hasBranch: false, pops: 3, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const onError = makeOnError(onErrorPushes, pc);
   const index = code.readUInt16BE(pc + 1);
-  const fieldInfo = <ConstantPool.FieldReference> method.cls.constantPool.get(index);
+  const fieldInfo = <FieldReference> method.cls.constantPool.get(index);
   const name = fieldInfo.fullFieldName.replace(escapeStringRegEx, "\\\\")
   return `if(!u.isNull(t,f,${pops[2]})){${pops[2]}['${name}']=${pops[1]};${onSuccess}}else{${onError}}`;
 }};
@@ -361,7 +358,7 @@ table[OpCode.INSTANCEOF_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (po
 
 table[OpCode.CHECKCAST_FAST] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes, method) => {
   const index = code.readUInt16BE(pc + 1);
-  const classRef = <ConstantPool.ClassReference> method.cls.constantPool.get(index),
+  const classRef = <ClassReference> method.cls.constantPool.get(index),
     targetClass = classRef.cls.getExternalName();
   return `var cls${suffix}=f.method.cls.constantPool.get(${index}).cls;
 if((${pops[0]}!=null)&&!${pops[0]}.getClass().isCastable(cls${suffix})){
@@ -375,7 +372,7 @@ table[OpCode.ARRAYLENGTH] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, 
 }};
 
 const load32: JitInfo = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
-  const index = code.readUInt8(pc + 1);
+  const index = code[pc + 1];
   return `var ${pushes[0]}=f.locals[${index}];${onSuccess}`;
 }}
 
@@ -384,7 +381,7 @@ table[OpCode.ALOAD] = load32;
 table[OpCode.FLOAD] = load32;
 
 const load64: JitInfo = {hasBranch: false, pops: 0, pushes: 2, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
-  const index = code.readUInt8(pc + 1);
+  const index = code[pc + 1];
   return `var ${pushes[0]}=f.locals[${index}],${pushes[1]}=null;${onSuccess}`;
 }}
 
@@ -392,7 +389,7 @@ table[OpCode.LLOAD] = load64;
 table[OpCode.DLOAD] = load64;
 
 const store32: JitInfo = {hasBranch: false, pops: 1, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
-  const index = code.readUInt8(pc + 1);
+  const index = code[pc + 1];
   return `f.locals[${index}]=${pops[0]};${onSuccess}`;
 }}
 
@@ -411,7 +408,7 @@ table[OpCode.SIPUSH] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pushe
 }};
 
 table[OpCode.IINC] = {hasBranch: false, pops: 0, pushes: 0, emit: (pops, pushes, suffix, onSuccess, code, pc) => {
-  const idx = code.readUInt8(pc + 1);
+  const idx = code[pc + 1];
   const val = code.readInt8(pc + 2);
   return `f.locals[${idx}]=(f.locals[${idx}]+${val})|0;${onSuccess}`;
 }};
@@ -442,7 +439,7 @@ table[OpCode.TABLESWITCH] = {hasBranch: true, pops: 1, pushes: 0, emit: (pops, p
     emitted += `default:f.pc=${pc + defaultOffset}}${onSuccess}`
     return emitted;
   } else {
-    return `if(${pops[0]}>=${low}&&${pops[0]}<=${high}){f.pc=${pc}+f.method.getCodeAttribute().getCode().readInt32BE(${alignedPC + 12}+((${pops[0]}-${low})*4))}else{f.pc=${pc + defaultOffset}}${onSuccess}`;
+    return `if(${pops[0]}>=${low}&&${pops[0]}<=${high}){f.pc=${pc}+f.method.getCodeAttribute().getCode().readInt32BE(${alignedPC + 12}+((${pops[0]} - ${low})*4))}else{f.pc=${pc + defaultOffset}}${onSuccess}`;
   }
 }};
 
@@ -794,7 +791,7 @@ table[OpCode.NEW_FAST] = {hasBranch: false, pops: 0, pushes: 1, emit: (pops, pus
 }};
 
 table[OpCode.NEWARRAY] = {hasBranch: false, pops: 1, pushes: 1, emit: (pops, pushes, suffix, onSuccess, code, pc, onErrorPushes) => {
-  const index = code.readUInt8(pc + 1);
+  const index = code[pc + 1];
   const arrayType = "[" + opcodes.ArrayTypes[index];
   const onError = makeOnError(onErrorPushes, pc);
   return `

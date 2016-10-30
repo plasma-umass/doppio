@@ -1,5 +1,3 @@
-import path = require('path');
-import {exec, spawn} from 'child_process';
 import semver = require('semver');
 import LocateJavaHome = require('locate-java-home');
 import {IJavaHomeInfo} from 'locate-java-home/js/lib/interfaces';
@@ -10,7 +8,7 @@ import {IJavaHomeInfo} from 'locate-java-home/js/lib/interfaces';
  * - Sets location of java/javac/javap in Grunt config.
  * - Ensures version we found is actually Java 8.
  */
-function findNativeJava(grunt: IGrunt) {
+function findNativeJava(this: grunt.task.ITask, grunt: IGrunt) {
   grunt.registerTask('find_native_java', 'Finds your Java installation.', function (): void {
     var done: (status?: boolean) => void = this.async();
 

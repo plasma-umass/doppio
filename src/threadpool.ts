@@ -1,5 +1,5 @@
 import {ThreadStatus} from './enums';
-import assert = require('./assert');
+import assert from './assert';
 
 /**
  * Generic interface for a thread.

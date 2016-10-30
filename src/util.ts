@@ -1,13 +1,12 @@
-"use strict";
-import gLong = require('./gLong');
-import threading = require('./threading');
-import enums = require('./enums');
-import JVMTypes = require('../includes/JVMTypes');
-import BrowserFS = require('browserfs');
+import gLong from './gLong';
+import {JVMThread} from './threading';
+import {Constants} from './enums';
+import * as JVMTypes from '../includes/JVMTypes';
+import * as BrowserFS from 'browserfs';
 
 // For type information
-import ClassLoader = require('./ClassLoader');
-import ClassData = require('./ClassData');
+import {ClassLoader} from './ClassLoader';
+import {ReferenceClassData, ClassData, ArrayClassData} from './ClassData';
 
 let BFSUtils = BrowserFS.BFSRequire('bfs_utils');
 
@@ -76,19 +75,19 @@ export function asyncForEach<T>(
       done_cb: (err?: any) => void
   ): void {
   var i = -1;
-  function process(err?: any): void {
+  function processItem(err?: any): void {
     if (err) {
       done_cb(err);
     } else {
       i++;
       if (i < lst.length) {
-        fn(lst[i], process);
+        fn(lst[i], processItem);
       } else {
         done_cb();
       }
     }
   }
-  process();
+  processItem();
 }
 
 /**
@@ -96,19 +95,19 @@ export function asyncForEach<T>(
  */
 export function asyncSeries(tasks: {(next: (err?: any) => void): void}[], doneCb: (err?: any) => void) {
   var i = -1;
-  function process(err?: any): void {
+  function processItem(err?: any): void {
     if (err) {
       doneCb(err);
     } else {
       i++;
       if (i < tasks.length) {
-        tasks[i](process);
+        tasks[i](processItem);
       } else {
         doneCb();
       }
     }
   }
-  process();
+  processItem();
 }
 
 /**
@@ -125,19 +124,19 @@ export function asyncFind<T>(
     done_cb: (elem?: T) => void
   ): void {
   var i = -1;
-  function process(success: boolean): void {
+  function processItem(success: boolean): void {
     if (success) {
       done_cb(lst[i]);
     } else {
       i++;
       if (i < lst.length) {
-        fn(lst[i], process);
+        fn(lst[i], processItem);
       } else {
         done_cb();
       }
     }
   }
-  process(false);
+  processItem(false);
 }
 
 if (!(<any> Math)['imul']) {
@@ -220,7 +219,7 @@ if (!Array.prototype.indexOf) {
  * y: accessible
  * n: not accessible
  */
-export function checkAccess(accessingCls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, owningCls: ClassData.ReferenceClassData<JVMTypes.java_lang_Object>, accessFlags: Flags): boolean {
+export function checkAccess(accessingCls: ReferenceClassData<JVMTypes.java_lang_Object>, owningCls: ReferenceClassData<JVMTypes.java_lang_Object>, accessFlags: Flags): boolean {
   if (accessFlags.isPublic()) {
     return true;
   } else if (accessFlags.isProtected()) {
@@ -236,10 +235,10 @@ export function checkAccess(accessingCls: ClassData.ReferenceClassData<JVMTypes.
  * Truncates a floating point into an integer.
  */
 export function float2int(a: number): number {
-  if (a > enums.Constants.INT_MAX) {
-    return enums.Constants.INT_MAX;
-  } else if (a < enums.Constants.INT_MIN) {
-    return enums.Constants.INT_MIN;
+  if (a > Constants.INT_MAX) {
+    return Constants.INT_MAX;
+  } else if (a < Constants.INT_MIN) {
+    return Constants.INT_MIN;
   } else {
     return a | 0;
   }
@@ -314,7 +313,7 @@ export function i82u8(arr: number[] | Int8Array, start: number, len: number): nu
  * Converts an Uint8Array or an array of 8-bit unsigned ints into
  * an Int8Array or an array of 8-bit signed ints.
  */
-export function u82i8(arr: number[] | Uint8Array, start: number, len: number): number[] | Int8Array {
+export function u82i8(arr: number[] | Uint8Array | Buffer, start: number = 0, len: number = arr.length): number[] | Int8Array {
   if (isUint8Array(arr)) {
     return new Int8Array(arr.buffer, arr.byteOffset + start, len);
   } else if (Array.isArray(arr)) {
@@ -341,14 +340,6 @@ export function u82i8(arr: number[] | Uint8Array, start: number, len: number): n
   } else {
     throw new TypeError(`Invalid array.`);
   }
-}
-
-/**
- * Converts a buffer into either an Int8Array, or an array of signed 8-bit ints.
- */
-export function buff2i8(buff: NodeBuffer): Int8Array | number[] {
-  let arrayish = BFSUtils.buffer2Arrayish(buff);
-  return u82i8(<any> arrayish, 0, arrayish.length);
 }
 
 // Call this ONLY on the result of two non-NaN numbers.
@@ -684,7 +675,7 @@ export function typestr2descriptor(type_str: string): string {
  * Note that this includes padding category 2 primitives, which consume two
  * slots in the array (doubles/longs).
  */
-export function unboxArguments(thread: threading.JVMThread, paramTypes: string[], args: JVMTypes.java_lang_Object[]): any[] {
+export function unboxArguments(thread: JVMThread, paramTypes: string[], args: JVMTypes.java_lang_Object[]): any[] {
   var rv: any[] = [], i: number, type: string, arg: JVMTypes.java_lang_Object;
   for (i = 0; i < paramTypes.length; i++) {
     type = paramTypes[i];
@@ -710,17 +701,17 @@ export function unboxArguments(thread: threading.JVMThread, paramTypes: string[]
  * Given a method descriptor as a JS string, returns a corresponding MethodType
  * object.
  */
-export function createMethodType(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, descriptor: string, cb: (e: JVMTypes.java_lang_Throwable, type: JVMTypes.java_lang_invoke_MethodType) => void) {
-  cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ClassData.ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>) => {
+export function createMethodType(thread: JVMThread, cl: ClassLoader, descriptor: string, cb: (e: JVMTypes.java_lang_Throwable, type: JVMTypes.java_lang_invoke_MethodType) => void) {
+  cl.initializeClass(thread, 'Ljava/lang/invoke/MethodHandleNatives;', (cdata: ReferenceClassData<JVMTypes.java_lang_invoke_MethodHandleNatives>) => {
     if (cdata !== null) {
       var jsCons = <typeof JVMTypes.java_lang_invoke_MethodHandleNatives> cdata.getConstructor(thread), classes = getTypes(descriptor);
       classes.push('[Ljava/lang/Class;');
       // Need the return type and parameter types.
-      cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData.ClassData }) => {
+      cl.resolveClasses(thread, classes, (classMap: { [name: string]: ClassData }) => {
         var types = classes.map((cls: string) => classMap[cls].getClassObject(thread));
         types.pop(); // Discard '[Ljava/lang/Class;'
         var rtype = types.pop(), // Return type.
-          clsArrCons = (<ClassData.ArrayClassData<JVMTypes.java_lang_Class>> classMap['[Ljava/lang/Class;']).getConstructor(thread),
+          clsArrCons = (<ArrayClassData<JVMTypes.java_lang_Class>> classMap['[Ljava/lang/Class;']).getConstructor(thread),
           ptypes = new clsArrCons(thread, types.length);
         ptypes.array = types;
 
@@ -773,7 +764,7 @@ export function getDescriptorString(rtype: JVMTypes.java_lang_Class, ptypes?: JV
  * Have a JavaClassLoaderObject and need its ClassLoader object? Use this method!
  * @todo Install on Java ClassLoader objects.
  */
-export function getLoader(thread: threading.JVMThread, jclo: JVMTypes.java_lang_ClassLoader): ClassLoader.ClassLoader {
+export function getLoader(thread: JVMThread, jclo: JVMTypes.java_lang_ClassLoader): ClassLoader {
   if ((jclo != null) && (jclo.$loader != null)) {
     return jclo.$loader;
   }
@@ -803,7 +794,7 @@ export function arraycopyNoCheck(src: JVMTypes.JVMArray<any>, srcPos: number, de
  * Guarantees: src and dest are two different reference types. They cannot be
  *             primitive arrays.
  */
-export function arraycopyCheck(thread: threading.JVMThread, src: JVMTypes.JVMArray<JVMTypes.java_lang_Object>, srcPos: number, dest: JVMTypes.JVMArray<JVMTypes.java_lang_Object>, destPos: number, length: number): void {
+export function arraycopyCheck(thread: JVMThread, src: JVMTypes.JVMArray<JVMTypes.java_lang_Object>, srcPos: number, dest: JVMTypes.JVMArray<JVMTypes.java_lang_Object>, destPos: number, length: number): void {
   var j = destPos;
   var end = srcPos + length;
   var destCompCls = dest.getClass().getComponentClass();
@@ -819,16 +810,16 @@ export function arraycopyCheck(thread: threading.JVMThread, src: JVMTypes.JVMArr
   }
 }
 
-export function initString(cl: ClassLoader.ClassLoader, str: string): JVMTypes.java_lang_String {
+export function initString(cl: ClassLoader, str: string): JVMTypes.java_lang_String {
   var carr = initCarr(cl, str);
-  var strCons = (<ClassData.ReferenceClassData<JVMTypes.java_lang_String>> cl.getResolvedClass('Ljava/lang/String;')).getConstructor(null);
+  var strCons = (<ReferenceClassData<JVMTypes.java_lang_String>> cl.getResolvedClass('Ljava/lang/String;')).getConstructor(null);
   var strObj = new strCons(null);
   strObj['java/lang/String/value'] = carr;
   return strObj;
 }
 
-export function initCarr(cl: ClassLoader.ClassLoader, str: string): JVMTypes.JVMArray<number> {
-  var arrClsCons = (<ClassData.ArrayClassData<number>> cl.getInitializedClass(null, '[C')).getConstructor(null),
+export function initCarr(cl: ClassLoader, str: string): JVMTypes.JVMArray<number> {
+  var arrClsCons = (<ArrayClassData<number>> cl.getInitializedClass(null, '[C')).getConstructor(null),
     carr = new arrClsCons(null, str.length),
     carrArray = carr.array;
 
@@ -839,43 +830,43 @@ export function initCarr(cl: ClassLoader.ClassLoader, str: string): JVMTypes.JVM
   return carr;
 }
 
-export function newArrayFromClass<T>(thread: threading.JVMThread, clazz: ClassData.ArrayClassData<T>, length: number): JVMTypes.JVMArray<T> {
+export function newArrayFromClass<T>(thread: JVMThread, clazz: ArrayClassData<T>, length: number): JVMTypes.JVMArray<T> {
   return new (clazz.getConstructor(thread))(thread, length);
 }
 
-export function newArray<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, length: number): JVMTypes.JVMArray<T> {
-  var cls = <ClassData.ArrayClassData<T>> cl.getInitializedClass(thread, desc);
+export function newArray<T>(thread: JVMThread, cl: ClassLoader, desc: string, length: number): JVMTypes.JVMArray<T> {
+  var cls = <ArrayClassData<T>> cl.getInitializedClass(thread, desc);
   return newArrayFromClass(thread, cls, length);
 }
 
 /**
  * Separate from newArray to avoid programming mistakes where newArray and newArrayFromData are conflated.
  */
-export function multiNewArray<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, lengths: number[]): JVMTypes.JVMArray<T> {
-  var cls = <ClassData.ArrayClassData<T>> cl.getInitializedClass(thread, desc);
+export function multiNewArray<T>(thread: JVMThread, cl: ClassLoader, desc: string, lengths: number[]): JVMTypes.JVMArray<T> {
+  var cls = <ArrayClassData<T>> cl.getInitializedClass(thread, desc);
   return new (cls.getConstructor(thread))(thread, lengths);
 }
 
-export function newObjectFromClass<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, clazz: ClassData.ReferenceClassData<T>) {
+export function newObjectFromClass<T extends JVMTypes.java_lang_Object>(thread: JVMThread, clazz: ReferenceClassData<T>) {
   return new (clazz.getConstructor(thread))(thread);
 }
 
-export function newObject<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string): T {
-  var cls = <ClassData.ReferenceClassData<T>> cl.getInitializedClass(thread, desc);
+export function newObject<T extends JVMTypes.java_lang_Object>(thread: JVMThread, cl: ClassLoader, desc: string): T {
+  var cls = <ReferenceClassData<T>> cl.getInitializedClass(thread, desc);
   return newObjectFromClass(thread, cls);
 }
 
-export function getStaticFields<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string): T {
-  return <T> <any> (<ClassData.ReferenceClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, desc)).getConstructor(thread);
+export function getStaticFields<T>(thread: JVMThread, cl: ClassLoader, desc: string): T {
+  return <T> <any> (<ReferenceClassData<JVMTypes.java_lang_Object>> cl.getInitializedClass(thread, desc)).getConstructor(thread);
 }
 
-export function newArrayFromDataWithClass<T>(thread: threading.JVMThread, cls: ClassData.ArrayClassData<T>, data: T[]): JVMTypes.JVMArray<T> {
+export function newArrayFromDataWithClass<T>(thread: JVMThread, cls: ArrayClassData<T>, data: T[]): JVMTypes.JVMArray<T> {
   var arr = newArrayFromClass<T>(thread, cls, 0);
   arr.array = data;
   return arr;
 }
 
-export function newArrayFromData<T>(thread: threading.JVMThread, cl: ClassLoader.ClassLoader, desc: string, data: T[]): JVMTypes.JVMArray<T> {
+export function newArrayFromData<T>(thread: JVMThread, cl: ClassLoader, desc: string, data: T[]): JVMTypes.JVMArray<T> {
   var arr = newArray<T>(thread, cl, desc, 0);
   arr.array = data;
   return arr;
@@ -912,9 +903,9 @@ export function boxClassName(primType: string): string {
 /**
  * Boxes the given primitive value.
  */
-export function boxPrimitiveValue(thread: threading.JVMThread, type: string, val: any): JVMTypes.java_lang_Integer {
+export function boxPrimitiveValue(thread: JVMThread, type: string, val: any): JVMTypes.java_lang_Integer {
   // XXX: We assume Integer for typing purposes only; avoids a huge union type.
-  var primCls = <ClassData.ReferenceClassData<JVMTypes.java_lang_Integer>> thread.getBsCl().getInitializedClass(thread, boxClassName(type)),
+  var primCls = <ReferenceClassData<JVMTypes.java_lang_Integer>> thread.getBsCl().getInitializedClass(thread, boxClassName(type)),
    primClsCons = <typeof JVMTypes.java_lang_Integer> primCls.getConstructor(thread);
   return primClsCons.box(val);
 }
@@ -926,7 +917,7 @@ export function boxPrimitiveValue(thread: threading.JVMThread, type: string, val
  * @param data The actual arguments for this function call.
  * @param isStatic If false, disregard the first type in the descriptor, as it is the 'this' argument.
  */
-export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.ArrayClassData<JVMTypes.java_lang_Object>, descriptor: string, data: any[], isStatic: boolean, skipArgs: number = 0): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
+export function boxArguments(thread: JVMThread, objArrCls: ArrayClassData<JVMTypes.java_lang_Object>, descriptor: string, data: any[], isStatic: boolean, skipArgs: number = 0): JVMTypes.JVMArray<JVMTypes.java_lang_Object> {
   var paramTypes = getTypes(descriptor),
     boxedArgs = newArrayFromClass(thread, objArrCls, paramTypes.length - (isStatic ? 1 : 2) - skipArgs),
     i: number, j: number = 0, boxedArgsArr = boxedArgs.array, type: string;
@@ -967,7 +958,7 @@ export function boxArguments(thread: threading.JVMThread, objArrCls: ClassData.A
   return boxedArgs;
 }
 
-export function forwardResult<T extends JVMTypes.java_lang_Object>(thread: threading.JVMThread): (e?: JVMTypes.java_lang_Throwable, rv?: T) => void {
+export function forwardResult<T extends JVMTypes.java_lang_Object>(thread: JVMThread): (e?: JVMTypes.java_lang_Throwable, rv?: T) => void {
   return (e?: JVMTypes.java_lang_Throwable, rv?: T): void => {
     if (e) {
       thread.throwException(e);

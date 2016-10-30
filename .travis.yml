@@ -31,4 +31,4 @@ before_script:
   - sudo service haveged start
 
 script:
-  - if test $TEST_BROWSER -eq 0; then echo "grunt test"; ./node_modules/.bin/grunt test --grunt-ignore-compile-errors; else echo "grunt test-browser-travis"; ./node_modules/.bin/grunt test-browser-travis --grunt-ignore-compile-errors; fi
+  - if test $TEST_BROWSER -eq 0; then echo "grunt test"; ./node_modules/.bin/grunt --stack test --grunt-ignore-compile-errors; else echo "grunt test-browser-travis"; ./node_modules/.bin/grunt --stack test-browser-travis --grunt-ignore-compile-errors; fi

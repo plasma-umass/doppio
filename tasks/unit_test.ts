@@ -3,8 +3,8 @@ import os = require('os');
 import async = require('async');
 
 function unitTest(grunt: IGrunt) {
-	grunt.registerMultiTask('unit_test', 'Run doppio unit tests.', function() {
-    var files: { src: string[]; dest: string }[] = this.files,
+	grunt.registerMultiTask('unit_test', 'Run doppio unit tests.', function(this: grunt.task.IMultiTask<any>) {
+    let files = this.files,
       done: (status?: boolean) => void = this.async(),
       tasks: Array<AsyncFunction<void>> = [], testFailed = false;
     // Delete failures.txt if it exists.
@@ -14,8 +14,8 @@ function unitTest(grunt: IGrunt) {
     files.forEach(function(file: {src: string[]; dest: string}) {
       tasks.push(function(cb: (err?: any) => void) {
         // Strip '.java'
-        var nameNoExt = file.src[0].slice(0, -5),
-          cProcess = child_process.exec('node build/release-cli/console/test_runner.js ' + nameNoExt + ' --makefile', function (err?: any, stdout?: Buffer, stderr?: Buffer) {
+        var nameNoExt = file.src[0].slice(0, -5);
+        child_process.exec('node build/release-cli/console/test_runner.js ' + nameNoExt + ' --makefile', function (err?: any, stdout?: Buffer, stderr?: Buffer) {
           if (err) {
             grunt.log.write(stdout.toString() + stderr.toString());
             testFailed = true;

@@ -1,11 +1,8 @@
-/// <reference path="typings/index.d.ts" />
 /**
  * Contains all of doppio's grunt build tasks in TypeScript.
  */
 import path = require('path');
 import fs = require('fs');
-import os = require('os');
-import _ = require('underscore');
 import webpack = require('webpack');
 import karma = require('karma');
 import async = require('async');
@@ -31,6 +28,8 @@ function getWebpackTestConfig(target: string, optimize = false, benchmark = fals
   }
   // Change entries.
   config.entry = entries;
+  // No longer a UMD module, so change external configuration.
+  (<any> config.externals)['browserfs'] = 'BrowserFS';
   // Test config should run immediately; it is not a library.
   delete config.output.libraryTarget;
   delete config.output.library;
@@ -40,7 +39,6 @@ function getWebpackTestConfig(target: string, optimize = false, benchmark = fals
 /**
  * Returns a webpack configuration file for the given compilation target
  * @param target release, dev, or fast-dev
- * @todo Uglify configuration!
  */
 function getWebpackConfig(target: string, optimize: boolean = false): webpack.Configuration {
   const output = `${target}/doppio`, entry = path.resolve(__dirname, `build/${target}-cli/src/index`);
@@ -59,20 +57,23 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
       extensions: ['', '.js', '.json'],
       // Use our versions of Node modules.
       alias: {
-        'buffer': path.resolve(__dirname, 'shims/buffer'),
-        'fs': path.resolve(__dirname, 'shims/fs'),
-        'path': path.resolve(__dirname, 'shims/path'),
-        'BFSBuffer': path.resolve(__dirname, 'shims/BFSBuffer'),
-        'process': path.resolve(__dirname, 'shims/process'),
-        // Webpack doesn't have an easy way to 'NOP' out modules, so we just hook
-        // net up to a random module.
-        'net': path.resolve(__dirname, 'shims/process')
+        'buffer': require.resolve('browserfs/dist/shims/buffer'),
+        'fs': require.resolve('browserfs/dist/shims/fs'),
+        'path': require.resolve('browserfs/dist/shims/path'),
+        'BFSBuffer': require.resolve('browserfs/dist/shims/bufferGlobal'),
+        'process': require.resolve('browserfs/dist/shims/process')
       }
     },
-    externals: {
-      'browserfs': 'BrowserFS'
+    externals: <any> {
+      'browserfs': {
+        root: 'BrowserFS',
+        commonjs2: 'browserfs',
+        commonjs: 'browserfs',
+        amd: 'browserfs'
+      }
     },
     plugins: [
+      new webpack.IgnorePlugin(/^net$/),
       new webpack.ProvidePlugin({
         Buffer: 'BFSBuffer',
         process: 'process'
@@ -113,7 +114,20 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
     }
   }
   if (optimize) {
-    config.plugins.push(new webpack.optimize.UglifyJsPlugin());
+    config.plugins.push(new webpack.optimize.UglifyJsPlugin(<any> {
+      compress: {
+        warnings: false,
+        unsafe: true,
+        screw_ie8: false
+      },
+      mangle: {
+        screw_ie8: false
+      },
+      output: {
+        screw_ie8: false
+      },
+      sourceMap: true
+    }));
   }
 
   return config;
@@ -124,7 +138,7 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
  * @param target release, dev, or fast-dev
  */
 function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']): karma.ConfigOptions {
-  return {
+  return <any> {
     // base path, that will be used to resolve files and exclude
     basePath: '.',
     frameworks: ['jasmine'],
@@ -136,6 +150,7 @@ function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']
     autoWatch: true,
     browsers: browsers,
     captureTimeout: 60000,
+    concurrency: 1,
     // Avoid hardcoding and cross-origin issues.
     proxies: {
       '/': 'http://localhost:8000/'
@@ -153,21 +168,6 @@ function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']
     urlRoot: '/karma/',
     browserNoActivityTimeout: 180000,
     browserDisconnectTimeout: 180000
-  };
-}
-
-/**
- * Returns a configuration that copies the natives from the appropriate
- * -cli build to the browser build.
- */
-function getCopyNativesConfig(buildType: string, test = false, benchmark = false): any {
-  return {
-    files: [{
-      expand: true,
-      cwd: test ? `build/scratch/test/${benchmark ? 'release' : buildType}/src` : `build/${buildType}-cli/src`,
-      src: 'natives/*.js*',
-      dest: `build/${benchmark ? 'benchmark' : `${test ? 'test-' : ''}${buildType}`}`
-    }]
   };
 }
 
@@ -324,7 +324,14 @@ export function setup(grunt: IGrunt) {
         compress: {
           global_defs: {
             RELEASE: true
-          }
+          },
+          screw_ie8: false
+        },
+        mangle: {
+          screw_ie8: false
+        },
+        output: {
+          screw_ie8: false
         },
         sourceMap: true,
         sourceMapIncludeSources: true
@@ -378,13 +385,6 @@ export function setup(grunt: IGrunt) {
           dest: 'dist'
         }]
       },
-      'dev-natives': getCopyNativesConfig('dev'),
-      'fast-dev-natives': getCopyNativesConfig('fast-dev'),
-      'release-natives': getCopyNativesConfig('release'),
-      'test-dev-natives': getCopyNativesConfig('dev', true),
-      'test-fast-dev-natives': getCopyNativesConfig('fast-dev', true),
-      'test-release-natives': getCopyNativesConfig('release', true),
-      'benchmark-natives': getCopyNativesConfig('benchmark', true, true),
       'examples': {
         files: [{
           expand: true,
@@ -450,7 +450,7 @@ export function setup(grunt: IGrunt) {
       default: {
         files: [{
           expand: true,
-          src: 'classes/test/*.java'
+          src: 'classes/test/TCPTest.java'
         }]
       }
     },
@@ -563,7 +563,7 @@ export function setup(grunt: IGrunt) {
   grunt.loadTasks('tasks');
 
   let websockify: grunt.util.ISpawnedChild = null;
-  grunt.registerTask('start-websockify', 'Starts the websockify server', function() {
+  grunt.registerTask('start-websockify', 'Starts the websockify server', function(this: grunt.task.ITask) {
     if (websockify) return;
     const done = this.async();
     websockify = grunt.util.spawn({
@@ -585,7 +585,7 @@ export function setup(grunt: IGrunt) {
   });
 
   let testServer: grunt.util.ISpawnedChild = null;
-  grunt.registerTask('start-test-server', 'Starts a test server', function(target: string) {
+  grunt.registerTask('start-test-server', 'Starts a test server', function(this: grunt.task.ITask, target: string) {
     if (testServer) return;
     const javaPath = grunt.config('build.java');
     const done = this.async();
@@ -616,8 +616,8 @@ export function setup(grunt: IGrunt) {
     testServer = null;
   });
 
-  grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function() {
-    var launcherPath: string, exePath: string, options = this.options();
+  grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function(this: grunt.task.ITask) {
+    var launcherPath: string, exePath: string, options = <any> this.options({});
     launcherPath = options.dest;
     exePath = options.src;
 
@@ -638,7 +638,7 @@ export function setup(grunt: IGrunt) {
     }
   });
 
-  grunt.registerTask("check_jdk", "Checks the status of the JDK. Downloads if needed.", function() {
+  grunt.registerTask("check_jdk", "Checks the status of the JDK. Downloads if needed.", function(this: grunt.task.ITask) {
     let done: (status?: boolean) => void = this.async();
     let child = grunt.util.spawn({
       cmd: 'node',
@@ -704,7 +704,7 @@ export function setup(grunt: IGrunt) {
      'stop-test-server',
      // Windows: Convert CRLF to LF.
      'newer:lineending']);
-  grunt.registerTask('clean_natives', "Deletes already-inlined sourcemaps from natives.", function() {
+  grunt.registerTask('clean_natives', "Deletes already-inlined sourcemaps from natives.", function(this: grunt.task.ITask) {
     let done: (success?: boolean) => void = this.async();
     grunt.file.glob("build/*/src/natives/*.js.map", (err: Error, files: string[]) => {
       if (err) {
@@ -720,17 +720,6 @@ export function setup(grunt: IGrunt) {
         done(true);
       });
     });
-  });
-
-  grunt.registerTask('webpack-shims', "Creates shims needed for Webpack.", function() {
-    // Create shims.
-    if (!fs.existsSync('shims')) {
-      fs.mkdirSync('shims');
-    }
-    ['fs', 'path', 'buffer', 'process'].forEach((mod) => {
-      fs.writeFileSync(`shims/${mod}.js`, `var BrowserFS = require('browserfs');module.exports=BrowserFS.BFSRequire('${mod}');\n`, { encoding: 'utf8'});
-    });
-    fs.writeFileSync(`shims/BFSBuffer.js`, `var BrowserFS = require('browserfs');module.exports=BrowserFS.BFSRequire('buffer').Buffer;`, { encoding: 'utf8' });
   });
 
   function benchmarkLocally(command: string, intOnly: boolean, outFile: string, done: (e?: Error) => void): void {
@@ -779,10 +768,10 @@ export function setup(grunt: IGrunt) {
     });
   }
 
-  grunt.registerTask('run-benchmark-native-java', 'Runs benchmarks locally', function() {
+  grunt.registerTask('run-benchmark-native-java', 'Runs benchmarks locally', function(this: grunt.task.ITask) {
     benchmarkLocally(grunt.config.get<string>("build.java"), true, path.resolve(__dirname, 'native_java.json'), this.async());
   });
-  grunt.registerTask('run-benchmark-node', 'Runs benchmarks in DoppioJVM in node.', function() {
+  grunt.registerTask('run-benchmark-node', 'Runs benchmarks in DoppioJVM in node.', function(this: grunt.task.ITask) {
     const done = this.async();
     grunt.log.writeln(">>> Running with JIT. <<<");
     benchmarkLocally(path.resolve(__dirname, 'doppio'), false, path.join(__dirname, 'node.json'), (e) => {
@@ -798,12 +787,10 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask("benchmark-browser",
     ['build-test-release',
      'make_build_dir:benchmark',
-     'webpack-shims',
      'webpack:benchmark',
-     'copy:benchmark-natives',
      'listings:benchmark',
      'benchmark-browser-server']);
-  grunt.registerTask("benchmark-browser-server", 'Runs an HTTP server for serving up benchmarks.', function() {
+  grunt.registerTask("benchmark-browser-server", 'Runs an HTTP server for serving up benchmarks.', function(this: grunt.task.ITask) {
     const done = this.async();
     const app = express();
     app.use(bodyParser.json());
@@ -817,6 +804,7 @@ export function setup(grunt: IGrunt) {
     app.put('/done', function(req, res) {
       grunt.log.ok("Your browser has informed us that it has completed running benchmarks.");
       res.end();
+      done();
     });
     app.get('/', function(req, res) {
       res.set('Content-Type', 'text/html');
@@ -857,23 +845,17 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('dev',
     ['dev-cli',
      'make_build_dir:dev',
-     'webpack-shims',
      'webpack:dev',
-     'copy:dev-natives',
      'listings:dev']);
   grunt.registerTask('fast-dev',
     ['fast-dev-cli',
      'make_build_dir:fast-dev',
-     'webpack-shims',
      'webpack:fast-dev',
-     'copy:fast-dev-natives',
      'listings:fast-dev']);
   grunt.registerTask('release',
     ['release-cli',
      'make_build_dir:release',
-     'webpack-shims',
      'webpack:release',
-     'copy:release-natives',
      'listings:release']);
 
   grunt.registerTask('examples',
@@ -915,9 +897,7 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser',
     ['build-test-release',
      'make_build_dir:test-release',
-     'webpack-shims',
      'webpack:test-release',
-     'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
      'start-websockify',
@@ -928,9 +908,7 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser-fast-dev',
     ['build-test-fast-dev',
      'make_build_dir:test-fast-dev',
-     'webpack-shims',
      'webpack:test-fast-dev',
-     'copy:test-fast-dev-natives',
      'listings:test-fast-dev',
      'connect:server',
      'start-websockify',
@@ -941,9 +919,7 @@ export function setup(grunt: IGrunt) {
  grunt.registerTask('test-browser-dev',
      ['build-test-dev',
       'make_build_dir:test-dev',
-      'webpack-shims',
       'webpack:test-dev',
-      'copy:test-dev-natives',
       'listings:test-dev',
       'connect:server',
       'start-websockify',
@@ -952,7 +928,7 @@ export function setup(grunt: IGrunt) {
       'stop-test-server',
       'stop-websockify']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
-    ['bin', 'includes', 'dist', 'shims', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
+    ['includes', 'dist', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
         grunt.file.delete(path);
       }
@@ -962,9 +938,7 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser-travis',
     ['build-test-release',
      'make_build_dir:test-release',
-     'webpack-shims',
      'webpack:test-release',
-     'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
      'start-websockify',
@@ -975,9 +949,7 @@ export function setup(grunt: IGrunt) {
   grunt.registerTask('test-browser-appveyor',
     ['build-test-release',
      'make_build_dir:test-release',
-     'webpack-shims',
      'webpack:test-release',
-     'copy:test-release-natives',
      'listings:test-release',
      'connect:server',
      'start-websockify',

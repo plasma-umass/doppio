@@ -18,7 +18,7 @@
  * implementation is derived from LongLib in GWT.
  *
  */
-class gLong {
+export default class gLong {
   private low_ : number
   private high_ : number
   // A cache of the Long representations of small integer values.
@@ -670,5 +670,3 @@ class gLong {
     }
   }
 }
-// Export only the class.
-export = gLong

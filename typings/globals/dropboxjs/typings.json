@@ -1,8 +1,0 @@
-{
-  "resolution": "main",
-  "tree": {
-    "src": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/a9ded5b70ede34486731ef6c2e6865f5e9911fc3/dropboxjs/dropboxjs.d.ts",
-    "raw": "github:DefinitelyTyped/DefinitelyTyped/dropboxjs/dropboxjs.d.ts#a9ded5b70ede34486731ef6c2e6865f5e9911fc3",
-    "typings": "https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/a9ded5b70ede34486731ef6c2e6865f5e9911fc3/dropboxjs/dropboxjs.d.ts"
-  }
-}

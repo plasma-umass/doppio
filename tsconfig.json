@@ -4,10 +4,17 @@
         "declaration": true,
         "target": "ES3",
         "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "noImplicitThis": true,
         "inlineSourceMap": true,
-        "inlineSources": true
+        "inlineSources": true,
+        "outDir": "build/tsc"
     },
-    "exclude": [
-        "node_modules"
+    "include": [
+        "src/**/*.ts",
+        "tasks/**/*.ts",
+        "*.ts",
+        "console/**/*.ts",
+        "vendor/pako.d.ts"
     ]
 }

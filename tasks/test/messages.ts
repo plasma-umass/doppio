@@ -1,5 +1,3 @@
-import testing = require('../../src/testing');
-
 export enum MessageType {
   SETUP,
   RUN_TEST,

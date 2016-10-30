@@ -1,4 +1,3 @@
-/// <reference path="../../typings/index.d.ts" />
 /**
  * From https://stackoverflow.com/questions/7931182/reliably-detect-if-the-script-is-executing-in-a-web-worker
  */
@@ -18,11 +17,11 @@ if (isWebWorker()) {
 }
 
 const benchmarks = require('../../vendor/benchmarks/benchmarks.json');
-import Doppio = require('../../src/doppiojvm');
-import BrowserFS = require('browserfs');
-import async = require('async');
-import path = require('path');
-import fs = require('fs');
+import * as Doppio from '../../src/doppiojvm';
+import * as BrowserFS from 'browserfs';
+import * as async from 'async';
+import * as path from 'path';
+import * as fs from 'fs';
 // Rename from process to prevent Webpack from inserting a process global.
 // Causes problems in the webworker.
 const process2 = BrowserFS.BFSRequire('process');

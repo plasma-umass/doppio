@@ -6,19 +6,19 @@
  * occasionally methods are renamed.
  * @todo Expose CLI for selecting the classpath. No args = default.
  */
-import fs = require('fs');
-import path = require('path');
-import class_data = require('../src/ClassData');
-import methods = require('../src/methods');
-import JVM = require('../src/jvm');
-import JVMTypes = require('../includes/JVMTypes');
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import {ReferenceClassData} from '../src/ClassData';
+import JVM from '../src/jvm';
+import {Method} from '../src/methods';
+import * as JVMTypes from '../includes/JVMTypes';
 import {IClasspathItem, ClasspathFactory} from '../src/classpath';
-import JDKInfo = require('../vendor/java_home/jdk.json');
-import interfaces = require('../src/interfaces');
-import util = require('../src/util');
-import os = require('os');
-var ReferenceClassData = class_data.ReferenceClassData,
-    jvmObject: JVM,
+import * as JDKInfo from '../vendor/java_home/jdk.json';
+import {JVMOptions} from '../src/interfaces';
+import {merge} from '../src/util';
+
+var jvmObject: JVM,
     classpath: IClasspathItem[];
 
 /**
@@ -68,7 +68,7 @@ function getNativeSigs(className: string): string[] {
     if (klassData !== null) {
       let klass = new ReferenceClassData(klassData);
       let methods = klass.getMethods();
-      methods.forEach((m: methods.Method) => {
+      methods.forEach((m: Method) => {
         if (m.accessFlags.isNative()) {
           rv.push(m.signature);
         }
@@ -189,7 +189,7 @@ function main() {
 
 const JAVA_HOME = path.resolve(__dirname, '../vendor/java_home');
 const DOPPIO_HOME = path.resolve(__dirname, '..');
-let opts: interfaces.JVMOptions = <any> util.merge(JVM.getDefaultOptions(DOPPIO_HOME), {
+let opts: JVMOptions = <any> merge(JVM.getDefaultOptions(DOPPIO_HOME), {
   nativeClasspath: [path.resolve(__dirname, '../src/natives')]
 });
 

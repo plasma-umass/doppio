@@ -7,8 +7,8 @@ import async = require('async');
  * - Symlinks in 'classes' and 'vendor'.
  */
 function makeBuildDir(grunt: IGrunt) {
-	grunt.registerTask('make_build_dir', 'Creates the build directory, if not present.', function(target: string) {
-    var targetPath = path.resolve(this.options().base, target);
+	grunt.registerTask('make_build_dir', 'Creates the build directory, if not present.', function(this: grunt.task.ITask, target: string) {
+    var targetPath = path.resolve((<any> this.options({})).base, target);
     try {
       if (!fs.existsSync(targetPath)) {
         grunt.file.mkdir(targetPath);

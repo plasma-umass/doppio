@@ -1,15 +1,14 @@
-/// <reference path="../../typings/index.d.ts" />
 /**
  * Main entry point for Doppio unit tests in the browser.
  * Sets up the test environment, and launches everything.
  */
 declare var __karma__: any;
 declare var __numWaiting: number;
-import fs = require('fs');
-import path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
 // Force initialization of standard output.
 (<any> process).initializeTTYs();
-import DoppioJVM = require('../../src/doppiojvm');
+import * as DoppioJVM from '../../src/doppiojvm';
 import DoppioTest = DoppioJVM.Testing.DoppioTest;
 import {getTests as localGetTests, runTest as commonRunTest, getBuild} from './harness_common';
 import {Message, MessageType, RunTestMessage, SetupMessage, TestListingMessage, TestResultMessage} from './messages';

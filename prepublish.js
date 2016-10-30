@@ -22,16 +22,6 @@ var options = {
   stdio: 'inherit'
 }
 
-function makeBinScript(name, target) {
-  var relPath = path.relative('bin', target);
-  // Node modules use unix dir separators.
-  relPath = relPath.replace(/\\/g, "/");
-  fs.writeFileSync(path.resolve('bin', name),
-    new Buffer("#!/usr/bin/env node\nrequire('" + relPath + "');\n", "utf8"), {
-    mode: 493
-  });
-}
-
 child_process.spawn(getNodeBinItem('grunt'), ["dist", "--grunt-ignore-compile-errors"], options)
   .on('close', function(code) {
     checkCode(code);
@@ -42,8 +32,4 @@ child_process.spawn(getNodeBinItem('grunt'), ["dist", "--grunt-ignore-compile-er
         throw e;
       }
     }
-    makeBinScript("doppio", "dist/release-cli/console/runner");
-    makeBinScript("doppioh", "dist/release-cli/console/doppioh");
-    makeBinScript("doppio-dev", "dist/dev-cli/console/runner");
-    makeBinScript("doppio-fast-dev", "dist/fast-dev-cli/console/runner");
   });

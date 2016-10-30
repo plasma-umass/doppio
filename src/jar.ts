@@ -1,5 +1,5 @@
-import path = require('path');
-import fs = require('fs');
+import * as path from 'path';
+import * as fs from 'fs';
 
 /**
  * Given a folder that contains the contents of a JAR file, parses the MANIFEST
@@ -9,7 +9,7 @@ import fs = require('fs');
  * @see http://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html#Notes_on_Manifest_and_Signature_Files
  * @todo Add a function for producing a Java object from this.
  */
-class JAR {
+export default class JAR {
   private attributes: {[name: string]: string} = {};
   private classpath: string[] = [];
   /**
@@ -113,5 +113,3 @@ class JAR {
     return JSON.stringify(this.attributes);
   }
 }
-
-export = JAR;

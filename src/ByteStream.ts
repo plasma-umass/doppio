@@ -1,11 +1,10 @@
-﻿"use strict";
-import gLong = require('./gLong');
-import assert = require('./assert');
+﻿import gLong from './gLong';
+import assert from './assert';
 
 /**
  * A ByteStream, implemented using a NodeBuffer.
  */
-class ByteStream {
+export default class ByteStream {
   private _index: number = 0;
 
   constructor(private buffer: NodeBuffer) {}
@@ -76,7 +75,7 @@ class ByteStream {
   }
 
   public getUint8(): number {
-    return this.buffer.readUInt8(this.incIndex(1));
+    return this.buffer[this.incIndex(1)];
   }
 
   public getUint16(): number {
@@ -112,7 +111,7 @@ class ByteStream {
   }
 
   public peek(): number {
-    return this.buffer.readUInt8(this._index);
+    return this.buffer[this._index];
   }
 
   public size(): number {
@@ -129,5 +128,3 @@ class ByteStream {
     return this.buffer;
   }
 }
-
-export = ByteStream;

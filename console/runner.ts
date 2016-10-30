@@ -1,10 +1,9 @@
-"use strict";
-import javaCLI = require('../src/java_cli');
-import JVM = require('../src/jvm');
-import path = require('path');
-import os = require('os');
-import fs = require('fs');
-import JDKInfo = require('../vendor/java_home/jdk.json')
+import javaCLI from '../src/java_cli';
+import JVM from '../src/jvm';
+import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
+import * as JDKInfo from '../vendor/java_home/jdk.json';
 // Makes our stack traces point to the TypeScript source code lines.
 require('source-map-support').install({
   handleUncaughtExceptions: true
@@ -42,8 +41,7 @@ process.on('uncaughtException', (er: any) => {
 // Run the JVM. Remove node runner.js from the args.
 javaCLI(process.argv.slice(2), {
   doppioHomePath: path.resolve(__dirname, '..'),
-  // Override default here; Node builds have different natives directory right now.
-  nativeClasspath: [path.resolve(__dirname, '../src/natives')],
+  nativeClasspath: [],
   launcherName: process.argv[0] + " " + path.relative(process.cwd(), process.argv[1]),
   intMode: false,
   dumpJITStats: false,

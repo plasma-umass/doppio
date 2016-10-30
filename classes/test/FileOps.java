@@ -4,6 +4,10 @@ import java.io.*;
 import java.util.Arrays;
 
 class FileOps {
+  static String getTempPath(String p) {
+    return System.getProperty("java.io.tmpdir") + File.separator + p;
+  }
+
   static void printFile(File f) throws IOException {
     // Oh, Java... :/
     BufferedReader br = new BufferedReader(new FileReader(f));
@@ -54,13 +58,13 @@ class FileOps {
     }
 
     {
-      File f = new File("/tmp");
-      System.out.println("Is /tmp a directory?: " + f.isDirectory());
+      File f = new File(System.getProperty("java.io.tmpdir"));
+      System.out.println("Is the tmpdir a directory?: " + f.isDirectory());
       System.out.println("Can I write to it?: " + f.canWrite());
     }
 
     {
-      File f = new File( "/tmp/temp_delete_me.txt");
+      File f = new File(getTempPath("temp_delete_me.txt"));
       System.out.println("Does temp_delete_me.txt exist?: " + f.exists());
       System.out.println("Did we successfully create this file?: " + f.createNewFile());
       System.out.println("And does it exist now?: " + f.exists());
@@ -105,7 +109,7 @@ class FileOps {
 
     // Create and delete a directory.
     {
-      File f = new File("/tmp/tempDir");
+      File f = new File(getTempPath("tempDir"));
       System.out.println("Does tempDir exist?: " + f.exists());
       System.out.println("Making tempDir: " + f.mkdir());
       System.out.println("Does tempDir exist now?: " + f.exists());
@@ -113,8 +117,8 @@ class FileOps {
       System.out.println("Does tempDir exist now?: " + f.exists());
     }
     {
-      File f = new File("/tmp/tempDir/tempDir");
-      File f2 = new File("/tmp/tempDir");
+      File f = new File(getTempPath("tempDir" + File.separator + "tempDir"));
+      File f2 = new File(getTempPath("tempDir"));
       System.out.println("Does tempDir/tempDir exist?: " + f.exists());
       System.out.println("Making tempDir/tempDir (should fail): " + f.mkdir());
       System.out.println("Does tempDir/tempDir exist now?: " + f.exists());
@@ -130,26 +134,27 @@ class FileOps {
       System.out.println("Does tempDir exist now?: " + f2.exists());
     }
     {
-      File f = new File("/tmp");
+      File f = new File(getTempPath(""));
       System.out.println("Trying to create a directory that already exists: " + f.mkdir());
     }
 
     // Rename a file.
     {
-      File f = new File("/tmp/temp_rename_file.txt");
-      File f2 = new File("/tmp/temp_rename_file2.txt");
+      File f = new File(getTempPath("temp_rename_file.txt"));
+      File f2 = new File(getTempPath("temp_rename_file2.txt"));
       System.out.println("Creating temp_rename_file.txt: " + f.createNewFile());
       System.out.println("Renaming it to temp_rename_file2.txt: " + f.renameTo(f2));
       System.out.println("Old file exist? " + f.exists() + " New file exists? " + f2.exists());
       System.out.println("Recreating old file: " + f.createNewFile());
-      System.out.println("Moving on top of old file: " + f2.renameTo(f));
+      // Commenting out FS-specific behavior
+      //System.out.println("Moving on top of old file: " + f2.renameTo(f));
       System.out.println("Deleting old file: " + f.delete());
       System.out.println("Trying to move nonexistant old file: " + f.renameTo(f2));
     }
 
     // Read only.
     {
-      File f = new File("/tmp/temp_readonly.txt");
+      File f = new File(getTempPath("temp_readonly.txt"));
       System.out.println("Creating temp_readonly.txt: " + f.createNewFile());
       // BrowserFS doesn't support chmod in its temporary file system anymore.
       // System.out.println("Marking as read only: " + f.setReadOnly());
@@ -157,6 +162,8 @@ class FileOps {
       System.out.println("Can I read the file?: " + f.canRead());
       // make sure we can open a read-only file with RandomAccessFile
       RandomAccessFile raf = new RandomAccessFile(f, "r");
+      // Close so we can delete file on Windows, which locks the file otherwise.
+      raf.close();
       System.out.println("Deleting file: " + f.delete());
     }
 

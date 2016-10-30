@@ -2,7 +2,7 @@
  * Top-level Doppio.Debug namespace.
  */
 
-import Assert = require('./assert');
+import Assert from './assert';
 import * as Logging from './logging';
 import * as Difflib from './difflib';
 

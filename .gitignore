@@ -3,6 +3,7 @@
 *.js.map
 /vendor/java_home
 /includes
+.vscode
 
 *.swp
 *.un~
@@ -40,9 +41,6 @@ tasks/test/*.d.ts
 
 # Generated for browser builds.
 /shims
-
-# Generated for published modules.
-/bin
 
 /dist
 /docs/examples/doppio

@@ -14,8 +14,8 @@ function shellEscape(str: string): string {
  * Java-related tasks.
  */
 function java(grunt: IGrunt) {
-  grunt.registerMultiTask('javac', 'Run javac on input files.', function() {
-    var files: {src: string[]; dest: string}[] = this.files,
+  grunt.registerMultiTask('javac', 'Run javac on input files.', function(this: grunt.task.IMultiTask<any>) {
+    let files = this.files,
         inputFiles: string[] = [],
         done: (status?: boolean) => void = this.async();
     grunt.config.requires('build.javac');
@@ -44,8 +44,8 @@ function java(grunt: IGrunt) {
     });
   });
 
-  grunt.registerMultiTask('run_java', 'Run java on input files.', function() {
-    var files: {src: string[]; dest: string}[] = this.files,
+  grunt.registerMultiTask('run_java', 'Run java on input files.', function(this: grunt.task.IMultiTask<any>) {
+    let files = this.files,
         done: (status?: boolean) => void = this.async(),
         tasks: Array<AsyncFunction<void>> = [];
     grunt.config.requires('build.java');
