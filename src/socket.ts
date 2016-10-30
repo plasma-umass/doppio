@@ -10,6 +10,9 @@ declare var Websock: {
 
 let nextFd = 30000;
 
+// Used as an empty callback
+function nop() {}
+
 // See RFC 6455 section 7.4
 function websocketStatusToMessage(status: number): string {
   switch (status) {
@@ -151,9 +154,7 @@ class NodeSocket implements DoppioSocket {
   }
 
   public readSync(buffer: number[], offset: number, length: number): number {
-    const sock = this._sock;
-    let i: number,
-      available = this._qLen,
+    let available = this._qLen,
       trimmedLen = available < length ? available : length,
       remaining = trimmedLen,
       q = this._q;
@@ -163,14 +164,14 @@ class NodeSocket implements DoppioSocket {
       const nextLen = next.length;
       if (remaining < nextLen) {
         // Take part of the buffer.
-        for (i = 0; i < remaining; i++) {
+        for (let i = 0; i < remaining; i++) {
           buffer[offset++] = next.readInt8(i);
         }
         q.unshift(next.slice(remaining));
         remaining = 0;
       } else {
         // Take all of the buffer.
-        for (i = 0; i < nextLen; i++) {
+        for (let i = 0; i < nextLen; i++) {
           buffer[offset++] = next.readInt8(i);
         }
         remaining -= nextLen;
@@ -242,7 +243,7 @@ export class WebsockifySocket implements DoppioSocket {
     const host = `ws://${address}:${port}`;
     debug(`[${host}] Connecting...`);
     const sock = this._websock;
-    let id = setTimeout(() => clearAndCallCb('Connection timeout!'), timeout);
+    let id = setTimeout(clearAndCallCb, timeout, 'Connection timeout!');
     function clearAndCallCb(msg: string): void {
       debug(`[${host}] Error: ${msg}`);
       clearState();
@@ -251,8 +252,6 @@ export class WebsockifySocket implements DoppioSocket {
 
     function clearState() {
       clearTimeout(id);
-      // Websockify replaces the existing handler with this NOP handler.
-      function nop() {}
       sock.on('open', nop);
       sock.on('close', nop);
       sock.on('error', nop);
@@ -276,11 +275,10 @@ export class WebsockifySocket implements DoppioSocket {
 
   public readSync(buffer: number[], offset: number, length: number): number {
     const sock = this._websock;
-    let i: number,
-      available = sock.rQlen(),
+    let available = sock.rQlen(),
       trimmedLen = available < length ? available : length,
       read = sock.rQshiftBytes(trimmedLen);
-    for (i = 0; i < trimmedLen; i++) {
+    for (let i = 0; i < trimmedLen; i++) {
       buffer[offset++] = read[i];
     }
     return trimmedLen;
@@ -295,9 +293,7 @@ export class WebsockifySocket implements DoppioSocket {
     }
 
     // Wait for timeout or `length` bytes to become available.
-    const id = setTimeout(() => {
-      end();
-    });
+    const id = setTimeout(end, timeout);
     sock.on('message', () => {
       if (this.available() >= length) {
         clearTimeout(id);
