@@ -47,7 +47,7 @@ class NioFilesPaths {
     // Sort by name to avoid nondeterministic file orderings.
     Arrays.sort(children);
     for (final Path child : children) {
-      System.out.println("["+child+"]");
+      System.out.println("["+child.toString().replace('\\', '/')+"]");
     }
 
     {
@@ -65,7 +65,8 @@ class NioFilesPaths {
     {
       final Path p = Paths.get(System.getProperty("java.io.tmpdir"), "temp_delete_me.txt");
       System.out.println("Does temp_delete_me.txt exist?: " + Files.exists(p));
-      System.out.println("Did we successfully create this file?: " + Files.createFile(p));
+      System.out.println("Creating file...");
+      Files.createFile(p);
       System.out.println("And does it exist now?: " + Files.exists(p));
       final long lm = Files.getLastModifiedTime(p).toMillis();
       System.out.println("Can I write to it?: " + Files.isWritable(p));
