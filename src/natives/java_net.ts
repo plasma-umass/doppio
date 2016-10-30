@@ -1,22 +1,15 @@
 import * as Doppio from '../doppiojvm';
 import JVMThread = Doppio.VM.Threading.JVMThread;
-import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
 import IJVMConstructor = Doppio.VM.ClassFile.IJVMConstructor;
 import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
 import debug = logging.debug;
-import interfaces = Doppio.VM.Interfaces;
 import NewSocket = Doppio.Socket.NewSocket;
-import * as net from 'net';
 import * as dns from 'dns';
 import * as JVMTypes from '../../includes/JVMTypes';
 
 const isNode = !util.are_in_browser();
-
-declare var Websock: {
-  new (): interfaces.IWebsock;
-}
 
 export default function (): any {
   /**
@@ -39,6 +32,13 @@ export default function (): any {
   const hostReverseLookup: {[realAddr: string]: number} = {};
   // 240.0.0.0 .. 250.0.0.0 is currently unused address space
   let nextHostAddress = 0xF0000000;
+
+  {
+    // Make sure localhost aliases to 127.0.0.1.
+    const lhost = packAddress([127,0,0,1]);
+    hostLookup[lhost] = "localhost";
+    hostReverseLookup["localhost"] = lhost;
+  }
 
   function nextAddress(): number {
     nextHostAddress++;

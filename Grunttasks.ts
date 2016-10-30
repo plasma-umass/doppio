@@ -10,7 +10,7 @@ import express = require('express');
 import bodyParser = require('body-parser');
 import glob = require('glob');
 const waitForPort: {
-  (host: string, port: number, cb: (e?: Error) => void): void;
+  (host: string, port: number, opts: {numRetries: number, retryInterval?: number}, cb: (e?: Error) => void): void;
 } = require('wait-for-port');
 
 /**
@@ -573,7 +573,7 @@ export function setup(grunt: IGrunt) {
       cmd: process.argv[0],
       args: [path.resolve("node_modules/websockify/websockify.js"), "localhost:6789", "localhost:6790"]
     }, () => {});
-    waitForPort('localhost', 6789, (e) => {
+    waitForPort('localhost', 6789, { numRetries: 100 }, (e) => {
       if (e) {
         grunt.fatal(`Websockify did not listen on port 6789: ${e}. Unable to run networking tests.`);
       } else {
@@ -596,9 +596,9 @@ export function setup(grunt: IGrunt) {
       cmd: javaPath,
       args: ["classes.util.TCPServer", target]
     }, () => {});
-    waitForPort('localhost', target === 'doppio' ? 6790 : 6789, (e) => {
+    waitForPort('localhost', target === 'doppio' ? 6790 : 6789, { numRetries: 100 }, (e) => {
       if (e) {
-        grunt.fatal(`Test server did not listen on port 6790. Unable to run networking tests.`);
+        grunt.fatal(`Test server did not listen on port 6790: ${e}. Unable to run networking tests.`);
       } else {
         done();
       }
