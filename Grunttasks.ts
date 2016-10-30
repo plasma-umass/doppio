@@ -575,7 +575,7 @@ export function setup(grunt: IGrunt) {
     }, () => {});
     waitForPort('localhost', 6789, (e) => {
       if (e) {
-        grunt.fatal(`Websockify did not listen on port 6789. Unable to run networking tests.`);
+        grunt.fatal(`Websockify did not listen on port 6789: ${e}. Unable to run networking tests.`);
       } else {
         done();
       }
