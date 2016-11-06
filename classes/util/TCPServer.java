@@ -9,7 +9,7 @@ import java.net.*;
 
 class TCPServer  {
   public static void main(String argv[]) throws Exception {
-    ServerSocket welcomeSocket = new ServerSocket(argv.length > 0 && argv[0].equals("doppio") ? 6790 : 6789);
+    ServerSocket welcomeSocket = new ServerSocket(argv.length > 0 && argv[0].equals("doppio") ? 7002 : 7001);
     Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
       public void run() {

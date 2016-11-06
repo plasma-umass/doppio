@@ -558,7 +558,7 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-karma');
   grunt.loadNpmTasks('grunt-lineending');
-  grunt.loadNpmTasks('grunt-merge-source-maps');
+  grunt.loadNpmTasks('merge-source-maps');
   grunt.loadNpmTasks('grunt-webpack');
   grunt.loadNpmTasks('grunt-newer');
   grunt.loadNpmTasks('grunt-contrib-compress');
@@ -571,11 +571,12 @@ export function setup(grunt: IGrunt) {
     const done = this.async();
     websockify = grunt.util.spawn({
       cmd: process.argv[0],
-      args: [path.resolve("node_modules/websockify/websockify.js"), "localhost:6789", "localhost:6790"]
+      args: [path.resolve("node_modules/websockify/websockify.js"), "localhost:7001", "localhost:7002"]
     }, () => {});
-    waitForPort('localhost', 6789, { numRetries: 100 }, (e) => {
+    const port = 7001;
+    waitForPort('localhost', port, { numRetries: 100 }, (e) => {
       if (e) {
-        grunt.fatal(`Websockify did not listen on port 6789: ${e}. Unable to run networking tests.`);
+        grunt.fatal(`Websockify did not listen on port ${port}: ${e}. Unable to run networking tests.`);
       } else {
         done();
       }
@@ -596,9 +597,10 @@ export function setup(grunt: IGrunt) {
       cmd: javaPath,
       args: ["classes.util.TCPServer", target]
     }, () => {});
-    waitForPort('localhost', target === 'doppio' ? 6790 : 6789, { numRetries: 100 }, (e) => {
+    const port = target === 'doppio' ? 7002 : 7001;
+    waitForPort('localhost', port, { numRetries: 100 }, (e) => {
       if (e) {
-        grunt.fatal(`Test server did not listen on port 6790: ${e}. Unable to run networking tests.`);
+        grunt.fatal(`Test server did not listen on port ${port}: ${e}. Unable to run networking tests.`);
       } else {
         done();
       }

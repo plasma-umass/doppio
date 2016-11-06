@@ -51,7 +51,7 @@
     "grunt-contrib-uglify": "^2.0",
     "grunt-karma": "^2.0",
     "grunt-lineending": "^1.0.0",
-    "grunt-merge-source-maps": "^0.1.0",
+    "merge-source-maps": "^0.5.0",
     "grunt-newer": "^1.2.0",
     "grunt-ts": "6.0.0-beta.3",
     "grunt-webpack": "^1.0.17",

@@ -11,11 +11,11 @@ class TCPTest {
   public static void main(String argv[]) throws Exception {
     // Note: We connect to TCPServer on a different port than it listens on
     // because WebSockify is actually responsible for receiving our WebSocket
-    // messages on port 6789 and proxying them to TCPServer using a local
-    // socket connection on port 6790.
+    // messages on port 7001 and proxying them to TCPServer using a local
+    // socket connection on port 7002.
     InetAddress address = InetAddress.getByName("localhost");
     System.out.println(address.getHostAddress());
-    Socket clientSocket = new Socket("localhost", 6789);
+    Socket clientSocket = new Socket("localhost", 7001);
     DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
     BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     String sentence = "Hello World!";
