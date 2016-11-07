@@ -572,7 +572,13 @@ export function setup(grunt: IGrunt) {
     websockify = grunt.util.spawn({
       cmd: process.argv[0],
       args: [path.resolve("node_modules/websockify/websockify.js"), "localhost:7001", "localhost:7002"]
-    }, () => {});
+    }, (err, result, code) => {
+      if (err) {
+        grunt.warn(`Error launching websockify: ${err}`);
+      } else if (code !== 0) {
+        grunt.warn(`Websockify server exited with code ${code}.\nStdout:\n${result.stdout}\n\nStderr:\n${result.stderr}\n`);
+      }
+    });
     const port = 7001;
     waitForPort('localhost', port, { numRetries: 100 }, (e) => {
       if (e) {
