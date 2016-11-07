@@ -3,14 +3,12 @@ dist: trusty
 jdk: oraclejdk8
 
 language: node_js
-node_js:
-  - "6"
 
 matrix:
   include:
-    - node_js: "stable"
+    - node_js: "6"
       env: TEST_BROWSER=0
-    - node_js: "stable"
+    - node_js: "6"
       env: TEST_BROWSER=1
 
 cache:
