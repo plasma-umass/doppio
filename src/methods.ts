@@ -551,17 +551,17 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
     }
     const code = this.getCodeAttribute().getCode();
     let trace: Trace = null;
-    const _this = this;
+    const self = this;
     let done = false;
 
     function closeCurrentTrace() {
       if (trace !== null) {
-        // console.log("Tracing method: " + _this.fullSignature);
+        // console.log("Tracing method: " + self.fullSignature);
         const compiledFunction = trace.close(thread);
         if (compiledFunction) {
-          _this.compiledFunctions[trace.startPC] = compiledFunction;
+          self.compiledFunctions[trace.startPC] = compiledFunction;
           if (!RELEASE && thread.getJVM().shouldDumpCompiledCode()) {
-            thread.getJVM().dumpCompiledMethod(_this.fullSignature, trace.startPC, compiledFunction.toString());
+            thread.getJVM().dumpCompiledMethod(self.fullSignature, trace.startPC, compiledFunction.toString());
           }
         }
         trace = null;
@@ -578,7 +578,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
       const jitInfo = opJitInfo[op];
       if (jitInfo) {
         if (trace === null) {
-          trace = new Trace(i, code, _this);
+          trace = new Trace(i, code, self);
         }
         trace.addOp(i, jitInfo);
         if (jitInfo.hasBranch) {
@@ -619,7 +619,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
       i += opcodeSize[OpcodeLayouts[op]];
     }
 
-    return _this.compiledFunctions[startPC];
+    return self.compiledFunctions[startPC];
   }
 
   public getNativeFunction(): Function {
