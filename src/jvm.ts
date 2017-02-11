@@ -648,7 +648,7 @@ class JVM {
    * information.
    */
   public registerNative(clsName: string, methSig: string, native: Function): void {
-    this.registerNatives({ clsName: { methSig: native } });
+    this.registerNatives({ [clsName]: { [methSig]: native } });
   }
 
   /**
