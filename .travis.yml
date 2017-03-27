@@ -12,12 +12,12 @@ matrix:
       env: TEST_BROWSER=1
 
 cache:
+  yarn: true
   directories:
     - node_modules
     - vendor/java_home
 
-install:
-  - npm install
+before_install:
   - ./node_modules/.bin/tsc --version
   - ./node_modules/.bin/grunt --version
 

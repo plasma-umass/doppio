@@ -32,13 +32,6 @@ export default class gLong {
   private static TWO_PWR_64_DBL_ = gLong.TWO_PWR_32_DBL_ * gLong.TWO_PWR_32_DBL_;
   private static TWO_PWR_63_DBL_ = gLong.TWO_PWR_64_DBL_ / 2;
 
-  public static ZERO = gLong.fromInt(0);
-  public static ONE = gLong.fromInt(1);
-  public static NEG_ONE = gLong.fromInt(-1);
-  public static MAX_VALUE = gLong.fromBits(0xFFFFFFFF, 0x7FFFFFFF);
-  public static MIN_VALUE = gLong.fromBits(0, 0x80000000);
-  private static TWO_PWR_24_ = gLong.fromInt(gLong.TWO_PWR_24_DBL_);
-
   /**
    * Constructs a 64-bit two's-complement integer, given its low and high 32-bit
    * values as *signed* integers.  See the from* functions below for more
@@ -87,6 +80,11 @@ export default class gLong {
     return obj;
   }
 
+  public static ZERO = gLong.fromInt(0);
+  public static ONE = gLong.fromInt(1);
+  public static NEG_ONE = gLong.fromInt(-1);
+  private static TWO_PWR_24_ = gLong.fromInt(gLong.TWO_PWR_24_DBL_);
+
   /**
    * Returns a Long representing the given value, provided that it is a finite
    * number.  Otherwise, zero is returned.
@@ -119,6 +117,9 @@ export default class gLong {
   public static fromBits(lowBits: number, highBits: number): gLong {
     return new gLong(lowBits, highBits);
   }
+
+  public static MAX_VALUE = gLong.fromBits(0xFFFFFFFF, 0x7FFFFFFF);
+  public static MIN_VALUE = gLong.fromBits(0, 0x80000000);
 
   /**
    * Returns a Long representation of the given string, written using the given

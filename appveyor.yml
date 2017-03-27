@@ -5,12 +5,13 @@ install:
   # Get the latest stable version of Node.js
   - ps: Install-Product node $env:nodejs_version
   # install modules
-  - npm install
+  - yarn install
 
 # Post-install test scripts.
 test_script:
   # Output useful info for debugging.
   - node --version
+  - yarn --version
   - npm --version
   # run tests
   - npm run appveyor-test
@@ -21,3 +22,4 @@ build: off
 cache:
   - node_modules
   - vendor\java_home
+  - "%LOCALAPPDATA%/Yarn"

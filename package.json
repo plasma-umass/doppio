@@ -17,7 +17,7 @@
     "tar-fs": "^1.13.2"
   },
   "devDependencies": {
-    "@types/async": "^2.0.32",
+    "@types/async": "2.0.32",
     "@types/body-parser": "0.0.33",
     "@types/dropboxjs": "0.0.29",
     "@types/esprima": "^2.1.33",
