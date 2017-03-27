@@ -30,6 +30,7 @@ Before attempting to build doppio, you must have the following installed:
 * NPM package `grunt-cli` installed globally
   * `npm install -g grunt-cli`
 * Java 8 JDK
+* (Recommended) Yarn
 
 If you are on Windows, you will need the following installed:
 
@@ -41,7 +42,7 @@ Run the following commands to build doppio. Note that your first time building m
 
     git clone https://github.com/plasma-umass/doppio.git
     cd doppio
-    npm install
+    yarn install       # npm install should work if you do not have yarn
     grunt release      # For browser integration.
     grunt release-cli  # For command-line use.
 
