@@ -1,4 +1,3 @@
-import os = require('os');
 import fs = require('fs');
 import path = require('path');
 import esprima = require('esprima');
@@ -6,9 +5,9 @@ var estraverse = require('estraverse');
 var escodegen = require('escodegen');
 
 function iceCream(grunt: IGrunt) {
-  grunt.registerMultiTask('ice-cream', 'Removes debug statements from code.', function() {
-    var files: {src: string[]; dest: string}[] = this.files,
-        remove: string[] = this.options().remove;
+  grunt.registerMultiTask('ice-cream', 'Removes debug statements from code.', function(this: grunt.task.IMultiTask<any>) {
+    let files = this.files,
+        remove: string[] = (<any> this.options({})).remove;
 
     files.forEach((file: {src: string[]; dest: string}) => {
       var jsFileContent = fs.readFileSync(file.src[0]).toString(),

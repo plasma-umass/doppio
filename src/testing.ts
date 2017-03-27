@@ -214,8 +214,7 @@ function findTestClasses(doppioDir: string, cb: (files: string[]) => void): void
  * Retrieve all of the unit tests.
  */
 export function getTests(opts: TestOptions, cb: (tests: DoppioTest[]) => void): void {
-  var testClasses = opts.testClasses,
-    tests: DoppioTest[];
+  var testClasses = opts.testClasses;
   if (testClasses == null || testClasses.length === 0) {
     // If no test classes are specified, get ALL the tests!
     findTestClasses(opts.doppioHomePath, (testClasses) => {
@@ -257,7 +256,6 @@ export function runTests(opts: TestOptions, quiet: boolean, continueAfterFailure
 
   getTests(opts, (tests) => {
     asyncForEach(tests, (test: DoppioTest, nextTest: (err?: any) => void) => {
-      var hasFinished = false;
       print(`[${test.cls}]: Running... `);
       test.run(registerGlobalErrorTrap, (err: TestingError, actual?: string, expected?: string, diff?: string): void => {
         if (err && !hideDiffs && diff) {

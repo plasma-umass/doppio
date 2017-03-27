@@ -2,12 +2,9 @@ import {Flags, descriptor2typestr, forwardResult, initString, reescapeJVMName, g
 import * as util from './util';
 import ByteStream from './ByteStream';
 import {IAttribute, makeAttributes, Signature, RuntimeVisibleAnnotations, Code, Exceptions} from './attributes';
-import JVM from './jvm';
 import {ConstantPool, ConstUTF8, MethodReference, InterfaceMethodReference} from './ConstantPool';
 import {ReferenceClassData, ArrayClassData, ClassData} from './ClassData';
 import {JVMThread, annotateOpcode, BytecodeStackFrame} from './threading';
-import gLong from './gLong';
-import {ClassLoader} from './ClassLoader';
 import assert from './assert';
 import {ThreadStatus, OpcodeLayoutType, OpCode, OpcodeLayouts, MethodHandleReferenceKind} from './enums';
 import Monitor from './Monitor';
@@ -494,7 +491,6 @@ export class Method extends AbstractMethodField {
     const index = code.readUInt16BE(pc + 1);
     const methodReference = <MethodReference | InterfaceMethodReference> this.cls.constantPool.get(index);
     const paramSize = methodReference.paramWordSize;
-    const method = methodReference.jsConstructor[methodReference.fullSignature];
 
     return {hasBranch: true, pops: -paramSize, pushes: 0, emit: (pops, pushes, suffix, onSuccess) => {
       const argInitialiser = paramSize > pops.length ? `f.opStack.sliceAndDropFromTop(${paramSize - pops.length});` : `[${pops.reduce((a,b) => b + ',' + a, '')}];`;

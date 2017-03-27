@@ -1,4 +1,7 @@
 importScripts('/node_modules/browserfs/dist/browserfs.js');
+importScripts('/vendor/websockify/base64.js');
+importScripts('/vendor/websockify/util.js');
+importScripts('/vendor/websockify/websock.js');
 
 import {MessageType, Message, SetupMessage, TestListingMessage, RunTestMessage, TestResultMessage} from './messages';
 import {getTests, runTest} from './harness_common';

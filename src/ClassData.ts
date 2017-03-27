@@ -48,8 +48,7 @@ var injectedFields: {[className: string]: {[fieldName: string]: [string, string]
     '$monitor': ["Monitor", "null"]
   },
   'Ljava/net/PlainSocketImpl;': {
-    '$is_shutdown': ['boolean', 'false'],
-    '$ws': ['Interfaces.IWebsock', 'null']
+    '$sock': ['DoppioSocket', 'null']
   },
   'Ljava/lang/Class;': {
     '$cls': ['ClassData', 'null'],

@@ -8,10 +8,11 @@
 
 "use strict";
 /*jslint bitwise: false, white: false */
-/*global window, console, document, navigator, ActiveXObject */
+/*global global, console, document, navigator, ActiveXObject */
 
 // Globals defined here
 var Util = {};
+var global = self;
 
 
 /*
@@ -57,22 +58,22 @@ if (!Array.prototype.map)
   };
 }
 
-// 
+//
 // requestAnimationFrame shim with setTimeout fallback
 //
 
-window.requestAnimFrame = (function(){
-    return  window.requestAnimationFrame       || 
-            window.webkitRequestAnimationFrame || 
-            window.mozRequestAnimationFrame    || 
-            window.oRequestAnimationFrame      || 
-            window.msRequestAnimationFrame     || 
+global.requestAnimFrame = (function(){
+    return  global.requestAnimationFrame       ||
+            global.webkitRequestAnimationFrame ||
+            global.mozRequestAnimationFrame    ||
+            global.oRequestAnimationFrame      ||
+            global.msRequestAnimationFrame     ||
             function(callback){
-                window.setTimeout(callback, 1000 / 60);
+                global.setTimeout(callback, 1000 / 60);
             };
 })();
 
-/* 
+/*
  * ------------------------------------------------------
  * Namespaced in Util
  * ------------------------------------------------------
@@ -89,14 +90,14 @@ Util.init_logging = function (level) {
     } else {
         Util._log_level = level;
     }
-    if (typeof window.console === "undefined") {
-        if (typeof window.opera !== "undefined") {
-            window.console = {
-                'log'  : window.opera.postError,
-                'warn' : window.opera.postError,
-                'error': window.opera.postError };
+    if (typeof global.console === "undefined") {
+        if (typeof global.opera !== "undefined") {
+            global.console = {
+                'log'  : global.opera.postError,
+                'warn' : global.opera.postError,
+                'error': global.opera.postError };
         } else {
-            window.console = {
+            global.console = {
                 'log'  : function(m) {},
                 'warn' : function(m) {},
                 'error': function(m) {}};
@@ -213,7 +214,7 @@ Util.conf_defaults = function(cfg, api, defaults, arr) {
 //
 // Handles the case where load_scripts is invoked from a script that
 // itself is loaded via load_scripts. Once all scripts are loaded the
-// window.onscriptsloaded handler is called (if set).
+// global.onscriptsloaded handler is called (if set).
 Util.get_include_uri = function() {
     return (typeof INCLUDE_URI !== "undefined") ? INCLUDE_URI : "include/";
 }
@@ -243,9 +244,9 @@ Util.load_scripts = function(files) {
                     //console.log("completed script: " + this.src);
                     ps.splice(ps.indexOf(this), 1);
 
-                    // Call window.onscriptsload after last script loads
-                    if (ps.length === 0 && window.onscriptsload) {
-                        window.onscriptsload();
+                    // Call global.onscriptsload after last script loads
+                    if (ps.length === 0 && global.onscriptsload) {
+                        global.onscriptsload();
                     }
                 }
             }
@@ -282,8 +283,8 @@ Util.getPosition = function (obj) {
 // Get mouse event position in DOM element
 Util.getEventPosition = function (e, obj, scale) {
     var evt, docX, docY, pos;
-    //if (!e) evt = window.event;
-    evt = (e ? e : window.event);
+    //if (!e) evt = global.event;
+    evt = (e ? e : global.event);
     evt = (evt.changedTouches ? evt.changedTouches[0] : evt.touches ? evt.touches[0] : evt);
     if (evt.pageX || evt.pageY) {
         docX = evt.pageX;
@@ -308,7 +309,7 @@ Util.addEvent = function (obj, evType, fn){
         var r = obj.attachEvent("on"+evType, fn);
         return r;
     } else if (obj.addEventListener){
-        obj.addEventListener(evType, fn, false); 
+        obj.addEventListener(evType, fn, false);
         return true;
     } else {
         throw("Handler could not be attached");
@@ -337,28 +338,28 @@ Util.stopEvent = function(e) {
 
 
 // Set browser engine versions. Based on mootools.
-Util.Features = {xpath: !!(document.evaluate), air: !!(window.runtime), query: !!(document.querySelector)};
+Util.Features = {xpath: !!(typeof(document) !== 'undefined' && document.evaluate), air: !!(global.runtime), query: !!(typeof(document) !== 'undefined' && document.querySelector)};
 
 Util.Engine = {
     // Version detection break in Opera 11.60 (errors on arguments.callee.caller reference)
     //'presto': (function() {
-    //         return (!window.opera) ? false : ((arguments.callee.caller) ? 960 : ((document.getElementsByClassName) ? 950 : 925)); }()),
-    'presto': (function() { return (!window.opera) ? false : true; }()),
+    //         return (!global.opera) ? false : ((arguments.callee.caller) ? 960 : ((document.getElementsByClassName) ? 950 : 925)); }()),
+    'presto': (function() { return (!global.opera) ? false : true; }()),
 
     'trident': (function() {
-            return (!window.ActiveXObject) ? false : ((window.XMLHttpRequest) ? ((document.querySelectorAll) ? 6 : 5) : 4); }()),
+            return (!global.ActiveXObject) ? false : ((global.XMLHttpRequest) ? ((typeof(document) !== 'undefined' && document.querySelectorAll) ? 6 : 5) : 4); }()),
     'webkit': (function() {
-            try { return (navigator.taintEnabled) ? false : ((Util.Features.xpath) ? ((Util.Features.query) ? 525 : 420) : 419); } catch (e) { return false; } }()),
+            try { return (typeof(navigator) !== 'undefined' && navigator.taintEnabled) ? false : ((Util.Features.xpath) ? ((Util.Features.query) ? 525 : 420) : 419); } catch (e) { return false; } }()),
     //'webkit': (function() {
     //        return ((typeof navigator.taintEnabled !== "unknown") && navigator.taintEnabled) ? false : ((Util.Features.xpath) ? ((Util.Features.query) ? 525 : 420) : 419); }()),
     'gecko': (function() {
-            return (!document.getBoxObjectFor && window.mozInnerScreenX == null) ? false : ((document.getElementsByClassName) ? 19 : 18); }())
+            return (!(typeof(document) !== 'undefined' && document.getBoxObjectFor) && global.mozInnerScreenX == null) ? false : ((typeof(document) !== 'undefined' && document.getElementsByClassName) ? 19 : 18); }())
 };
 if (Util.Engine.webkit) {
     // Extract actual webkit version if available
     Util.Engine.webkit = (function(v) {
             var re = new RegExp('WebKit/([0-9\.]*) ');
-            v = (navigator.userAgent.match(re) || ['', v])[1];
+            v = (typeof(navigator) !== 'undefined' && navigator.userAgent.match(re) || ['', v])[1];
             return parseFloat(v, 10);
         })(Util.Engine.webkit);
 }
@@ -376,4 +377,4 @@ Util.Flash = (function(){
     }
     version = v.match(/\d+/g);
     return {version: parseInt(version[0] || 0 + '.' + version[1], 10) || 0, build: parseInt(version[2], 10) || 0};
-}()); 
+}());

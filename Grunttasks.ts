@@ -3,14 +3,15 @@
  */
 import path = require('path');
 import fs = require('fs');
-import os = require('os');
-import _ = require('underscore');
 import webpack = require('webpack');
 import karma = require('karma');
 import async = require('async');
 import express = require('express');
 import bodyParser = require('body-parser');
 import glob = require('glob');
+const waitForPort: {
+  (host: string, port: number, opts: {numRetries: number, retryInterval?: number}, cb: (e?: Error) => void): void;
+} = require('wait-for-port');
 
 /**
  * Returns a webpack configuration for testing a particular DoppioJVM build.
@@ -60,7 +61,11 @@ function getWebpackConfig(target: string, optimize: boolean = false): webpack.Co
         'fs': require.resolve('browserfs/dist/shims/fs'),
         'path': require.resolve('browserfs/dist/shims/path'),
         'BFSBuffer': require.resolve('browserfs/dist/shims/bufferGlobal'),
-        'process': require.resolve('browserfs/dist/shims/process')
+        'process': require.resolve('browserfs/dist/shims/process'),
+        // webpack provides no way to ignore a require() for a plugin without
+        // triggering an error, so shim these with bogus modules.
+        'net': require.resolve('browserfs/dist/shims/fs'),
+        'dns': require.resolve('browserfs/dist/shims/fs')
       }
     },
     externals: <any> {
@@ -155,6 +160,9 @@ function getKarmaConfig(target: string, singleRun = false, browsers = ['Chrome']
     },
     files: [
       'node_modules/browserfs/dist/browserfs.js',
+      'vendor/websockify/base64.js',
+      'vendor/websockify/util.js',
+      'vendor/websockify/websock.js',
       {pattern: 'node_modules/browserfs/dist/browserfs.js.map', included: false},
       {pattern: `build/test-${target}/**/*.js*`, included: false},
       `build/test-${target}/harness.js`
@@ -550,15 +558,77 @@ export function setup(grunt: IGrunt) {
   grunt.loadNpmTasks('grunt-contrib-connect');
   grunt.loadNpmTasks('grunt-karma');
   grunt.loadNpmTasks('grunt-lineending');
-  grunt.loadNpmTasks('grunt-merge-source-maps');
+  grunt.loadNpmTasks('merge-source-maps');
   grunt.loadNpmTasks('grunt-webpack');
   grunt.loadNpmTasks('grunt-newer');
   grunt.loadNpmTasks('grunt-contrib-compress');
   // Load our custom tasks.
   grunt.loadTasks('tasks');
 
-  grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function() {
-    var launcherPath: string, exePath: string, options = this.options();
+  let websockify: grunt.util.ISpawnedChild = null;
+  grunt.registerTask('start-websockify', 'Starts the websockify server', function(this: grunt.task.ITask) {
+    if (websockify) return;
+    const done = this.async();
+    websockify = grunt.util.spawn({
+      cmd: process.argv[0],
+      args: [path.resolve("node_modules/websockify/websockify.js"), "localhost:7001", "localhost:7002"]
+    }, (err, result, code) => {
+      if (err) {
+        grunt.warn(`Error launching websockify: ${err}`);
+      } else if (code !== 0) {
+        grunt.warn(`Websockify server exited with code ${code}.\nStdout:\n${result.stdout}\n\nStderr:\n${result.stderr}\n`);
+      }
+    });
+    const port = 7001;
+    waitForPort('localhost', port, { numRetries: 100 }, (e) => {
+      if (e) {
+        grunt.fatal(`Websockify did not listen on port ${port}: ${e}. Unable to run networking tests.`);
+      } else {
+        done();
+      }
+    });
+  });
+
+  grunt.registerTask('stop-websockify', 'Stops the websockify server', function() {
+    websockify.kill();
+    websockify = null;
+  });
+
+  let testServer: grunt.util.ISpawnedChild = null;
+  grunt.registerTask('start-test-server', 'Starts a test server', function(this: grunt.task.ITask, target: string) {
+    if (testServer) return;
+    const javaPath = grunt.config('build.java');
+    const done = this.async();
+    testServer = grunt.util.spawn({
+      cmd: javaPath,
+      args: ["classes.util.TCPServer", target]
+    }, () => {});
+    const port = target === 'doppio' ? 7002 : 7001;
+    waitForPort('localhost', port, { numRetries: 100 }, (e) => {
+      if (e) {
+        grunt.fatal(`Test server did not listen on port ${port}: ${e}. Unable to run networking tests.`);
+      } else {
+        done();
+      }
+    });
+
+    function killServer() {
+      if (testServer) {
+        grunt.log.writeln("Killing server prior to exit.");
+        testServer.kill();
+      }
+    }
+    process.on('exit', killServer);
+
+  });
+
+  grunt.registerTask('stop-test-server', 'Stops the test server', function() {
+    testServer.kill();
+    testServer = null;
+  });
+
+  grunt.registerMultiTask('launcher', 'Creates a launcher for the given CLI release.', function(this: grunt.task.ITask) {
+    var launcherPath: string, exePath: string, options = <any> this.options({});
     launcherPath = options.dest;
     exePath = options.src;
 
@@ -579,7 +649,7 @@ export function setup(grunt: IGrunt) {
     }
   });
 
-  grunt.registerTask("check_jdk", "Checks the status of the JDK. Downloads if needed.", function() {
+  grunt.registerTask("check_jdk", "Checks the status of the JDK. Downloads if needed.", function(this: grunt.task.ITask) {
     let done: (status?: boolean) => void = this.async();
     let child = grunt.util.spawn({
       cmd: 'node',
@@ -640,10 +710,12 @@ export function setup(grunt: IGrunt) {
     ['find_native_java',
      'newer:javac',
      'generate_doppio_jar',
+     'start-test-server:native',
      'newer:run_java',
+     'stop-test-server',
      // Windows: Convert CRLF to LF.
      'newer:lineending']);
-  grunt.registerTask('clean_natives', "Deletes already-inlined sourcemaps from natives.", function() {
+  grunt.registerTask('clean_natives', "Deletes already-inlined sourcemaps from natives.", function(this: grunt.task.ITask) {
     let done: (success?: boolean) => void = this.async();
     grunt.file.glob("build/*/src/natives/*.js.map", (err: Error, files: string[]) => {
       if (err) {
@@ -707,10 +779,10 @@ export function setup(grunt: IGrunt) {
     });
   }
 
-  grunt.registerTask('run-benchmark-native-java', 'Runs benchmarks locally', function() {
+  grunt.registerTask('run-benchmark-native-java', 'Runs benchmarks locally', function(this: grunt.task.ITask) {
     benchmarkLocally(grunt.config.get<string>("build.java"), true, path.resolve(__dirname, 'native_java.json'), this.async());
   });
-  grunt.registerTask('run-benchmark-node', 'Runs benchmarks in DoppioJVM in node.', function() {
+  grunt.registerTask('run-benchmark-node', 'Runs benchmarks in DoppioJVM in node.', function(this: grunt.task.ITask) {
     const done = this.async();
     grunt.log.writeln(">>> Running with JIT. <<<");
     benchmarkLocally(path.resolve(__dirname, 'doppio'), false, path.join(__dirname, 'node.json'), (e) => {
@@ -729,7 +801,7 @@ export function setup(grunt: IGrunt) {
      'webpack:benchmark',
      'listings:benchmark',
      'benchmark-browser-server']);
-  grunt.registerTask("benchmark-browser-server", 'Runs an HTTP server for serving up benchmarks.', function() {
+  grunt.registerTask("benchmark-browser-server", 'Runs an HTTP server for serving up benchmarks.', function(this: grunt.task.ITask) {
     const done = this.async();
     const app = express();
     app.use(bodyParser.json());
@@ -743,6 +815,7 @@ export function setup(grunt: IGrunt) {
     app.put('/done', function(req, res) {
       grunt.log.ok("Your browser has informed us that it has completed running benchmarks.");
       res.end();
+      done();
     });
     app.get('/', function(req, res) {
       res.set('Content-Type', 'text/html');
@@ -810,7 +883,9 @@ export function setup(grunt: IGrunt) {
     ]);
   grunt.registerTask('test',
     ['release-cli',
-     'unit_test']);
+     'start-test-server:native',
+     'unit_test',
+     'stop-test-server']);
   grunt.registerTask('build-test-dev',
     [
       'make_build_dir:dev-cli',
@@ -836,21 +911,33 @@ export function setup(grunt: IGrunt) {
      'webpack:test-release',
      'listings:test-release',
      'connect:server',
-     'karma:release']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:release',
+     'stop-test-server',
+     'stop-websockify']);
   grunt.registerTask('test-browser-fast-dev',
     ['build-test-fast-dev',
      'make_build_dir:test-fast-dev',
      'webpack:test-fast-dev',
      'listings:test-fast-dev',
      'connect:server',
-     'karma:fast-dev']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:fast-dev',
+     'stop-test-server',
+     'stop-websockify']);
  grunt.registerTask('test-browser-dev',
      ['build-test-dev',
       'make_build_dir:test-dev',
       'webpack:test-dev',
       'listings:test-dev',
       'connect:server',
-      'karma:dev']);
+      'start-websockify',
+      'start-test-server:doppio',
+      'karma:dev',
+      'stop-test-server',
+      'stop-websockify']);
   grunt.registerTask('clean', 'Deletes built files.', function() {
     ['includes', 'dist', 'build', 'doppio', 'doppio-dev'].concat(grunt.file.expand(['tscommand*.txt'])).concat(grunt.file.expand(['classes/*/*.+(class|runout)'])).forEach(function (path: string) {
       if (grunt.file.exists(path)) {
@@ -865,12 +952,20 @@ export function setup(grunt: IGrunt) {
      'webpack:test-release',
      'listings:test-release',
      'connect:server',
-     'karma:travis']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:travis',
+     'stop-test-server',
+     'stop-websockify']);
   grunt.registerTask('test-browser-appveyor',
     ['build-test-release',
      'make_build_dir:test-release',
      'webpack:test-release',
      'listings:test-release',
      'connect:server',
-     'karma:appveyor']);
+     'start-websockify',
+     'start-test-server:doppio',
+     'karma:appveyor',
+     'stop-test-server',
+     'stop-websockify']);
 };

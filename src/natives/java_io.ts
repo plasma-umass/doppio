@@ -19,12 +19,12 @@ function throwNodeError(thread: JVMThread, err: NodeJS.ErrnoException): void {
   thread.throwNewException(type, err.message);
 }
 
-export default function (): any {
+export default (): any => {
   /**
    * Provide buffering for the underlying input function, returning at most
    * n_bytes of data.
    */
-  function async_input(n_bytes: number, resume: (data: Buffer) => void): void {
+  function asyncInput(n_bytes: number, resume: (data: Buffer) => void): void {
     // Try to read n_bytes from stdin's buffer.
     var read = function (nBytes: number): NodeBuffer {
       // XXX: Returns a Buffer, but DefinitelyTyped says string|Buffer.
@@ -35,7 +35,7 @@ export default function (): any {
         bytes = <Buffer> process.stdin.read();
       }
       // \0 => EOF.
-      if (bytes !== null && bytes.length === 1 && bytes[0] === 0) {
+      if (bytes !== null && bytes.length === 1 && bytes.readUInt8(0) === 0) {
         bytes = new Buffer(0);
       }
       return bytes;
@@ -55,6 +55,7 @@ export default function (): any {
       setImmediate(function () { resume(bytes); });
     }
   }
+
 
   function statFile(fname: string, cb: (stat: fs.Stats) => void): void {
     fs.stat(fname, (err, stat) => {
@@ -137,7 +138,7 @@ export default function (): any {
       } else {
         // reading from System.in, do it async
         thread.setStatus(ThreadStatus.ASYNC_WAITING);
-        async_input(1, (byte: NodeBuffer) => {
+        asyncInput(1, (byte: NodeBuffer) => {
           thread.asyncReturn(0 === byte.length ? -1 : byte[0]);
         });
       }
@@ -178,7 +179,7 @@ export default function (): any {
       } else {
         // reading from System.in, do it async
         thread.setStatus(ThreadStatus.ASYNC_WAITING);
-        async_input(nBytes, (bytes: NodeBuffer) => {
+        asyncInput(nBytes, (bytes: NodeBuffer) => {
           var b: number, idx: number;
           for (idx = 0; idx < bytes.length; idx++) {
             b = bytes.readInt8(idx);
@@ -208,7 +209,7 @@ export default function (): any {
       } else {
         // reading from System.in, do it async
         thread.setStatus(ThreadStatus.ASYNC_WAITING);
-        async_input(nBytes.toNumber(), (bytes) => {
+        asyncInput(nBytes.toNumber(), (bytes) => {
           // we don't care about what the input actually was
           thread.asyncReturn(Long.fromNumber(bytes.length), null);
         });

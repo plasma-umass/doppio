@@ -1,17 +1,15 @@
 import * as Doppio from '../doppiojvm';
 import JVMThread = Doppio.VM.Threading.JVMThread;
-import ReferenceClassData = Doppio.VM.ClassFile.ReferenceClassData;
 import IJVMConstructor = Doppio.VM.ClassFile.IJVMConstructor;
 import logging = Doppio.Debug.Logging;
 import util = Doppio.VM.Util;
 import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
 import debug = logging.debug;
-import interfaces = Doppio.VM.Interfaces;
+import NewSocket = Doppio.Socket.NewSocket;
+import * as dns from 'dns';
 import * as JVMTypes from '../../includes/JVMTypes';
 
-declare var Websock: {
-  new (): interfaces.IWebsock;
-}
+const isNode = !util.are_in_browser();
 
 export default function (): any {
   /**
@@ -30,66 +28,75 @@ export default function (): any {
    * try to connect to one of these invalid IP addresses directly, so Doppio can distinguish between connections to
    * specific IP addresses and connections to domains.
    */
-  var host_lookup: {[addr: number]: string} = {},
-    host_reverse_lookup: {[real_addr: string]: number} = {},
-    // 240.0.0.0 .. 250.0.0.0 is currently unused address space
-    next_host_address = 0xF0000000;
+  const hostLookup: {[addr: number]: string} = {};
+  const hostReverseLookup: {[realAddr: string]: number} = {};
+  // 240.0.0.0 .. 250.0.0.0 is currently unused address space
+  let nextHostAddress = 0xF0000000;
 
-  // See RFC 6455 section 7.4
-  function websocket_status_to_message(status: number): string {
-    switch (status) {
-      case 1000:
-        return 'Normal closure';
-      case 1001:
-        return 'Endpoint is going away';
-      case 1002:
-        return 'WebSocket protocol error';
-      case 1003:
-        return 'Server received invalid data';
-    }
-    return 'Unknown status code or error';
+  {
+    // Make sure localhost aliases to 127.0.0.1.
+    const lhost = packAddress([127,0,0,1]);
+    hostLookup[lhost] = "localhost";
+    hostReverseLookup["localhost"] = lhost;
   }
 
-  function next_address(): number {
-    next_host_address++;
-    if (next_host_address > 0xFA000000) {
+  function nextAddress(): number {
+    nextHostAddress++;
+    if (nextHostAddress > 0xFA000000) {
       logging.error('Out of addresses');
-      next_host_address = 0xF0000000;
+      nextHostAddress = 0xF0000000;
     }
-    return next_host_address;
+    // Turn into a signed number.
+    return nextHostAddress | 0;
   }
 
-  function pack_address(address: number[]): number {
-    var i: number, ret = 0;
-    for (i = 3; i >= 0; i--) {
-      ret |= address[i] & 0xFF;
-      ret <<= 8;
+  function packAddress(address: number[]): number {
+    let data = new Buffer(4);
+    for (let i = 0; i < 4; i++) {
+      data.writeInt8(address[i], i);
     }
+    return data.readInt32BE(0);
+  }
+
+  function hostAllocateAddress(address: string): number {
+    if (hostReverseLookup[address]) {
+      return hostReverseLookup[address];
+    }
+
+    let ret = nextAddress();
+    hostLookup[ret] = address;
+    hostReverseLookup[address] = ret;
     return ret;
   }
 
-  function host_allocate_address(address: string): number {
-    var ret = next_address();
-    host_lookup[ret] = address;
-    host_reverse_lookup[address] = ret;
-    return ret;
+  function addressFromString(address: string): number {
+    let portions = address.split('.').map((val) => parseInt(val, 10));
+    let rv = 0;
+    for (let i = 0; i < 4; i++) {
+      let shift = (3-i) * 8;
+      rv |= portions[i] << shift;
+    }
+    return rv | 0;
   }
 
-  /**
-   * Asynchronously read data from a socket. Note that if this passes 0 to the
-   * callback, Java will think it has received an EOF. Thus, we should wait until:
-   * - We have at least one byte to return.
-   * - The socket is closed.
-   */
-  function socket_read_async(impl: JVMTypes.java_net_PlainSocketImpl, b: JVMTypes.JVMArray<number>, offset: number, len: number, resume_cb: (arg: number) => void): void {
-    var i: number,
-      available = impl.$ws.rQlen(),
-      trimmed_len = available < len ? available : len,
-      read = impl.$ws.rQshiftBytes(trimmed_len);
-    for (i = 0; i < trimmed_len; i++) {
-      b.array[offset++] = read[i];
+  function addressToString(address: number[]): string {
+    let addressComponents = new Array<number>(address.length);
+    let data = new Buffer(4);
+    for (let i = 0; i < 3; i++) {
+      data.writeInt8(address[i], i);
+      addressComponents[i] = data.readUInt8(i);
     }
-    resume_cb(trimmed_len);
+    return addressComponents.join('.');
+  }
+
+  function addressNumberToString(address: number): string {
+    let data = new Buffer(4);
+    data.writeInt32BE(address, 0);
+    let ip = new Array<number>(4);
+    for (let i = 0; i < 4; i++) {
+      ip[i] = data.readUInt8(i);
+    }
+    return ip.join('.');
   }
 
   class java_net_Inet4Address {
@@ -106,29 +113,61 @@ export default function (): any {
       return thread.getJVM().internString('localhost');
     }
 
-    public static 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, hostname: JVMTypes.java_lang_String): void {
-      var rv = util.newObject<JVMTypes.java_net_Inet4Address>(thread, thread.getBsCl(), 'Ljava/net/Inet4Address;');
-      rv['<init>(Ljava/lang/String;I)V'](thread, [hostname, host_allocate_address(hostname.toString())], (e?: JVMTypes.java_lang_Throwable) => {
-        if (e) {
-          thread.throwException(e);
-        } else {
-          thread.asyncReturn(util.newArrayFromData<JVMTypes.java_net_InetAddress>(thread, thread.getBsCl(), '[Ljava/net/InetAddress;', [rv]));
-        }
-      });
+    public static 'lookupAllHostAddr(Ljava/lang/String;)[Ljava/net/InetAddress;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, javaHostname: JVMTypes.java_lang_String): void {
+      const hostname = javaHostname.toString();
+      if (isNode) {
+        thread.setStatus(ThreadStatus.ASYNC_WAITING);
+        dns.resolve4(hostname, (err, addresses) => {
+          if (err) {
+            thread.throwNewException('Ljava/net/UnknownHostException;', `${err}`);
+          } else {
+            const rv = addresses.map((address) => util.newObject<JVMTypes.java_net_Inet4Address>(thread, thread.getBsCl(), 'Ljava/net/Inet4Address;'));
+            let i = 0;
+            util.asyncForEach(rv, (addr: JVMTypes.java_net_Inet4Address, next: (err?: any) => void) => {
+              addr['<init>(Ljava/lang/String;I)V'](thread, [javaHostname, addressFromString(addresses[i++])], next);
+            }, (e) => {
+              if (e) {
+                thread.throwException(e);
+              } else {
+                thread.asyncReturn(util.newArrayFromData<JVMTypes.java_net_InetAddress>(thread, thread.getBsCl(), '[Ljava/net/InetAddress;', rv));
+              }
+            });
+          }
+        });
+      } else {
+        const rv = util.newObject<JVMTypes.java_net_Inet4Address>(thread, thread.getBsCl(), 'Ljava/net/Inet4Address;');
+        rv['<init>(Ljava/lang/String;I)V'](thread, [javaHostname, hostAllocateAddress(hostname)], (e?: JVMTypes.java_lang_Throwable) => {
+          if (e) {
+            thread.throwException(e);
+          } else {
+            thread.asyncReturn(util.newArrayFromData<JVMTypes.java_net_InetAddress>(thread, thread.getBsCl(), '[Ljava/net/InetAddress;', [rv]));
+          }
+        });
+      }
     }
 
     public static 'getHostByAddr([B)Ljava/lang/String;'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, addr: JVMTypes.JVMArray<number>): JVMTypes.java_lang_String {
-      var ret = host_reverse_lookup[pack_address(addr.array)];
-      if (ret == null) {
-        return null;
+      if (isNode) {
+        thread.setStatus(ThreadStatus.ASYNC_WAITING);
+        dns.reverse(addressToString(addr.array), (err, hostnames) => {
+          if (err || hostnames.length === 0) {
+            thread.throwNewException('Ljava/net/UnknownHostException;', `Unknown host: ${addressToString(addr.array)}`);
+          } else {
+            thread.asyncReturn(util.initString(thread.getBsCl(), hostnames[0]));
+          }
+        });
+      } else {
+        let ret = hostReverseLookup[packAddress(addr.array)];
+        if (!ret) {
+          return null;
+        }
+        return util.initString(thread.getBsCl(), "" + ret);
       }
-      return util.initString(thread.getBsCl(), "" + ret);
     }
 
     public static 'isReachable0([BI[BI)Z'(thread: JVMThread, javaThis: JVMTypes.java_net_Inet4AddressImpl, arg0: JVMTypes.JVMArray<number>, arg1: number, arg2: JVMTypes.JVMArray<number>, arg3: number): boolean {
       return false;
     }
-
   }
 
   class java_net_Inet6Address {
@@ -158,85 +197,34 @@ export default function (): any {
   class java_net_PlainSocketImpl {
 
     public static 'socketCreate(Z)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, isServer: number): void {
-      // Check to make sure we're in a browser and the websocket libraries are present
-      if (!util.are_in_browser()) {
-        thread.throwNewException('Ljava/io/IOException;', 'WebSockets are disabled');
-      } else {
-        var fd = javaThis['java/net/SocketImpl/fd'];
-        // Make the FileDescriptor valid with a dummy fd
-        fd['java/io/FileDescriptor/fd'] = 8374;
-        // Finally, create our websocket instance
-        javaThis.$ws = new Websock();
-        javaThis.$is_shutdown = false;
-      }
+      let fd = javaThis['java/net/SocketImpl/fd'];
+      javaThis.$sock = NewSocket();
+      fd['java/io/FileDescriptor/fd'] = javaThis.$sock.fd();
     }
 
     public static 'socketConnect(Ljava/net/InetAddress;II)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, address: JVMTypes.java_net_InetAddress, port: number, timeout: number): void {
-      var i: number,
-        // The IPv4 case
-        holder = address['java/net/InetAddress/holder'],
+      // The IPv4 case
+      let holder = address['java/net/InetAddress/holder'],
         addy = holder['java/net/InetAddress$InetAddressHolder/address'],
-        // Assume scheme is ws for now
-        host = 'ws://';
-      if (host_lookup[addy] == null) {
-        // Populate host string based off of IP address
-        for (i = 3; i >= 0; i--) {
-          var shift = i * 8;
-          host += "" + ((addy & (0xFF << shift)) >>> shift) + ".";
-        }
-        // trim last '.'
-        host = host.substring(0, host.length - 1);
+        addyString: string;
+      if (hostLookup[addy] == null) {
+        addyString = addressNumberToString(addy);
       } else {
-        host += host_lookup[addy];
+        addyString = hostLookup[addy];
       }
-      // Add port
-      host += ":" + port;
-      debug("Connecting to " + host + " with timeout = " + timeout + " ms");
       thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      var id = 0,
-        clear_state = () => {
-          window.clearTimeout(id);
-          javaThis.$ws.on('open', () => { });
-          javaThis.$ws.on('close', () => { });
-          javaThis.$ws.on('error', () => { });
-        },
-        error_cb = (msg: string) => {
-          return (e: any) => {
-            clear_state();
-            thread.throwNewException('Ljava/io/IOException;', msg + ": " + e);
-          };
-        },
-        close_cb = (msg: string) => {
-          return (e: any) => {
-            clear_state();
-            thread.throwNewException('Ljava/io/IOException;', msg + ": " + websocket_status_to_message(e.status));
-          };
-        };
-      // Success case
-      javaThis.$ws.on('open', () => {
-        debug('Open!');
-        clear_state();
-        thread.asyncReturn();
-      });
-      // Error cases
-      javaThis.$ws.on('close', close_cb('Connection failed! (Closed)'));
-      // Timeout case. In the case of no timeout, we set a default one of 10s.
+      debug(`Connecting to ${addyString} with timeout of ${timeout} ms`);
       if (timeout === 0) {
+        // If no timeout specified, use default of 10 seconds.
         timeout = 10000;
       }
-      // XXX: Casting to a number because NodeJS typings specify a Timer object.
-      id = <number><any> setTimeout(error_cb('Connection timeout!'), timeout);
-      debug("Host: " + host);
-      // Launch!
-      try {
-        javaThis.$ws.open(host);
-      } catch (err) {
-        error_cb('Connection failed! (exception)')(err.message);
-      }
-    }
-
-    public static 'socketBind(Ljava/net/InetAddress;I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: JVMTypes.java_net_InetAddress, arg1: number): void {
-      thread.throwNewException('Ljava/io/IOException;', 'WebSockets doesn\'t know how to bind');
+      javaThis.$sock.connect(port, addyString, timeout, (e) => {
+        if (e) {
+          thread.throwNewException('Ljava/io/IOException;', e.message);
+        } else {
+          thread.asyncReturn();
+        }
+      });;
     }
 
     public static 'socketListen(I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
@@ -247,20 +235,16 @@ export default function (): any {
       thread.throwNewException('Ljava/io/IOException;', 'WebSockets doesn\'t know how to accept');
     }
 
-    public static 'socketAvailable()I'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl): void {
-      thread.setStatus(ThreadStatus.ASYNC_WAITING);
-      setImmediate(() => {
-        thread.asyncReturn(javaThis.$ws.rQlen());
-      });
+    public static 'socketAvailable()I'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl): number {
+      return javaThis.$sock.available();
     }
 
     public static 'socketClose0(Z)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
-      // TODO: Something isn't working here
-      javaThis.$ws.close();
+      javaThis.$sock.close();
     }
 
     public static 'socketShutdown(I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, arg0: number): void {
-      javaThis.$is_shutdown = true;
+      javaThis.$sock.shutdown();
     }
 
     public static 'initProto()V'(thread: JVMThread): void {
@@ -277,53 +261,38 @@ export default function (): any {
     }
 
     public static 'socketSendUrgentData(I)V'(thread: JVMThread, javaThis: JVMTypes.java_net_PlainSocketImpl, data: number): void {
-      // Urgent data is meant to jump ahead of the
-      // outbound stream. We keep no notion of this,
-      // so queue up the byte like normal
-      javaThis.$ws.send(data);
+      javaThis.$sock.write([data]);
     }
-
   }
 
   class java_net_SocketInputStream {
-
-    public static 'socketRead0(Ljava/io/FileDescriptor;[BIII)I'(thread: JVMThread, javaThis: JVMTypes.java_net_SocketInputStream, fd: JVMTypes.java_io_FileDescriptor, b: JVMTypes.JVMArray<number>, offset: number, len: number, timeout: number): void {
-      var impl = <JVMTypes.java_net_PlainSocketImpl> javaThis['java/net/SocketInputStream/impl'];
-      if (impl.$is_shutdown === true) {
-        thread.throwNewException('Ljava/io/IOException;', 'Socket is shutdown.');
+    public static 'socketRead0(Ljava/io/FileDescriptor;[BIII)I'(thread: JVMThread, javaThis: JVMTypes.java_net_SocketInputStream, fd: JVMTypes.java_io_FileDescriptor, b: JVMTypes.JVMArray<number>, offset: number, len: number, timeout: number): void | number {
+      const impl = <JVMTypes.java_net_PlainSocketImpl> javaThis['java/net/SocketInputStream/impl'];
+      const sock = impl.$sock;
+      if (sock.available() >= len) {
+        return sock.readSync(b.array, offset, len);
       } else {
+        if (timeout === 0) {
+          timeout = 10000;
+        }
         thread.setStatus(ThreadStatus.ASYNC_WAITING);
-        setTimeout(() => {
-          socket_read_async(impl, b, offset, len, (arg: number) => {
-            thread.asyncReturn(arg);
-          })
-        }, timeout);
+        sock.readAsync(b.array, offset, len, timeout, (len) => {
+          thread.asyncReturn(len);
+        });
       }
     }
 
     public static 'init()V'(thread: JVMThread): void {
       // NOP
     }
-
   }
 
   class java_net_SocketOutputStream {
 
     public static 'socketWrite0(Ljava/io/FileDescriptor;[BII)V'(thread: JVMThread, javaThis: JVMTypes.java_net_SocketOutputStream, fd: JVMTypes.java_io_FileDescriptor, b: JVMTypes.JVMArray<number>, offset: number, len: number): void {
-      var impl = <JVMTypes.java_net_PlainSocketImpl> javaThis['java/net/SocketOutputStream/impl'];
-      if (impl.$is_shutdown === true) {
-        thread.throwNewException('Ljava/io/IOException;', 'Socket is shutdown.');
-      } else if (impl.$ws.get_raw_state() !== WebSocket.OPEN) {
-        thread.throwNewException('Ljava/io/IOException;', 'Connection isn\'t open');
-      } else {
-        // TODO: This can be optimized by accessing the 'Q' directly
-        impl.$ws.send(b.array.slice(offset, offset + len));
-        // Let the browser write it out
-        thread.setStatus(ThreadStatus.ASYNC_WAITING);
-        setImmediate(() => {
-          thread.asyncReturn();
-        });
-      }
+      const impl = <JVMTypes.java_net_PlainSocketImpl> javaThis['java/net/SocketOutputStream/impl'];
+      const sock = impl.$sock;
+      sock.write(b.array.slice(offset, offset + len));
     }
 
     public static 'init()V'(thread: JVMThread): void {

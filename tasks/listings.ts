@@ -1,5 +1,4 @@
 import fs = require('fs');
-import path = require('path');
 type DirTree = {[name: string]: DirTree};
 
 function generateListings(dir: string, ignore: string[]): any {

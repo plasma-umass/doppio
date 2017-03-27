@@ -4,6 +4,8 @@
         "declaration": true,
         "target": "ES3",
         "noImplicitAny": true,
+        "noUnusedLocals": true,
+        "noImplicitThis": true,
         "inlineSourceMap": true,
         "inlineSources": true,
         "outDir": "build/tsc"

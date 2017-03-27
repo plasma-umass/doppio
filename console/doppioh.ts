@@ -315,6 +315,8 @@ import ReferenceClassData = DoppioJVM.VM.ClassFile.ReferenceClassData;
 import Monitor = DoppioJVM.VM.Monitor;
 import ClassLoader = DoppioJVM.VM.ClassFile.ClassLoader;
 import Interfaces = DoppioJVM.VM.Interfaces;
+import DoppioSocket = DoppioJVM.Socket.DoppioSocket;
+import * as net from 'net';
 
 declare module JVMTypes {\n`);
   }
