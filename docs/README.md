@@ -27,14 +27,13 @@ file system downloads files from an HTTP server. We will use that in this guide.
 Create a folder on your webserver containing the following directory structure:
 
 * `doppio.js`
-* `natives/*.js`
 * `vendor/java_home`
 
-In that folder, run [BrowserFS's `XHRIndexer.coffee` script](https://github.com/jvilk/BrowserFS/blob/master/tools/XHRIndexer.coffee),
-and pipe its output to `listings.json`:
+Run `npm i -g browserfs` to install BrowserFS globally. Then, run `make_xhrfs_index` to
+create a directory listing for the file system called `listings.json`:
 
 ```
-$ path/to/XHRIndexer.coffee > listings.json
+$ make_xhrfs_index listings.json
 ```
 
 Next, add the following JavaScript to your webpage to set up BrowserFS with:
@@ -66,7 +65,7 @@ Next, add the following JavaScript to your webpage to set up BrowserFS with:
 </script>
 ```
 
-BrowserFS also supports a wide variety of browser-local storage technologies, including HTML5 and IndexedDB, and cloud storage like Dropbox. DoppioJVM is able to read files, classes, and native methods from any of these storage mediums through BrowserFS.
+BrowserFS also supports a wide variety of browser-local storage technologies, including HTML5 and IndexedDB; cloud storage like Dropbox; zip files; and more! DoppioJVM is able to read files, classes, and native methods from any of these storage mediums through BrowserFS.
 
 ### Step 2: Invoking the JVM
 
@@ -326,11 +325,11 @@ and then change `nativeClasspath` to point to that directory.
 
 The easiest way to add natives to the in-browser filesystem is to:
 
-* Install BrowserFS globally: `npm i -g browserfs`
-* In your built copy of DoppioJVM, create a directory in `vendor` called `natives`.
+* Install BrowserFS globally if you haven't already: `npm i -g browserfs`
+* In your built copy of DoppioJVM, create a directory called `natives`.
 * Place your native method modules into that folder.
-* Regenerate `listings.json` from the root built folder so that it includes your new natives: `make_xhrfs_index > listings.json`
-* Change the `nativeClasspath` option to `['/sys/vendor/natives']`
+* Regenerate `listings.json` from the root built folder so that it includes your new natives: `make_xhrfs_index  listings.json`
+* Change the `nativeClasspath` option to `['/sys/natives']`
 
 Whenever you add a native or rename a native file, you will need to re-generate `listings.json`.
 

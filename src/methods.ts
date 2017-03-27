@@ -552,7 +552,7 @@ if(!u.isNull(t,f,obj${suffix})){obj${suffix}['${methodReference.fullSignature}']
 
     function closeCurrentTrace() {
       if (trace !== null) {
-        // console.log("Tracing method: " + _this.fullSignature);
+        // console.log("Tracing method: " + self.fullSignature);
         const compiledFunction = trace.close(thread);
         if (compiledFunction) {
           self.compiledFunctions[trace.startPC] = compiledFunction;
