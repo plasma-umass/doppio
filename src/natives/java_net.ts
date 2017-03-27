@@ -8,6 +8,7 @@ import ThreadStatus = Doppio.VM.Enums.ThreadStatus;
 import debug = logging.debug;
 import interfaces = Doppio.VM.Interfaces;
 import * as JVMTypes from '../../includes/JVMTypes';
+import {setImmediate} from 'browserfs';
 
 declare var Websock: {
   new (): interfaces.IWebsock;

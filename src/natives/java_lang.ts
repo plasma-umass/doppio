@@ -16,6 +16,7 @@ import MethodHandleReferenceKind = Doppio.VM.Enums.MethodHandleReferenceKind;
 import attributes = Doppio.VM.ClassFile.Attributes;
 import ClassData = Doppio.VM.ClassFile.ClassData;
 import * as JVMTypes from '../../includes/JVMTypes';
+import {setImmediate} from 'browserfs';
 
 export default function (): any {
   var debug = logging.debug;

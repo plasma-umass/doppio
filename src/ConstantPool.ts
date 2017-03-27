@@ -9,6 +9,7 @@ import {ClassLoader} from './ClassLoader';
 // For type information.
 import {JVMThread, BytecodeStackFrame} from './threading';
 import * as JVMTypes from '../includes/JVMTypes';
+import {setImmediate} from 'browserfs';
 
 /**
  * Represents a constant pool item. Use the item's type to discriminate among them.

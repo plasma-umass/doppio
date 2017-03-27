@@ -19,6 +19,7 @@ import global from './global';
 import getGlobalRequire from './global_require';
 import * as BrowserFS from 'browserfs';
 import * as DoppioJVM from './doppiojvm';
+import {setImmediate} from 'browserfs';
 
 declare var RELEASE: boolean;
 if (typeof RELEASE === 'undefined') global.RELEASE = false;

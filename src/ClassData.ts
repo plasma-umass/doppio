@@ -15,6 +15,7 @@ import JVM from './jvm';
 import StringOutputStream from './StringOutputStream';
 import Monitor from './Monitor';
 import * as JVMTypes from '../includes/JVMTypes';
+import {setImmediate} from 'browserfs';
 
 const trace = logging.trace;
 const debug = logging.debug;

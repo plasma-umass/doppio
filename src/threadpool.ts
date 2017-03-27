@@ -1,4 +1,5 @@
 import {ThreadStatus} from './enums';
+import {setImmediate} from 'browserfs';
 import assert from './assert';
 
 /**

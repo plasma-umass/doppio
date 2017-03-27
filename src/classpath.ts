@@ -9,6 +9,7 @@ import {asyncForEach} from './util';
 import TBFSFS from 'browserfs/dist/node/core/FS';
 // Export so it can be returned from ClasspathJar.
 import TZipFS from 'browserfs/dist/node/backend/ZipFS';
+import {setImmediate} from 'browserfs';
 export type TZipFS = TZipFS;
 let BFSFS = BrowserFS.BFSRequire('fs');
 let ZipFS = BrowserFS.FileSystem.ZipFS;

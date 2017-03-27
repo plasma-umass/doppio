@@ -14,6 +14,7 @@ import {IConstantPoolItem, MethodReference, ClassReference, InterfaceMethodRefer
 import * as JVMTypes from '../includes/JVMTypes';
 import Monitor from './Monitor';
 import {default as ThreadPool, Thread} from './threadpool';
+import {setImmediate} from 'browserfs';
 import global from './global';
 
 const debug = logging.debug;

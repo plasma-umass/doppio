@@ -10,6 +10,7 @@ import Long = Doppio.VM.Long;
 import assert = Doppio.Debug.Assert;
 import * as JVMTypes from '../../includes/JVMTypes';
 import FDState = Doppio.VM.FDState;
+import {setImmediate} from 'browserfs';
 
 function throwNodeError(thread: JVMThread, err: NodeJS.ErrnoException): void {
   let type = "Ljava/io/IOException;";

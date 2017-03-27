@@ -10,6 +10,7 @@ import JAR from './jar';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as JVMTypes from '../includes/JVMTypes';
+import {setImmediate} from 'browserfs';
 const debug = logging.debug;
 const error = logging.error;
 
