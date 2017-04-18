@@ -836,6 +836,20 @@ class JVM {
   public dumpState(filename: string, cb: (er: any) => void): void {
     fs.appendFile(filename, this.threadPool.getThreads().map((t: JVMThread) => `Thread ${t.getRef()}:\n` + t.getPrintableStackTrace()).join("\n\n"), cb);
   }
+
+  /**
+   * Releases all resources held by this JVM instance
+   */
+  public close() {
+    this.heap = null;
+    this.bsCl = null;
+    this.systemProperties = null;
+    this.internedStrings = null;
+    this.threadPool = null;
+    this.natives = null;
+    this.nativeClasspath = null;
+    this.firstThread = null;
+  }
 }
 
 export default JVM;
