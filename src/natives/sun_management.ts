@@ -94,6 +94,10 @@ export default function (): any {
       return Long.fromNumber(thread.getJVM().getStartupTime().getTime());
     }
 
+    public static 'getUptime0()J'(thread: JVMThread, javaThis: JVMTypes.sun_management_VMManagementImpl): Long {
+      return Long.fromNumber(Date.now() - thread.getJVM().getStartupTime().getTime());
+    }
+
     public static 'getAvailableProcessors()I'(thread: JVMThread, javaThis: JVMTypes.sun_management_VMManagementImpl): number {
       return 1;
     }
