@@ -70,13 +70,61 @@ export default function (): any {
 
   }
 
+  class sun_nio_ch_Net {
+
+    public static 'pollinValue()S'(thread: JVMThread): number {
+      return 0;
+    }
+
+    public static 'polloutValue()S'(thread: JVMThread): number {
+      return 0;
+    }
+
+    public static 'pollerrValue()S'(thread: JVMThread): number {
+      return 0;
+    }
+
+    public static 'pollhupValue()S'(thread: JVMThread): number {
+      return 0;
+    }
+
+    public static 'pollnvalValue()S'(thread: JVMThread): number {
+      return 0;
+    }
+
+    public static 'pollconnValue()S'(thread: JVMThread): number {
+      return 0;
+    }
+
+    public static 'isExclusiveBindAvailable()I'(thread: JVMThread): number {
+      return -1;
+    }
+
+    public static 'isIPv6Available0()Z'(thread: JVMThread): boolean {
+      return true;
+    }
+
+    public static 'socket0(ZZZZ)I'(thread: JVMThread): number {
+      return 0;
+    }
+
+  }
+
   class sun_nio_ch_IOUtil {
+    private static fdVal: number = 0;
 
     public static 'iovMax()I'(thread: JVMThread): number {
       // Maximum number of IOVectors supported. Let's punt and say zero.
       return 0;
     }
 
+    public static 'setfdVal(Ljava/io/FileDescriptor;I)V'(thread: JVMThread, fdVal: number): void {
+      sun_nio_ch_IOUtil.fdVal = fdVal;
+    }
+
+    public static 'fdVal(Ljava/io/FileDescriptor;)I'(thread: JVMThread): number {
+      return sun_nio_ch_IOUtil.fdVal;
+    }
   }
 
   class sun_nio_ch_FileDispatcherImpl {
