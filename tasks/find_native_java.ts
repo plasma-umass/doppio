@@ -1,8 +1,8 @@
 import path = require('path');
 import {exec, spawn} from 'child_process';
 import semver = require('semver');
-import LocateJavaHome = require('locate-java-home');
-import {IJavaHomeInfo} from 'locate-java-home/js/lib/interfaces';
+import LocateJavaHome from 'locate-java-home';
+import {IJavaHomeInfo} from 'locate-java-home/ts/lib/interfaces';
 
 /**
  * Grunt task that does the following:
