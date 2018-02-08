@@ -17,10 +17,6 @@ cache:
     - node_modules
     - vendor/java_home
 
-before_install:
-  - ./node_modules/.bin/tsc --version
-  - ./node_modules/.bin/grunt --version
-
 addons:
   firefox: "latest"
 
@@ -29,6 +25,8 @@ before_script:
   - sh -e /etc/init.d/xvfb start
   - sudo apt-get install -y haveged
   - sudo service haveged start
+  - ./node_modules/.bin/tsc --version
+  - ./node_modules/.bin/grunt --version
 
 script:
   - if test $TEST_BROWSER -eq 0; then echo "grunt test"; ./node_modules/.bin/grunt --stack test --grunt-ignore-compile-errors; else echo "grunt test-browser-travis"; ./node_modules/.bin/grunt --stack test-browser-travis --grunt-ignore-compile-errors; fi
