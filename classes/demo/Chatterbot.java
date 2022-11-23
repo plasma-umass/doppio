@@ -679,7 +679,7 @@ public class Chatterbot {
 	// we consider that there are four type of keywords those who have any front or back underscore are allowed 
 	// to be at any place on a given user input and they can also be found alone on a given user input.
 	// Those who have a back and front (_keyWord_) underscore can be found only alone on an input.
-	// The keywords who only have have an understandin the front can never be found at the end of an input.
+	// The keywords who only have an understandin the front can never be found at the end of an input.
 	// And finally, the keywords who have an underscore at the back should always be located at the end of the input.
 	static boolean wrong_location(String keyword, char firstChar, char lastChar, int pos)
 	{
