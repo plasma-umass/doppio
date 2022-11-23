@@ -39,9 +39,9 @@ export default class gLong {
    *
    * The internal representation of a long is the two given signed, 32-bit values.
    * We use 32-bit pieces because these are the size of integers on which
-   * Javascript performs bit-operations.  For operations like addition and
+   * JavaScript performs bit-operations.  For operations like addition and
    * multiplication, we split each number into 16-bit pieces, which can easily be
-   * multiplied within Javascript's floating-point representation without overflow
+   * multiplied within JavaScript's floating-point representation without overflow
    * or change in sign.
    *
    * In the algorithms below, we frequently reduce the negative case to the

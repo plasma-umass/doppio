@@ -18,7 +18,7 @@ class NashornTest {
     engine.eval("print('Hello World!');");
 
     // JVM -> JS
-    engine.eval("var fun1 = function(name) {\nprint('Hi there from Javascript, ' + name);\nreturn 'greetings from javascript';};\nvar fun2 = function (object) {\nprint('JS Class Definition: ' + Object.prototype.toString.call(object));\n};");
+    engine.eval("var fun1 = function(name) {\nprint('Hi there from JavaScript, ' + name);\nreturn 'greetings from javascript';};\nvar fun2 = function (object) {\nprint('JS Class Definition: ' + Object.prototype.toString.call(object));\n};");
     Invocable invocable = (Invocable) engine;
     Object result = invocable.invokeFunction("fun1", "Peter Parker");
     System.out.println(result);
