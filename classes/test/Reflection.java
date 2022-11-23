@@ -58,7 +58,7 @@ public class Reflection {
     Class<Reflection> c = Reflection.class;
 
     // test the ability to reflectively get constants, which are usually baked
-    // in to bytecodes by the compiler
+    // into bytecodes by the compiler
     Field f = c.getField("constValue");
     System.out.println(f.get(null));
     Field f2 = c.getField("constInt");
