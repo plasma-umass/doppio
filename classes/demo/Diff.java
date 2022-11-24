@@ -83,7 +83,7 @@ public class Diff {
     of changes, the algorithm is linear in the file size.  */
   public boolean heuristic = false;
 
-  /** When set to true, the algorithm returns a guarranteed minimal
+  /** When set to true, the algorithm returns a guaranteed minimal
       set of changes.  This makes things slower, sometimes much slower. */
   public boolean no_discards = false;
 
