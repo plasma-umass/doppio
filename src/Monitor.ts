@@ -74,7 +74,7 @@ export default class Monitor {
    * @param cb If this method returns false, then this callback will be
    *   triggered once the thread becomes owner of the monitor. At that time,
    *   the thread will be in the RUNNABLE state.
-   * @return True if successfull, false if not. If not successful, the thread
+   * @return True if successful, false if not. If not successful, the thread
    *   becomes BLOCKED, and the input callback will be triggered once the
    *   thread owns the monitor and is RUNNABLE.
    */
