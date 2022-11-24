@@ -471,7 +471,7 @@ public class Chatterbot {
 			}
 		};
 
-	private static String transposList[][] = {
+	private static String transposeList[][] = {
 			{"I'M", "YOU'RE"},
 			{"AM", "ARE"},
 			{"WERE", "WAS"},
@@ -646,11 +646,11 @@ public class Chatterbot {
 	public static String transpose( String str )
 	{
 		boolean bTransposed = false;
-		for(int i = 0; i < transposList.length; ++i)
+		for(int i = 0; i < transposeList.length; ++i)
 		{
-			String first = transposList[i][1];
+			String first = transposeList[i][1];
 			first = " " + first + " ";
-			String second = transposList[i][0];
+			String second = transposeList[i][0];
 			second = " " + second + " ";
 
 			String backup = str;
@@ -663,11 +663,11 @@ public class Chatterbot {
 
 		if(!bTransposed)
 		{
-			for( int i = 0; i < transposList.length; ++i )
+			for( int i = 0; i < transposeList.length; ++i )
 			{
-				String first = transposList[i][0];
+				String first = transposeList[i][0];
 				first = " " + first + " ";
-				String second = transposList[i][1];
+				String second = transposeList[i][1];
 				second = " " + second + " ";
 				str = str.replace(first, second);
 			}
