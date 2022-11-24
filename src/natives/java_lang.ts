@@ -345,13 +345,13 @@ export default function (): any {
         cls = javaThis.$cls;
       if (cls instanceof ReferenceClassData) {
         let myClass = cls.getInternalName(),
-          iclses = <attributes.InnerClasses[]> cls.getAttributes('InnerClasses'),
+          iclasses = <attributes.InnerClasses[]> cls.getAttributes('InnerClasses'),
           flatNames: ConstantPool.ClassReference[] = [];
-        if (iclses.length === 0) {
+        if (iclasses.length === 0) {
           return ret;
         }
-        for (let i = 0; i < iclses.length; i++) {
-          flatNames = flatNames.concat(iclses[i].classes.filter((c: attributes.IInnerClassInfo) =>
+        for (let i = 0; i < iclasses.length; i++) {
+          flatNames = flatNames.concat(iclasses[i].classes.filter((c: attributes.IInnerClassInfo) =>
             // select inner classes where the enclosing class is my_class
             c.outerInfoIndex > 0 && (<ConstantPool.ClassReference> (<ReferenceClassData<any>> cls).constantPool.get(c.outerInfoIndex)).name === myClass)
             .map((c: attributes.IInnerClassInfo) => (<ConstantPool.ClassReference> (<ReferenceClassData<any>> cls).constantPool.get(c.innerInfoIndex))));

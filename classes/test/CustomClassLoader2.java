@@ -110,10 +110,10 @@ public class CustomClassLoader2 extends ClassLoader {
       System.out.println("\tMethod: " + m.getName());
   }
 
-  public static void printInterfaces(Class[] clses) {
-    System.out.println("There are " + clses.length + " interfaces!");
-    java.util.Arrays.sort(clses, ClassNameComparator);
-    for (Class cls : clses) {
+  public static void printInterfaces(Class[] classes) {
+    System.out.println("There are " + classes.length + " interfaces!");
+    java.util.Arrays.sort(classes, ClassNameComparator);
+    for (Class cls : classes) {
       System.out.println("Interface: " + cls.getName());
       printMethods(cls.getMethods());
     }

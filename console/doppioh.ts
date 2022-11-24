@@ -296,8 +296,8 @@ class TSDeclarationFile {
     this.generateMiscDefinitions();
     this.generateClassDefinition('Ljava/lang/Throwable;');
     if (args.stringOption('force_headers', null)) {
-      var clses = args.stringOption('force_headers', null).split(':');
-      clses.forEach((clsName: string) => {
+      var classes = args.stringOption('force_headers', null).split(':');
+      classes.forEach((clsName: string) => {
         this.generateClassDefinition(int_classname(clsName));
       });
     }
