@@ -75,7 +75,7 @@ let classpath: IClasspathItem[] = null,
     }
   );
 
-function printEraseableLine(line: string): void {
+function printErasableLine(line: string): void {
   // Undocumented functions.
   if ((<any> process.stdout)['clearLine']) {
     (<any> process.stdout).clearLine();
@@ -324,8 +324,8 @@ declare module JVMTypes {\n`);
    */
   public headersEnd(): void {
     this._processGenerateQueue();
-    // Print newline to clear eraseable line.
-    printEraseableLine(`Processed ${this.headerCount} classes.\n`);
+    // Print newline to clear erasable line.
+    printErasableLine(`Processed ${this.headerCount} classes.\n`);
     this.headerStream.end(`}
 export = JVMTypes;\n`, () => {});
   }
@@ -340,7 +340,7 @@ export = JVMTypes;\n`, () => {});
         injectedFields = cls.getInjectedFields(),
         injectedMethods = cls.getInjectedMethods(),
         injectedStaticMethods = cls.getInjectedStaticMethods();
-      printEraseableLine(`[${this.headerCount++}] Processing header for ${descriptor2typestr(desc)}...`);
+      printErasableLine(`[${this.headerCount++}] Processing header for ${descriptor2typestr(desc)}...`);
 
       if (cls.accessFlags.isInterface()) {
         // Interfaces map to TypeScript interfaces.
