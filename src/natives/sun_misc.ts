@@ -598,7 +598,7 @@ export default function (): any {
         }
       }
 
-      // Typed as any due to type discrepency between browser and node.
+      // Typed as any due to type discrepancy between browser and node.
       var timer: any;
       if (timeout !== Infinity) {
         timer = setTimeout(() => {
