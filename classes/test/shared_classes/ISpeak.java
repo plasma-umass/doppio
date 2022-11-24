@@ -77,7 +77,7 @@ public interface ISpeak {
     } catch (NoSuchMethodException e) {
       System.out.println("\t\tNo such method!");
     } catch (IllegalAccessException e) {
-      System.out.println("\t\tIllegalAccessExcetpion");
+      System.out.println("\t\tIllegalAccessException");
     } catch (Throwable e) {
       System.out.println("\t\tEncountered throwable: " + e);
     }
