@@ -419,7 +419,7 @@ export class Method extends AbstractMethodField {
   }
 
   public incrBBEntries() {
-    // Optimisiation: we countdown to zero, instead of storing a positive limit in a separate variable
+    // Optimisation: we countdown to zero, instead of storing a positive limit in a separate variable
     this.numBBEntries--;
   }
 
