@@ -1018,7 +1018,7 @@ export class JVMThread implements Thread {
         trace(`T${this.getRef()} Not exiting; VM is still booting.`);
       }
     } else {
-      // There are things on the stack. This exit is occuring before the stack has emptied.
+      // There are things on the stack. This exit is occurring before the stack has emptied.
       // Clear the stack, set to terminated.
       while (this.stack.length > 0) {
         this.stack.pop();
