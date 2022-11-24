@@ -11,9 +11,9 @@ public class StringInternExample {
         // (1) For the first test case, we construct a String by
         // concatenating several literals. Note, however,
         // that all parts of the string are known at compile time.
-        String aConcatentatedString = "A" + " " + "String";
+        String aConcatenatedString = "A" + " " + "String";
 
-        test(aString,aConcatentatedString,true,true);
+        test(aString,aConcatenatedString,true,true);
 
         // (2) For the second case, construct the same String, but
         // in a way such that it's contents cannot be known
