@@ -247,7 +247,7 @@ export default class Monitor {
       // Interrupting a previously-waiting thread before it acquires a lock
       // makes no semantic sense, as the thread is currently suspended in a
       // synchronized block that requires ownership of the monitor.
-      blockStatus = ThreadStatus.UNINTERRUPTABLY_BLOCKED,
+      blockStatus = ThreadStatus.UNINTERRUPTIBLY_BLOCKED,
       blockCb = () => {
         // Thread is RUNNABLE before we trigger the callback.
         thread.setStatus(ThreadStatus.RUNNABLE);

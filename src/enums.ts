@@ -36,7 +36,7 @@ export enum ThreadStatus {
   // interrupted from waiting on a monitor is in this state.
   // Why? Well, the thread has *already* been interrupted once, but cannot
   // process the interruption until it regains the lock.
-  UNINTERRUPTABLY_BLOCKED,
+  UNINTERRUPTIBLY_BLOCKED,
   // A thread that is waiting indefinitely for another thread to perform a
   // particular action is in this state.
   WAITING,

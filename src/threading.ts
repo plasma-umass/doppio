@@ -893,7 +893,7 @@ export class JVMThread implements Thread {
         assert(this.monitor != null && this.monitor.isWaiting(this), "A waiting thread must be waiting on a monitor.");
         return true;
       case ThreadStatus.BLOCKED:
-      case ThreadStatus.UNINTERRUPTABLY_BLOCKED:
+      case ThreadStatus.UNINTERRUPTIBLY_BLOCKED:
         assert(this.monitor != null && this.monitor.isBlocked(this), "A blocked thread must be blocked on a monitor");
         return true;
       case ThreadStatus.ASYNC_WAITING:
@@ -933,7 +933,7 @@ export class JVMThread implements Thread {
         jvmNewStatus |= JVMTIThreadState.RUNNABLE;
         break;
       case ThreadStatus.BLOCKED:
-      case ThreadStatus.UNINTERRUPTABLY_BLOCKED:
+      case ThreadStatus.UNINTERRUPTIBLY_BLOCKED:
         jvmNewStatus |= JVMTIThreadState.BLOCKED_ON_MONITOR_ENTER;
         break;
       case ThreadStatus.WAITING:
@@ -1229,14 +1229,14 @@ validTransitions[ThreadStatus.TERMINATED][ThreadStatus.RUNNABLE] = "Thread is re
 validTransitions[ThreadStatus.TERMINATED][ThreadStatus.ASYNC_WAITING] = "[JVM Bootup] Thread is resurrected for internal operation";
 validTransitions[ThreadStatus.TIMED_WAITING] = {};
 validTransitions[ThreadStatus.TIMED_WAITING][ThreadStatus.RUNNABLE] = "Timer expires, or thread is interrupted, and thread immediately acquires lock";
-validTransitions[ThreadStatus.TIMED_WAITING][ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is interrupted or notified, or timer expires, and lock already owned";
+validTransitions[ThreadStatus.TIMED_WAITING][ThreadStatus.UNINTERRUPTIBLY_BLOCKED] = "Thread is interrupted or notified, or timer expires, and lock already owned";
 validTransitions[ThreadStatus.TIMED_WAITING][ThreadStatus.TERMINATED] = "Thread is terminated whilst waiting.";
-validTransitions[ThreadStatus.UNINTERRUPTABLY_BLOCKED] = {};
-validTransitions[ThreadStatus.UNINTERRUPTABLY_BLOCKED][ThreadStatus.RUNNABLE] = "Thread acquires monitor";
-validTransitions[ThreadStatus.UNINTERRUPTABLY_BLOCKED][ThreadStatus.TERMINATED] = "Thread is terminated whilst blocked.";
+validTransitions[ThreadStatus.UNINTERRUPTIBLY_BLOCKED] = {};
+validTransitions[ThreadStatus.UNINTERRUPTIBLY_BLOCKED][ThreadStatus.RUNNABLE] = "Thread acquires monitor";
+validTransitions[ThreadStatus.UNINTERRUPTIBLY_BLOCKED][ThreadStatus.TERMINATED] = "Thread is terminated whilst blocked.";
 validTransitions[ThreadStatus.WAITING] = {};
 validTransitions[ThreadStatus.WAITING][ThreadStatus.RUNNABLE] = "Thread is interrupted, and immediately acquires lock";
-validTransitions[ThreadStatus.WAITING][ThreadStatus.UNINTERRUPTABLY_BLOCKED] = "Thread is notified or interrupted, and does not immediately acquire lock";
+validTransitions[ThreadStatus.WAITING][ThreadStatus.UNINTERRUPTIBLY_BLOCKED] = "Thread is notified or interrupted, and does not immediately acquire lock";
 validTransitions[ThreadStatus.WAITING][ThreadStatus.TERMINATED] = "Thread is terminated whilst waiting.";
 
 /**
