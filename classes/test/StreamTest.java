@@ -45,7 +45,7 @@ public class StreamTest {
       int sumStream = numbers.stream().reduce(0, (x,y) -> x+y);
       int sumStream2 = numbers.stream().reduce(0, Integer::sum);
       int parallelSumStream2 = numbers.parallelStream().reduce(0, Integer::sum);
-      System.out.println("Stream1: " + sumStream + " Stream2: " + sumStream2 + " Parallal Stream: " + parallelSumStream2);
+      System.out.println("Stream1: " + sumStream + " Stream2: " + sumStream2 + " Parallel Stream: " + parallelSumStream2);
     }
   }
 }
