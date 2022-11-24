@@ -675,7 +675,7 @@ public class Chatterbot {
 		return str;
 	}
 
-	// determins if the keyword position is correct depending on the type of keywords within these algorithm, 
+	// determines if the keyword position is correct depending on the type of keywords within these algorithm, 
 	// we consider that there are four type of keywords those who have any front or back underscore are allowed 
 	// to be at any place on a given user input and they can also be found alone on a given user input.
 	// Those who have a back and front (_keyWord_) underscore can be found only alone on an input.
