@@ -66,7 +66,7 @@ class Hurray {
 
   public Hurray() {};
 }
-// Implements a nonexistant interface.
+// Implements a nonexistent interface.
 class NotGood implements IDontExist {
   public NotGood() {};
 }

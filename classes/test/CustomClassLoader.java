@@ -88,7 +88,7 @@ public class CustomClassLoader extends ClassLoader {
     System.out.println("the same as that loaded by System loader.");
 
     try {
-      Class<?> nonexistant = Class.forName("[Ljava.lang.Lolol;", true, loader1);
+      Class<?> nonexistent = Class.forName("[Ljava.lang.Lolol;", true, loader1);
     } catch (ClassNotFoundException e) {
       System.out.println(e);
     }

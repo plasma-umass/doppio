@@ -165,7 +165,7 @@ class NioFilesPaths {
       System.out.println("Recreating old file: " + f.createNewFile());
       System.out.println("Moving on top of old file: " + f2.renameTo(f));
       System.out.println("Deleting old file: " + f.delete());
-      System.out.println("Trying to move nonexistant old file: " + f.renameTo(f2));
+      System.out.println("Trying to move nonexistent old file: " + f.renameTo(f2));
     }
 
     // Read only.
