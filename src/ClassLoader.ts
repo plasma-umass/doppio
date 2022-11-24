@@ -19,7 +19,7 @@ const error = logging.error;
  */
 class ClassLocks {
   /**
-   * typrStr => array of callbacks to trigger when operation completes.
+   * typeStr => array of callbacks to trigger when operation completes.
    */
   private locks: { [typeStr: string]: ClassLock } = {};
 
