@@ -21,18 +21,18 @@ class Zip {
 
 			// Compress the bytes
 			byte[] output = new byte[100];
-			Deflater compresser = new Deflater();
-			compresser.setInput(input);
-			compresser.finish();
-			int compressedDataLength = compresser.deflate(output);
+			Deflater compressor = new Deflater();
+			compressor.setInput(input);
+			compressor.finish();
+			int compressedDataLength = compressor.deflate(output);
 			System.out.println(compressedDataLength);
 
 			// Decompress the bytes
-			Inflater decompresser = new Inflater();
-			decompresser.setInput(output, 0, compressedDataLength);
+			Inflater decompressor = new Inflater();
+			decompressor.setInput(output, 0, compressedDataLength);
 			byte[] result = new byte[100];
-			int resultLength = decompresser.inflate(result);
-			decompresser.end();
+			int resultLength = decompressor.inflate(result);
+			decompressor.end();
 			System.out.println(resultLength);
 
 			//Decode the bytes into a String
