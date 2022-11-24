@@ -1519,7 +1519,7 @@ export class Opcodes {
         code[pc] = OpCode.INVOKEINTERFACE_FAST;
       } else {
         // Initialize our class and rerun opcode.
-        // Note that the existance of an object of an interface type does *not*
+        // Note that the existence of an object of an interface type does *not*
         // mean that the interface is initialized!
         initializeClass(thread, frame, methodReference.classInfo);
       }
