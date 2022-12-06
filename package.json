@@ -42,7 +42,7 @@
     "escodegen": "^1.8.1",
     "esprima": "^3.1.0",
     "estraverse": "^4.2.0",
-    "express": "^4.13.4",
+    "express": "^4.17.3",
     "grunt": "^1.0",
     "grunt-cli": "^1.2",
     "grunt-contrib-compress": "^1.2.0",
